@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useGame } from '../context/GameContext';
+import { Home } from 'lucide-react';
 
 export default function Podium() {
-  const { player, opponents } = useGame();
+  const { player, opponents, navigate } = useGame();
   const allPlayers = [player, ...opponents.filter(o => o._joined)].sort((a, b) => b.score - a.score);
 
   const [confetti, setConfetti] = useState([]);
@@ -122,16 +123,25 @@ export default function Podium() {
           </div>
         </div>
 
-        <div className="flex gap-3 justify-center py-4 px-5 pb-8 md:pb-6 w-full bg-gradient-to-t from-navy via-navy/80 to-transparent shrink-0">
-          {['🔥', '😂', '😱', '👏', '👑'].map((emoji, i) => (
-            <div 
-              key={i}
-              onClick={react}
-              className="text-[28px] md:text-[32px] bg-white/[0.05] border border-white/10 rounded-full w-[56px] h-[56px] md:w-[64px] md:h-[64px] flex items-center justify-center cursor-pointer transition-all shadow-md hover:bg-white/10 hover:border-white/30 hover:scale-110 active:scale-95"
-            >
-              {emoji}
-            </div>
-          ))}
+        <div className="flex flex-col gap-4 py-4 px-5 pb-8 md:pb-6 w-full bg-gradient-to-t from-navy via-navy/80 to-transparent shrink-0">
+          <div className="flex gap-3 justify-center">
+            {['🔥', '😂', '😱', '👏', '👑'].map((emoji, i) => (
+              <div 
+                key={i}
+                onClick={react}
+                className="text-[28px] md:text-[32px] bg-white/[0.05] border border-white/10 rounded-full w-[56px] h-[56px] md:w-[64px] md:h-[64px] flex items-center justify-center cursor-pointer transition-all shadow-md hover:bg-white/10 hover:border-white/30 hover:scale-110 active:scale-95"
+              >
+                {emoji}
+              </div>
+            ))}
+          </div>
+          
+          <button 
+            onClick={() => navigate('home')}
+            className="w-full p-[14px] rounded-xl bg-white/5 border border-white/10 text-white font-bold text-[14px] tracking-[0.5px] uppercase cursor-pointer hover:bg-white/10 transition-colors flex items-center justify-center gap-2 mt-2"
+          >
+            <Home size={16} /> Return to Homepage
+          </button>
         </div>
 
       </div>
