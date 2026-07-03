@@ -4,7 +4,7 @@ import { LETTERS } from '../constants';
 
 export default function Question() {
   const { 
-    currentQ, player, opponents,
+    gameState, currentQ, player, opponents,
     timeLeft, answered, bonusRound, chosenAnswer,
     handleAnswer, gameQuestions, gameConfig
   } = useGame();
@@ -108,23 +108,29 @@ export default function Question() {
         <div className={`flex flex-col md:grid md:grid-cols-2 gap-3 md:gap-4 mt-auto md:mt-0 ${isTF ? 'grid grid-cols-2' : ''}`}>
           {q.opts.map((opt, i) => {
             const isSelected = chosenAnswer === i;
-            const isCorrect = answered && i === q.answer;
-            const isWrong = answered && isSelected && i !== q.answer;
-            const isDimmed = answered && i !== q.answer;
+            const showResult = gameState === 'result';
+            const isCorrect = showResult && i === q.answer;
+            const isWrong = showResult && isSelected && i !== q.answer;
+            const isDimmed = showResult && i !== q.answer;
 
             let btnClass = "bg-white/[0.04] border-white/10 hover:bg-amber/10 hover:border-amber/50 text-white hover:shadow-[0_4px_20px_rgba(245,166,35,0.15)] hover:-translate-y-0.5 active:translate-y-0";
             let letterClass = "bg-white/10 text-white/80 border border-white/5 shadow-inner";
 
             if (answered) {
-              btnClass = "bg-white/[0.02] border-white/5 text-white/60 shadow-none hover:translate-y-0";
+              if (isSelected) {
+                btnClass = "bg-amber/20 border-amber text-white shadow-[0_0_15px_rgba(245,166,35,0.2)]";
+              } else {
+                btnClass = "bg-white/[0.02] border-white/5 text-white/60 shadow-none hover:translate-y-0";
+              }
+            }
+
+            if (showResult) {
               if (isCorrect) {
                 btnClass = "bg-green-500/20 border-green-500 text-white shadow-[0_0_30px_rgba(34,197,94,0.3)] z-10 scale-[1.02] hover:translate-y-0";
                 letterClass = "bg-green-500 text-white border-green-400";
               } else if (isWrong) {
                 btnClass = "bg-red-500/20 border-red-500 text-white shadow-[0_0_30px_rgba(239,68,68,0.3)] z-10 hover:translate-y-0";
                 letterClass = "bg-red-500 text-white border-red-400";
-              } else if (isSelected) {
-                btnClass = "bg-amber/20 border-amber text-white hover:translate-y-0";
               }
             }
 

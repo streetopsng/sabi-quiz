@@ -137,7 +137,7 @@ export default function Podium() {
           </div>
           
           <button 
-            onClick={() => navigate('home')}
+            onClick={() => window.location.reload()}
             className="w-full p-[14px] rounded-xl bg-white/5 border border-white/10 text-white font-bold text-[14px] tracking-[0.5px] uppercase cursor-pointer hover:bg-white/10 transition-colors flex items-center justify-center gap-2 mt-2"
           >
             <Home size={16} /> Return to Homepage

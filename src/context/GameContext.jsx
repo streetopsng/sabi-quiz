@@ -26,6 +26,7 @@ export const GameProvider = ({ children }) => {
   const [opponents, setOpponents] = useState([]);
   
   // Gameplay state
+  const [gameState, setGameState] = useState('lobby');
   const [currentQ, setCurrentQ] = useState(0);
   const [timeLeft, setTimeLeft] = useState(15);
   const [answered, setAnswered] = useState(false);
@@ -67,6 +68,7 @@ export const GameProvider = ({ children }) => {
       const data = snapshot.data();
       gameRef.current = data;
       
+      setGameState(data.state);
       setCurrentQ(data.currentQ);
       setBonusRound(data.bonusRound);
       
@@ -97,39 +99,22 @@ export const GameProvider = ({ children }) => {
           }
         }
 
-        // Shuffle options once per new question
+        // Setup options without random shuffling so they match on all devices
         if (shuffledQRef.current !== data.currentQ) {
           shuffledQRef.current = data.currentQ;
           setAnswered(false);
           setChosenAnswer(-1);
           
-          let shuffledOpts = data.questions[data.currentQ].opts;
-          let newOptionMap = data.questions[data.currentQ].opts.map((_, i) => i);
-          
-          if (data.questions[data.currentQ].type === 'mc') {
-            const combined = data.questions[data.currentQ].opts.map((opt, i) => ({ opt, original: i }));
-            combined.sort(() => Math.random() - 0.5);
-            shuffledOpts = combined.map(c => c.opt);
-            newOptionMap = combined.map(c => c.original);
-          }
-          
-          optionMapRef.current = newOptionMap;
+          optionMapRef.current = data.questions[data.currentQ].opts.map((_, i) => i);
           setGameQuestions(prev => {
             const next = [...prev];
-            next[data.currentQ] = { ...data.questions[data.currentQ], opts: shuffledOpts };
+            next[data.currentQ] = { ...data.questions[data.currentQ] };
             return next;
           });
         }
       } else if (data.state === 'result') {
         clearInterval(window.currentTimer);
-        
-        // Show correct answer
-        const renderedCorrectIndex = optionMapRef.current.indexOf(data.questions[data.currentQ].answer);
-        setGameQuestions(prev => {
-          const next = [...prev];
-          if (next[data.currentQ]) next[data.currentQ].answer = renderedCorrectIndex;
-          return next;
-        });
+        setAnswered(true); // Ensure players who didn't click still see the result
       } else if (data.state === 'podium' && currentScreen !== 'podium') {
         navigate('podium');
         sessionStorage.removeItem('sabi_game_code');
@@ -413,7 +398,7 @@ export const GameProvider = ({ children }) => {
       player, setPlayer,
       opponents,
       gameCode, createGame, joinGameWithCode, gameConfig, gameQuestions,
-      currentQ, timeLeft, answered, bonusRound, chosenAnswer,
+      gameState, currentQ, timeLeft, answered, bonusRound, chosenAnswer,
       flashColor, streakToast,
       startRace, handleAnswer, isHost, cancelGame, kickPlayer
     }}>
