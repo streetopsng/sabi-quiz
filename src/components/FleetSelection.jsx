@@ -118,14 +118,16 @@ export default function FleetSelection() {
       </div>
 
       {/* Mobile Only: Fixed Lock In Button */}
-      <div className="md:hidden absolute bottom-0 left-0 w-full p-5 pt-10 bg-gradient-to-t from-[#16213E] via-[#16213E]/90 to-transparent z-30">
-        <motion.button 
-          whileTap={{ scale: 0.96 }}
-          onClick={handleConfirm}
-          className="w-full p-[18px] rounded-xl bg-amber text-[#1a1a00] text-[16px] font-extrabold tracking-[0.5px] uppercase border-none cursor-pointer shadow-[0_4px_20px_rgba(245,166,35,0.3)] flex items-center justify-center gap-2"
-        >
-          Lock in my vehicle <Check size={18} strokeWidth={3} />
-        </motion.button>
+      <div className="md:hidden fixed bottom-0 left-0 w-full p-5 pt-10 bg-gradient-to-t from-[#16213E] via-[#16213E]/90 to-transparent z-30 pointer-events-none">
+        <div className="pointer-events-auto">
+          <motion.button 
+            whileTap={{ scale: 0.96 }}
+            onClick={handleConfirm}
+            className="w-full p-[18px] rounded-xl bg-amber text-[#1a1a00] text-[16px] font-extrabold tracking-[0.5px] uppercase border-none cursor-pointer shadow-[0_4px_20px_rgba(245,166,35,0.3)] flex items-center justify-center gap-2"
+          >
+            Lock in my vehicle <Check size={18} strokeWidth={3} />
+          </motion.button>
+        </div>
       </div>
 
     </motion.div>

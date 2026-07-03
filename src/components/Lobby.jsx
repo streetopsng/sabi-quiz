@@ -8,6 +8,7 @@ export default function Lobby() {
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [showCancelModal, setShowCancelModal] = useState(false);
 
   const handleBanterChange = (val) => {
     setPlayer(p => ({ ...p, banter: val }));
@@ -139,7 +140,7 @@ export default function Lobby() {
                 </motion.button>
                 <motion.button 
                   whileTap={{ scale: 0.96 }}
-                  onClick={cancelGame}
+                  onClick={() => setShowCancelModal(true)}
                   className="w-full p-[14px] rounded-xl bg-red-500/10 text-red-500 border border-red-500/30 text-[14px] font-bold tracking-[0.5px] uppercase cursor-pointer hover:bg-red-500/20 flex items-center justify-center gap-2 transition-colors"
                 >
                   Cancel Game <X size={16} />
@@ -220,6 +221,45 @@ export default function Lobby() {
           ))}
         </div>
       </div>
+
+      {/* Cancel Confirmation Modal */}
+      <AnimatePresence>
+        {showCancelModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-5">
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+              onClick={() => setShowCancelModal(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative bg-[#1A1A2E] border border-red-500/30 p-6 rounded-2xl shadow-2xl w-full max-w-sm flex flex-col items-center text-center"
+            >
+              <div className="w-12 h-12 bg-red-500/20 text-red-500 rounded-full flex items-center justify-center mb-4">
+                <X size={24} />
+              </div>
+              <h3 className="text-[20px] font-bold text-white mb-2">Cancel Session?</h3>
+              <p className="text-[14px] text-white/60 mb-6 leading-relaxed">Are you sure you want to cancel? This will instantly remove everyone from the lobby.</p>
+              <div className="flex gap-3 w-full">
+                <button 
+                  onClick={() => setShowCancelModal(false)}
+                  className="flex-1 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white font-medium hover:bg-white/10 transition-colors"
+                >
+                  Go Back
+                </button>
+                <button 
+                  onClick={() => { setShowCancelModal(false); cancelGame(); }}
+                  className="flex-1 py-3.5 rounded-xl bg-red-500 text-white font-bold shadow-lg shadow-red-500/20 active:scale-95 transition-all"
+                >
+                  Yes, Cancel
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

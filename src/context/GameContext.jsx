@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { db } from '../firebase';
-import { doc, collection, setDoc, getDoc, updateDoc, onSnapshot, getDocs, deleteDoc } from 'firebase/firestore';
+import { doc, collection, setDoc, getDoc, updateDoc, onSnapshot, getDocs, deleteDoc, writeBatch } from 'firebase/firestore';
 import { INITIAL_PLAYER, QUESTIONS } from '../constants';
 
 const GameContext = createContext();
@@ -205,7 +205,17 @@ export const GameProvider = ({ children }) => {
       }
       generatedQuestions = generatedQuestions.slice(0, config.qCount);
 
-      await setDoc(doc(db, 'games', code), {
+      // Optimistic UI updates
+      setGameCode(code);
+      setGameQuestions(generatedQuestions);
+      sessionStorage.setItem('sabi_game_code', code);
+      sessionStorage.setItem('sabi_is_host', 'true');
+      navigate('lobby');
+
+      // Background Network writes via Batch for max speed
+      const batch = writeBatch(db);
+      
+      batch.set(doc(db, 'games', code), {
         code,
         hostSessionId: sessionId,
         config,
@@ -214,43 +224,10 @@ export const GameProvider = ({ children }) => {
         currentQ: 0,
         startedAt: null
       });
-      
-      setGameCode(code);
-      setGameQuestions(generatedQuestions);
-      sessionStorage.setItem('sabi_game_code', code);
-      sessionStorage.setItem('sabi_is_host', 'true');
-      
-      joinGameWithCode(code, 'HR Admin');
-    } catch (err) {
-      console.error("Firebase Create Game Error:", err);
-      alert("Failed to create game: " + err.message + "\n\nCheck your Firebase Rules and Environment Variables!");
-    }
-  };
 
-  const joinGameWithCode = async (code, customName) => {
-    const gameDoc = await getDoc(doc(db, 'games', code));
-    if (!gameDoc.exists()) {
-      alert("Game not found!");
-      return;
-    }
-    
-    const gameData = gameDoc.data();
-    setGameCode(code);
-    setGameConfig(gameData.config);
-    setGameQuestions(gameData.questions);
-    
-    const isSavedHost = sessionStorage.getItem('sabi_is_host') === 'true' && gameData.hostSessionId === sessionId;
-    setIsHost(isSavedHost);
-    sessionStorage.setItem('sabi_game_code', code);
-    if (!isSavedHost) sessionStorage.setItem('sabi_is_host', 'false');
-    
-    const playerRef = doc(db, 'games', code, 'players', sessionId);
-    const pDoc = await getDoc(playerRef);
-    
-    if (!pDoc.exists()) {
-      await setDoc(playerRef, {
+      batch.set(doc(db, 'games', code, 'players', sessionId), {
         ...player,
-        name: customName || player.name,
+        name: 'HR Admin',
         sessionId,
         score: 0,
         streak: 0,
@@ -258,14 +235,60 @@ export const GameProvider = ({ children }) => {
         chosenAnswer: -1,
         connected: true
       });
-    } else {
-      await updateDoc(playerRef, {
-        connected: true,
-        ...(customName && { name: customName })
-      });
+
+      await batch.commit();
+      
+    } catch (err) {
+      console.error("Firebase Create Game Error:", err);
+      alert("Failed to create game: " + err.message + "\n\nCheck your Firebase Rules and Environment Variables!");
+      navigate('home');
     }
-    
-    navigate(gameData.state);
+  };
+
+  const joinGameWithCode = async (code, customName) => {
+    try {
+      const gameDoc = await getDoc(doc(db, 'games', code));
+      if (!gameDoc.exists()) {
+        alert("Game not found or invalid code!");
+        return;
+      }
+      
+      const gameData = gameDoc.data();
+      setGameCode(code);
+      setGameConfig(gameData.config);
+      setGameQuestions(gameData.questions);
+      
+      const isSavedHost = sessionStorage.getItem('sabi_is_host') === 'true' && gameData.hostSessionId === sessionId;
+      setIsHost(isSavedHost);
+      sessionStorage.setItem('sabi_game_code', code);
+      if (!isSavedHost) sessionStorage.setItem('sabi_is_host', 'false');
+      
+      // Fire and forget player write for instant UI transition
+      const playerRef = doc(db, 'games', code, 'players', sessionId);
+      getDoc(playerRef).then(pDoc => {
+        if (!pDoc.exists()) {
+          setDoc(playerRef, {
+            ...player,
+            name: customName || player.name,
+            sessionId,
+            score: 0,
+            streak: 0,
+            answered: false,
+            chosenAnswer: -1,
+            connected: true
+          });
+        } else {
+          updateDoc(playerRef, {
+            connected: true,
+            ...(customName && { name: customName })
+          });
+        }
+      });
+      
+      navigate(gameData.state);
+    } catch(err) {
+      alert("Failed to join: " + err.message);
+    }
   };
 
   // Sync player cosmetics
