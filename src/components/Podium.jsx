@@ -35,13 +35,13 @@ export default function Podium() {
 
   return (
     <motion.div 
-      className="flex flex-col md:flex-row h-full max-w-[430px] md:max-w-5xl mx-auto md:gap-12 md:py-10 bg-navy overflow-hidden md:overflow-visible"
+      className="flex flex-col md:flex-row h-full max-w-[430px] md:max-w-5xl mx-auto md:gap-12 md:py-10 bg-navy overflow-y-auto no-scrollbar"
       initial={{ opacity: 0, y: 50 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
     >
       {/* LEFT COLUMN (Desktop) / TOP (Mobile) */}
-      <div className="flex flex-col items-center flex-1 shrink-0 relative z-10">
+      <div className="flex flex-col items-center md:flex-1 shrink-0 w-full relative z-10">
         
         {/* Confetti Container */}
         <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none rounded-3xl z-20">
@@ -104,9 +104,9 @@ export default function Podium() {
       </div>
 
       {/* RIGHT COLUMN (Desktop) / BOTTOM (Mobile) */}
-      <div className="flex flex-col md:w-[400px] shrink-0 h-full max-h-full overflow-hidden mt-6 md:mt-0 z-10 bg-black/20 md:bg-white/[0.02] md:border md:border-white/10 md:rounded-3xl md:shadow-2xl md:backdrop-blur-sm">
+      <div className="flex flex-col md:w-[400px] shrink-0 md:h-full md:max-h-full md:overflow-hidden mt-6 md:mt-0 z-10 bg-black/20 md:bg-white/[0.02] md:border md:border-white/10 md:rounded-3xl md:shadow-2xl md:backdrop-blur-sm w-full">
         
-        <div className="flex-1 overflow-y-auto px-5 md:px-6 py-4 md:py-6 w-full no-scrollbar">
+        <div className="md:flex-1 overflow-visible md:overflow-y-auto px-5 md:px-6 py-4 md:py-6 w-full no-scrollbar">
           <div className="text-[11px] md:text-[13px] tracking-[2px] uppercase text-muted mb-4 md:mb-6 font-bold flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-amber/80" /> Full results
           </div>
