@@ -191,35 +191,40 @@ export const GameProvider = ({ children }) => {
   };
 
   const createGame = async (config) => {
-    setGameConfig(config);
-    setIsHost(true);
-    
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let code = '';
-    for(let i=0; i<6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
-    
-    let generatedQuestions = [];
-    while (generatedQuestions.length < config.qCount) {
-      generatedQuestions = [...generatedQuestions, ...QUESTIONS];
-    }
-    generatedQuestions = generatedQuestions.slice(0, config.qCount);
+    try {
+      setGameConfig(config);
+      setIsHost(true);
+      
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      let code = '';
+      for(let i=0; i<6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+      
+      let generatedQuestions = [];
+      while (generatedQuestions.length < config.qCount) {
+        generatedQuestions = [...generatedQuestions, ...QUESTIONS];
+      }
+      generatedQuestions = generatedQuestions.slice(0, config.qCount);
 
-    await setDoc(doc(db, 'games', code), {
-      code,
-      hostSessionId: sessionId,
-      config,
-      questions: generatedQuestions,
-      state: 'lobby',
-      currentQ: 0,
-      startedAt: null
-    });
-    
-    setGameCode(code);
-    setGameQuestions(generatedQuestions);
-    sessionStorage.setItem('sabi_game_code', code);
-    sessionStorage.setItem('sabi_is_host', 'true');
-    
-    joinGameWithCode(code, 'HR Admin');
+      await setDoc(doc(db, 'games', code), {
+        code,
+        hostSessionId: sessionId,
+        config,
+        questions: generatedQuestions,
+        state: 'lobby',
+        currentQ: 0,
+        startedAt: null
+      });
+      
+      setGameCode(code);
+      setGameQuestions(generatedQuestions);
+      sessionStorage.setItem('sabi_game_code', code);
+      sessionStorage.setItem('sabi_is_host', 'true');
+      
+      joinGameWithCode(code, 'HR Admin');
+    } catch (err) {
+      console.error("Firebase Create Game Error:", err);
+      alert("Failed to create game: " + err.message + "\n\nCheck your Firebase Rules and Environment Variables!");
+    }
   };
 
   const joinGameWithCode = async (code, customName) => {

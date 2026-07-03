@@ -200,22 +200,24 @@ export default function CreateGame() {
       </div>
 
       {/* Floating Action Button area */}
-      <div className="absolute bottom-0 left-0 w-full p-5 pt-8 bg-gradient-to-t from-navy via-navy to-transparent z-30">
-        <motion.button 
-          whileTap={{ scale: 0.96 }}
-          onClick={() => createGame({
-            sessionName,
-            topicPack,
-            qCount,
-            timerMode,
-            bonusRounds,
-            streakMultipliers,
-            hardMode
-          })}
-          className="w-full p-[18px] rounded-xl bg-amber text-[#1a1a00] text-[16px] font-extrabold tracking-[0.5px] uppercase border-none cursor-pointer shadow-[0_4px_20px_rgba(245,166,35,0.3)] flex items-center justify-center gap-2"
-        >
-          Create Room <Zap size={18} />
-        </motion.button>
+      <div className="fixed md:absolute bottom-0 left-0 w-full p-5 pt-8 bg-gradient-to-t from-navy via-navy to-transparent z-30 pointer-events-none">
+        <div className="max-w-[430px] md:max-w-3xl mx-auto pointer-events-auto">
+          <motion.button 
+            whileTap={{ scale: 0.96 }}
+            onClick={() => createGame({
+              sessionName,
+              topicPack,
+              qCount,
+              timerMode,
+              bonusRounds,
+              streakMultipliers,
+              hardMode
+            })}
+            className="w-full p-[18px] rounded-xl bg-amber text-[#1a1a00] text-[16px] font-extrabold tracking-[0.5px] uppercase border-none cursor-pointer shadow-[0_4px_20px_rgba(245,166,35,0.3)] flex items-center justify-center gap-2"
+          >
+            Create Room <Zap size={18} />
+          </motion.button>
+        </div>
       </div>
     </motion.div>
   );
