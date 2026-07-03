@@ -373,7 +373,7 @@ export const GameProvider = ({ children }) => {
              firstBloodQ: false
           });
        }
-    }, 3000);
+    }, 1500);
   };
 
   const cancelGame = async () => {
