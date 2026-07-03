@@ -1,14 +1,13 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { io } from 'socket.io-client';
-import { INITIAL_PLAYER } from '../constants';
+import { db } from '../firebase';
+import { doc, collection, setDoc, getDoc, updateDoc, onSnapshot, getDocs, deleteDoc } from 'firebase/firestore';
+import { INITIAL_PLAYER, QUESTIONS } from '../constants';
 
 const GameContext = createContext();
 
 export const useGame = () => useContext(GameContext);
 
 export const GameProvider = ({ children }) => {
-  const [socket, setSocket] = useState(null);
-  
   // Generate or retrieve persistent Session ID
   const [sessionId] = useState(() => {
     let id = sessionStorage.getItem('sabi_session_id');
@@ -35,205 +34,149 @@ export const GameProvider = ({ children }) => {
   const [flashColor, setFlashColor] = useState(null); 
   const [streakToast, setStreakToast] = useState(null);
   
-  // Option mapping for shuffling
   const optionMapRef = useRef([]);
+  const shuffledQRef = useRef(-1);
+  const gameRef = useRef(null);
+  const resolvingRef = useRef(false);
   
-  // Host state
   const [isHost, setIsHost] = useState(false);
 
+  // Auto-rejoin logic
   useEffect(() => {
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
-    const newSocket = io(backendUrl);
-    setSocket(newSocket);
-    return () => newSocket.close();
+    const savedCode = sessionStorage.getItem('sabi_game_code');
+    if (savedCode) {
+      joinGameWithCode(savedCode);
+    }
   }, []);
 
-  // Auto-rejoin logic on mount/socket connection
+  // Firebase Realtime Listeners
   useEffect(() => {
-    if (socket) {
-      const savedCode = sessionStorage.getItem('sabi_game_code');
-      if (savedCode) {
-        socket.emit('rejoin_game', { code: savedCode, sessionId }, (res) => {
-          if (res.success) {
-            setGameCode(savedCode);
-            setGameConfig(res.config);
-            if (res.questions) setGameQuestions(res.questions);
-            
-            const isSavedHost = sessionStorage.getItem('sabi_is_host') === 'true';
-            setIsHost(isSavedHost);
-            
-            if (res.state === 'question' && res.questionData) {
-              setCurrentQ(res.currentQ);
-              setTimeLeft(res.timeLeft);
-              setBonusRound(res.bonusRound);
-              setAnswered(false);
-              setChosenAnswer(-1);
-              
-              let shuffledOpts = res.questionData.opts;
-              let newOptionMap = res.questionData.opts.map((_, i) => i);
-              if (res.questionData.type === 'mc') {
-                const combined = res.questionData.opts.map((opt, i) => ({ opt, original: i }));
-                combined.sort(() => Math.random() - 0.5);
-                shuffledOpts = combined.map(c => c.opt);
-                newOptionMap = combined.map(c => c.original);
-              }
-              optionMapRef.current = newOptionMap;
+    if (!gameCode) return;
 
-              setGameQuestions(prev => {
-                const next = [...(res.questions || prev)];
-                next[res.currentQ] = { ...res.questionData, opts: shuffledOpts };
-                return next;
-              });
-
-              clearInterval(window.currentTimer);
-              let ticks = res.timeLeft;
-              window.currentTimer = setInterval(() => {
-                ticks--;
-                setTimeLeft(ticks);
-                if (ticks <= 0) clearInterval(window.currentTimer);
-              }, 1000);
-            }
-            
-            updateScores(res.players);
-            
-            // Check if player had already answered
-            const me = res.players.find(p => p.sessionId === sessionId);
-            if (me && me.answered) {
-              setAnswered(true);
-            }
-
-            navigate(res.state);
-          } else {
-            // Failed to rejoin (server restarted or game over)
-            sessionStorage.removeItem('sabi_game_code');
-            sessionStorage.removeItem('sabi_is_host');
-          }
-        });
+    // Listen to Game Document
+    const unsubGame = onSnapshot(doc(db, 'games', gameCode), (snapshot) => {
+      if (!snapshot.exists()) {
+        alert('The Race Director cancelled the session.');
+        sessionStorage.removeItem('sabi_game_code');
+        sessionStorage.removeItem('sabi_is_host');
+        setGameCode('');
+        navigate('home');
+        return;
       }
-    }
-  }, [socket, sessionId]);
 
-  useEffect(() => {
-    if (!socket) return;
-
-    socket.on('lobby_update', (playersList) => {
-      updateScores(playersList);
-    });
-
-    socket.on('question_start', (data) => {
-      setCurrentQ(data.qIndex);
+      const data = snapshot.data();
+      gameRef.current = data;
+      
+      setCurrentQ(data.currentQ);
       setBonusRound(data.bonusRound);
-      setTimeLeft(data.timeLeft);
-      setAnswered(false);
-      setChosenAnswer(-1);
       
-      let shuffledOpts = data.question.opts;
-      let newOptionMap = data.question.opts.map((_, i) => i);
-      
-      if (data.question.type === 'mc') {
-        const combined = data.question.opts.map((opt, i) => ({ opt, original: i }));
-        combined.sort(() => Math.random() - 0.5);
-        shuffledOpts = combined.map(c => c.opt);
-        newOptionMap = combined.map(c => c.original);
-      }
-      
-      optionMapRef.current = newOptionMap;
-
-      setGameQuestions(prev => {
-        const next = [...prev];
-        next[data.qIndex] = { ...data.question, opts: shuffledOpts };
-        return next;
-      });
-
-      updateScores(data.players);
-      navigate('question');
-      
-      clearInterval(window.currentTimer);
-      let ticks = data.timeLeft;
-      window.currentTimer = setInterval(() => {
-        ticks--;
-        setTimeLeft(ticks);
-        if (ticks <= 0) clearInterval(window.currentTimer);
-      }, 1000);
-    });
-
-    socket.on('question_result', (data) => {
-      clearInterval(window.currentTimer);
-      setAnswered(true);
-      
-      const me = data.players.find(p => p.sessionId === sessionId);
-      const wasCorrect = me && me.chosenAnswer === data.correctAnswer;
-      
-      if (me && chosenAnswer !== -1) {
-        setFlashColor(wasCorrect ? 'green' : 'red');
-        setTimeout(() => setFlashColor(null), 300);
-      }
-
-      if (wasCorrect && me) {
-        showStreakToast(me.streak);
-      }
-
-      const renderedCorrectIndex = optionMapRef.current.indexOf(data.correctAnswer);
-      
-      setGameQuestions(prev => {
-        const next = [...prev];
-        if (next[currentQ]) {
-          next[currentQ].answer = renderedCorrectIndex;
+      // Handle screen routing based on game state
+      if (data.state === 'question') {
+        if (currentScreen !== 'question') navigate('question');
+        
+        // Setup local timer based on server timestamp
+        if (data.startedAt) {
+          const elapsed = Math.floor((Date.now() - data.startedAt) / 1000);
+          const tLeft = Math.max(0, data.config.timerMode - elapsed);
+          setTimeLeft(tLeft);
+          
+          clearInterval(window.currentTimer);
+          if (tLeft > 0) {
+            window.currentTimer = setInterval(() => {
+              setTimeLeft(prev => {
+                if (prev <= 1) {
+                  clearInterval(window.currentTimer);
+                  if (isHost) resolveQuestion(gameCode);
+                  return 0;
+                }
+                return prev - 1;
+              });
+            }, 1000);
+          } else if (isHost) {
+            resolveQuestion(gameCode);
+          }
         }
-        return next;
-      });
 
-      updateScores(data.players);
+        // Shuffle options once per new question
+        if (shuffledQRef.current !== data.currentQ) {
+          shuffledQRef.current = data.currentQ;
+          setAnswered(false);
+          setChosenAnswer(-1);
+          
+          let shuffledOpts = data.questions[data.currentQ].opts;
+          let newOptionMap = data.questions[data.currentQ].opts.map((_, i) => i);
+          
+          if (data.questions[data.currentQ].type === 'mc') {
+            const combined = data.questions[data.currentQ].opts.map((opt, i) => ({ opt, original: i }));
+            combined.sort(() => Math.random() - 0.5);
+            shuffledOpts = combined.map(c => c.opt);
+            newOptionMap = combined.map(c => c.original);
+          }
+          
+          optionMapRef.current = newOptionMap;
+          setGameQuestions(prev => {
+            const next = [...prev];
+            next[data.currentQ] = { ...data.questions[data.currentQ], opts: shuffledOpts };
+            return next;
+          });
+        }
+      } else if (data.state === 'result') {
+        clearInterval(window.currentTimer);
+        
+        // Show correct answer
+        const renderedCorrectIndex = optionMapRef.current.indexOf(data.questions[data.currentQ].answer);
+        setGameQuestions(prev => {
+          const next = [...prev];
+          if (next[data.currentQ]) next[data.currentQ].answer = renderedCorrectIndex;
+          return next;
+        });
+      } else if (data.state === 'podium' && currentScreen !== 'podium') {
+        navigate('podium');
+        sessionStorage.removeItem('sabi_game_code');
+        sessionStorage.removeItem('sabi_is_host');
+      }
     });
 
-    socket.on('game_over', (playersList) => {
-      updateScores(playersList);
-      sessionStorage.removeItem('sabi_game_code');
-      sessionStorage.removeItem('sabi_is_host');
-      navigate('podium');
-    });
+    // Listen to Players Collection
+    const unsubPlayers = onSnapshot(collection(db, 'games', gameCode, 'players'), (snapshot) => {
+      const playersList = snapshot.docs.map(d => d.data());
+      
+      const me = playersList.find(p => p.sessionId === sessionId);
+      if (me) {
+        setPlayer(prev => ({ ...prev, name: me.name, score: me.score, streak: me.streak, banter: me.banter || prev.banter, vehicle: me.vehicle || prev.vehicle, color: me.color || prev.color }));
+        
+        // Handle result flashing
+        if (gameRef.current && gameRef.current.state === 'result' && chosenAnswer !== -1) {
+           const wasCorrect = me.chosenAnswer === gameRef.current.questions[gameRef.current.currentQ].answer;
+           setFlashColor(wasCorrect ? 'green' : 'red');
+           setTimeout(() => setFlashColor(null), 300);
+           if (wasCorrect) showStreakToast(me.streak);
+        }
+      }
+      
+      const others = playersList
+        .filter(p => p.sessionId !== sessionId)
+        .map(o => ({ ...o, _joined: o.connected !== false }));
+      setOpponents(others);
 
-    socket.on('game_cancelled', () => {
-      alert('The Race Director cancelled the session.');
-      sessionStorage.removeItem('sabi_game_code');
-      sessionStorage.removeItem('sabi_is_host');
-      setGameCode('');
-      navigate('home');
-    });
-
-    socket.on('kicked', () => {
-      alert('You were removed from the lobby.');
-      sessionStorage.removeItem('sabi_game_code');
-      sessionStorage.removeItem('sabi_is_host');
-      setGameCode('');
-      navigate('home');
+      // Smart Timer Skip: Host checks if everyone answered
+      if (isHost && gameRef.current && gameRef.current.state === 'question') {
+        const activePlayers = playersList.filter(p => p.connected !== false);
+        const allAnswered = activePlayers.length > 0 && activePlayers.every(p => p.answered);
+        if (allAnswered) {
+          resolveQuestion(gameCode);
+        }
+      }
     });
 
     return () => {
-      socket.off('lobby_update');
-      socket.off('question_start');
-      socket.off('question_result');
-      socket.off('game_over');
-      socket.off('game_cancelled');
-      socket.off('kicked');
+      unsubGame();
+      unsubPlayers();
+      clearInterval(window.currentTimer);
     };
-  }, [socket, currentQ, sessionId, chosenAnswer]);
+  }, [gameCode, isHost, currentScreen, chosenAnswer]);
 
-  const updateScores = (playersList) => {
-    const me = playersList.find(p => p.sessionId === sessionId);
-    if (me) setPlayer(prev => ({ ...prev, name: me.name, score: me.score, streak: me.streak, banter: me.banter || prev.banter, vehicle: me.vehicle || prev.vehicle, color: me.color || prev.color }));
-    
-    // Sort opponents by score and explicitly flag offline ones
-    const others = playersList
-      .filter(p => p.sessionId !== sessionId)
-      .map(o => ({ ...o, _joined: o.connected !== false }));
-      
-    setOpponents(others);
-  };
-
-  const navigate = (screen) => {
-    setCurrentScreen(screen);
-  };
+  const navigate = (screen) => setCurrentScreen(screen);
 
   const showStreakToast = (streak) => {
     let msg = '';
@@ -241,72 +184,188 @@ export const GameProvider = ({ children }) => {
     else if (streak >= 5) msg = '💥 UNSTOPPABLE!';
     else if (streak >= 3) msg = '🔥 ON FIRE!';
     else if (streak >= 2) msg = '⚡ Double streak!';
-    
     if (msg) {
       setStreakToast(msg);
       setTimeout(() => setStreakToast(null), 1800);
     }
   };
 
-  const createGame = (config) => {
+  const createGame = async (config) => {
     setGameConfig(config);
     setIsHost(true);
     
-    socket.emit('create_game', { ...config, sessionId }, (res) => {
-      if (res.success) {
-        setGameCode(res.code);
-        setGameQuestions(res.questions);
-        sessionStorage.setItem('sabi_game_code', res.code);
-        sessionStorage.setItem('sabi_is_host', 'true');
-        
-        socket.emit('join_game', { code: res.code, player: { ...player, name: 'HR' }, sessionId }, (joinRes) => {
-          navigate('lobby');
-        });
-      }
-    });
-  };
-
-  const joinGameWithCode = (code, customName) => {
-    const payloadPlayer = customName ? { ...player, name: customName } : player;
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for(let i=0; i<6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
     
-    socket.emit('join_game', { code, player: payloadPlayer, sessionId }, (res) => {
-      if (res.success) {
-        setGameCode(code);
-        setGameQuestions(res.questions || []);
-        setGameConfig(res.config);
-        setIsHost(false);
-        sessionStorage.setItem('sabi_game_code', code);
-        sessionStorage.setItem('sabi_is_host', 'false');
-        navigate('lobby');
-      } else {
-        alert(res.message);
-      }
+    let generatedQuestions = [];
+    while (generatedQuestions.length < config.qCount) {
+      generatedQuestions = [...generatedQuestions, ...QUESTIONS];
+    }
+    generatedQuestions = generatedQuestions.slice(0, config.qCount);
+
+    await setDoc(doc(db, 'games', code), {
+      code,
+      hostSessionId: sessionId,
+      config,
+      questions: generatedQuestions,
+      state: 'lobby',
+      currentQ: 0,
+      startedAt: null
     });
+    
+    setGameCode(code);
+    setGameQuestions(generatedQuestions);
+    sessionStorage.setItem('sabi_game_code', code);
+    sessionStorage.setItem('sabi_is_host', 'true');
+    
+    joinGameWithCode(code, 'HR Admin');
   };
 
+  const joinGameWithCode = async (code, customName) => {
+    const gameDoc = await getDoc(doc(db, 'games', code));
+    if (!gameDoc.exists()) {
+      alert("Game not found!");
+      return;
+    }
+    
+    const gameData = gameDoc.data();
+    setGameCode(code);
+    setGameConfig(gameData.config);
+    setGameQuestions(gameData.questions);
+    
+    const isSavedHost = sessionStorage.getItem('sabi_is_host') === 'true' && gameData.hostSessionId === sessionId;
+    setIsHost(isSavedHost);
+    sessionStorage.setItem('sabi_game_code', code);
+    if (!isSavedHost) sessionStorage.setItem('sabi_is_host', 'false');
+    
+    const playerRef = doc(db, 'games', code, 'players', sessionId);
+    const pDoc = await getDoc(playerRef);
+    
+    if (!pDoc.exists()) {
+      await setDoc(playerRef, {
+        ...player,
+        name: customName || player.name,
+        sessionId,
+        score: 0,
+        streak: 0,
+        answered: false,
+        chosenAnswer: -1,
+        connected: true
+      });
+    } else {
+      await updateDoc(playerRef, {
+        connected: true,
+        ...(customName && { name: customName })
+      });
+    }
+    
+    navigate(gameData.state);
+  };
+
+  // Sync player cosmetics
   useEffect(() => {
-    if (socket && gameCode) {
-      socket.emit('update_player', { code: gameCode, player, sessionId });
+    if (gameCode) {
+      updateDoc(doc(db, 'games', gameCode, 'players', sessionId), {
+        vehicle: player.vehicle,
+        color: player.color,
+        banter: player.banter
+      }).catch(e => console.log('Player update skipped', e));
     }
   }, [player.vehicle, player.color, player.banter]);
 
-  const startRace = () => {
-    if (isHost) {
-      socket.emit('start_game', { code: gameCode, sessionId });
-    }
+  const startRace = async () => {
+    if (!isHost) return;
+    
+    // Reset all players
+    const playersSnap = await getDocs(collection(db, 'games', gameCode, 'players'));
+    const batchPromises = playersSnap.docs.map(d => 
+      updateDoc(d.ref, { answered: false, chosenAnswer: -1 })
+    );
+    await Promise.all(batchPromises);
+
+    await updateDoc(doc(db, 'games', gameCode), {
+      state: 'question',
+      currentQ: 0,
+      startedAt: Date.now(),
+      bonusRound: Math.random() < 0.25,
+      firstBloodQ: false
+    });
   };
 
-  const handleAnswer = (idx) => {
+  const handleAnswer = async (idx) => {
     if (answered) return;
     setAnswered(true);
     setChosenAnswer(idx);
     
-    socket.emit('submit_answer', { code: gameCode, sessionId, answerIndex: optionMapRef.current[idx] });
+    await updateDoc(doc(db, 'games', gameCode, 'players', sessionId), {
+      answered: true,
+      chosenAnswer: optionMapRef.current[idx],
+      answeredAt: Date.now()
+    });
   };
 
-  const cancelGame = () => {
+  const resolveQuestion = async (code) => {
+    if (resolvingRef.current) return;
+    resolvingRef.current = true;
+    clearInterval(window.currentTimer);
+    
+    await updateDoc(doc(db, 'games', code), { state: 'result' });
+    
+    const gameSnap = await getDoc(doc(db, 'games', code));
+    const game = gameSnap.data();
+    const correctIndex = game.questions[game.currentQ].answer;
+    
+    const pSnap = await getDocs(collection(db, 'games', code, 'players'));
+    let firstBloodUsed = false;
+    
+    const updatePromises = pSnap.docs.map(async (d) => {
+       const p = d.data();
+       if (p.answered && p.chosenAnswer === correctIndex) {
+          let pts = 100;
+          const timeTaken = p.answeredAt ? (p.answeredAt - game.startedAt) / 1000 : 15;
+          const tLeft = Math.max(0, game.config.timerMode - timeTaken);
+          
+          if (tLeft >= 11) pts += 50;
+          else if (tLeft >= 6) pts += 25;
+          
+          if (!firstBloodUsed) { pts += 20; firstBloodUsed = true; }
+          if (game.bonusRound) pts *= 2;
+          
+          let streakMult = p.streak >= 7 ? 2.5 : p.streak >= 5 ? 2.0 : p.streak >= 3 ? 1.5 : p.streak >= 2 ? 1.2 : 1.0;
+          pts = Math.round(pts * streakMult);
+          
+          return updateDoc(d.ref, { score: p.score + pts, streak: p.streak + 1 });
+       } else {
+          return updateDoc(d.ref, { streak: 0 });
+       }
+    });
+    
+    await Promise.all(updatePromises);
+
+    setTimeout(async () => {
+       resolvingRef.current = false;
+       if (game.currentQ + 1 >= game.questions.length) {
+          await updateDoc(doc(db, 'games', code), { state: 'podium' });
+       } else {
+          const snap2 = await getDocs(collection(db, 'games', code, 'players'));
+          const rPromises = snap2.docs.map(d => updateDoc(d.ref, { answered: false, chosenAnswer: -1 }));
+          await Promise.all(rPromises);
+          
+          await updateDoc(doc(db, 'games', code), {
+             state: 'question',
+             currentQ: game.currentQ + 1,
+             startedAt: Date.now(),
+             bonusRound: Math.random() < 0.25,
+             firstBloodQ: false
+          });
+       }
+    }, 3000);
+  };
+
+  const cancelGame = async () => {
     if (isHost) {
-      socket.emit('cancel_game', { code: gameCode, sessionId });
+      await deleteDoc(doc(db, 'games', gameCode));
       sessionStorage.removeItem('sabi_game_code');
       sessionStorage.removeItem('sabi_is_host');
       setGameCode('');
@@ -314,9 +373,9 @@ export const GameProvider = ({ children }) => {
     }
   };
 
-  const kickPlayer = (targetSessionId) => {
+  const kickPlayer = async (targetSessionId) => {
     if (isHost) {
-      socket.emit('kick_player', { code: gameCode, sessionId, targetSessionId });
+      await deleteDoc(doc(db, 'games', gameCode, 'players', targetSessionId));
     }
   };
 
