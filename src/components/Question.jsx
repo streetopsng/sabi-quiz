@@ -136,7 +136,7 @@ export default function Question() {
 
             return (
               <motion.button
-                key={i}
+                key={`${currentQ}-${i}`}
                 whileTap={!answered ? { scale: 0.96 } : {}}
                 disabled={answered}
                 onClick={() => handleAnswer(i)}

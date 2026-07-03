@@ -99,16 +99,32 @@ export const GameProvider = ({ children }) => {
           }
         }
 
-        // Setup options without random shuffling so they match on all devices
+        // Shuffle options independently for each player's device
         if (shuffledQRef.current !== data.currentQ) {
           shuffledQRef.current = data.currentQ;
           setAnswered(false);
           setChosenAnswer(-1);
           
-          optionMapRef.current = data.questions[data.currentQ].opts.map((_, i) => i);
+          let shuffledOpts = data.questions[data.currentQ].opts;
+          let newOptionMap = data.questions[data.currentQ].opts.map((_, i) => i);
+          
+          if (data.questions[data.currentQ].type === 'mc') {
+            const combined = data.questions[data.currentQ].opts.map((opt, i) => ({ opt, original: i }));
+            combined.sort(() => Math.random() - 0.5);
+            shuffledOpts = combined.map(c => c.opt);
+            newOptionMap = combined.map(c => c.original);
+          }
+          
+          optionMapRef.current = newOptionMap;
+          const clientAnswerIndex = newOptionMap.indexOf(data.questions[data.currentQ].answer);
+
           setGameQuestions(prev => {
             const next = [...prev];
-            next[data.currentQ] = { ...data.questions[data.currentQ] };
+            next[data.currentQ] = { 
+              ...data.questions[data.currentQ], 
+              opts: shuffledOpts,
+              answer: clientAnswerIndex 
+            };
             return next;
           });
         }
