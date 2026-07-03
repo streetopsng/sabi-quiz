@@ -13,7 +13,7 @@ function ScreenManager() {
   const { currentScreen } = useGame();
 
   return (
-    <div className="h-screen w-full relative bg-navy overflow-hidden">
+    <div className="h-[100dvh] w-full relative bg-navy overflow-hidden">
       <Overlays />
       <AnimatePresence mode="wait">
         {currentScreen === 'home' && <Home key="home" />}

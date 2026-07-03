@@ -50,7 +50,7 @@ export default function CreateGame() {
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           {/* Card 1: Basics */}
-          <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-4 backdrop-blur-md">
+          <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-4 backdrop-blur-md z-20 relative">
           <div className="mb-4">
             <label className="text-[13px] font-medium text-white/80 flex items-center gap-2 mb-2.5">
               <Type size={14} className="text-amber" /> Session name
