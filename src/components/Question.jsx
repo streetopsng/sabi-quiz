@@ -24,7 +24,7 @@ export default function Question() {
       transition={{ duration: 0.3 }}
     >
       {/* LEFT COLUMN (Desktop) / TOP (Mobile) */}
-      <div className="flex flex-col w-full z-10 shrink-0">
+      <div className="flex flex-col md:flex-1 w-full z-10 shrink-0">
         <div className="pt-5 md:pt-0 px-5 flex items-center justify-between">
           <div className="bg-white/[0.05] border border-white/10 px-3 py-1.5 rounded-full flex items-center gap-2">
             <span className="text-[11px] md:text-[13px] font-bold text-muted uppercase tracking-widest">Question {currentQ + 1}</span>
@@ -93,7 +93,7 @@ export default function Question() {
       </div>
 
       {/* RIGHT COLUMN (Desktop) / BOTTOM (Mobile) */}
-      <div className="flex flex-col flex-1 md:shrink-0 w-full z-10 px-5 pb-7 md:pb-0 justify-end md:justify-center">
+      <div className="flex flex-col flex-1 md:flex-1 md:shrink-0 w-full z-10 px-5 pb-7 md:pb-0 justify-end md:justify-center">
         
         {bonusRound && (
           <motion.div 
