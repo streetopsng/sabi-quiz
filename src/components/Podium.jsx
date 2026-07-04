@@ -113,7 +113,7 @@ export default function Podium() {
           </div>
           <div className="flex flex-col gap-3 md:gap-4">
             {allPlayers.map((p, i) => (
-              <div key={i} className={`flex items-center gap-3 py-2 px-3 rounded-xl border transition-colors ${i === 0 ? 'bg-amber/10 border-amber/30' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}>
+              <div key={p.sessionId || i} className={`flex items-center gap-3 py-2 px-3 rounded-xl border transition-colors ${i === 0 ? 'bg-amber/10 border-amber/30' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}>
                 <div className={`w-6 text-[14px] font-black text-center ${i === 0 ? 'text-amber' : 'text-white/40'}`}>{i + 1}</div>
                 <div className="text-[28px] drop-shadow-md">{p.vehicle}</div>
                 <div className="flex-1 font-bold text-[15px]" style={{ color: p.color }}>{p.name}</div>

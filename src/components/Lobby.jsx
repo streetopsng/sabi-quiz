@@ -70,7 +70,7 @@ export default function Lobby() {
             </div>
             <div className="text-[24px] font-extrabold leading-none bg-white/[0.04] border border-white/10 py-2 px-4 rounded-xl text-white">
               <span className="text-amber">{activePlayers}</span>
-              <span className="text-white/30 text-[18px]"> / {opponents.length + 1}</span>
+              <span className="text-white/30 text-[18px]"> / 50</span>
             </div>
           </div>
         </div>

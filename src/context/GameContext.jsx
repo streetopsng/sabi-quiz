@@ -255,6 +255,21 @@ export const GameProvider = ({ children }) => {
       }
       
       const gameData = gameDoc.data();
+      
+      const requestedName = customName || player.name;
+      
+      // Prevent duplicate names which causes scoreboard issues
+      const pSnap = await getDocs(collection(db, 'games', code, 'players'));
+      const nameExists = pSnap.docs.some(d => {
+         const p = d.data();
+         return p.name.toLowerCase() === requestedName.toLowerCase() && p.sessionId !== sessionId;
+      });
+      
+      if (nameExists) {
+         alert("That nickname is already taken! Please choose another.");
+         return;
+      }
+      
       setGameCode(code);
       setGameConfig(gameData.config);
       setGameQuestions(gameData.questions);

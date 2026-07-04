@@ -63,7 +63,7 @@ export default function Question() {
             <div className="flex gap-2.5 overflow-x-auto no-scrollbar pb-1">
               {allPlayers.map((p, i) => (
                 <motion.div 
-                  key={p.name}
+                  key={p.sessionId}
                   layout
                   transition={{ type: "spring", stiffness: 300, damping: 25 }}
                   className={`flex items-center gap-2 px-3 py-2 rounded-xl border shrink-0 transition-colors shadow-sm
