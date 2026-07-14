@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { db } from '../firebase';
 import { doc, collection, setDoc, getDoc, updateDoc, onSnapshot, getDocs, deleteDoc, writeBatch } from 'firebase/firestore';
 import { INITIAL_PLAYER, QUESTIONS } from '../constants';
+import { playJoin, playStart, playTick, playCorrect, playWrong, playWin, playSelect } from '../utils/audio';
 
 const GameContext = createContext();
 
@@ -41,6 +42,7 @@ export const GameProvider = ({ children }) => {
   const resolvingRef = useRef(false);
   
   const [isHost, setIsHost] = useState(false);
+  const [isSpectator, setIsSpectator] = useState(() => sessionStorage.getItem('sabi_is_spectator') === 'true');
 
   // Auto-rejoin logic
   useEffect(() => {
@@ -74,7 +76,10 @@ export const GameProvider = ({ children }) => {
       
       // Handle screen routing based on game state
       if (data.state === 'question') {
-        if (currentScreen !== 'question') navigate('question');
+        if (currentScreen !== 'question') {
+          playStart();
+          navigate('question');
+        }
         
         // Setup local timer based on server timestamp
         if (data.startedAt) {
@@ -91,6 +96,7 @@ export const GameProvider = ({ children }) => {
                   if (isHost) resolveQuestion(gameCode);
                   return 0;
                 }
+                if (prev <= 6) playTick();
                 return prev - 1;
               });
             }, 1000);
@@ -132,9 +138,11 @@ export const GameProvider = ({ children }) => {
         clearInterval(window.currentTimer);
         setAnswered(true); // Ensure players who didn't click still see the result
       } else if (data.state === 'podium' && currentScreen !== 'podium') {
+        playWin();
         navigate('podium');
         sessionStorage.removeItem('sabi_game_code');
         sessionStorage.removeItem('sabi_is_host');
+        sessionStorage.removeItem('sabi_is_spectator');
       }
     });
 
@@ -150,6 +158,7 @@ export const GameProvider = ({ children }) => {
         if (gameRef.current && gameRef.current.state === 'result' && chosenAnswer !== -1) {
            const wasCorrect = me.chosenAnswer === gameRef.current.questions[gameRef.current.currentQ].answer;
            setFlashColor(wasCorrect ? 'green' : 'red');
+           if (wasCorrect) playCorrect(); else playWrong();
            setTimeout(() => setFlashColor(null), 300);
            if (wasCorrect) showStreakToast(me.streak);
         }
@@ -200,9 +209,10 @@ export const GameProvider = ({ children }) => {
       let code = '';
       for(let i=0; i<6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
       
+      let pool = [...QUESTIONS].sort(() => Math.random() - 0.5);
       let generatedQuestions = [];
       while (generatedQuestions.length < config.qCount) {
-        generatedQuestions = [...generatedQuestions, ...QUESTIONS];
+        generatedQuestions = [...generatedQuestions, ...pool];
       }
       generatedQuestions = generatedQuestions.slice(0, config.qCount);
 
@@ -211,6 +221,13 @@ export const GameProvider = ({ children }) => {
       setGameQuestions(generatedQuestions);
       sessionStorage.setItem('sabi_game_code', code);
       sessionStorage.setItem('sabi_is_host', 'true');
+      if (config.playAsContestant) {
+        setIsSpectator(false);
+        sessionStorage.setItem('sabi_is_spectator', 'false');
+      } else {
+        setIsSpectator(true);
+        sessionStorage.setItem('sabi_is_spectator', 'true');
+      }
       navigate('lobby');
 
       // Background Network writes via Batch for max speed
@@ -226,16 +243,19 @@ export const GameProvider = ({ children }) => {
         startedAt: null
       });
 
-      batch.set(doc(db, 'games', code, 'players', sessionId), {
-        ...player,
-        name: 'HR Admin',
-        sessionId,
-        score: 0,
-        streak: 0,
-        answered: false,
-        chosenAnswer: -1,
-        connected: true
-      });
+      if (config.playAsContestant) {
+        batch.set(doc(db, 'games', code, 'players', sessionId), {
+          ...player,
+          name: config.hostName || 'HR Admin',
+          sessionId,
+          score: 0,
+          streak: 0,
+          answered: false,
+          chosenAnswer: -1,
+          connected: true
+        });
+        setPlayer(p => ({ ...p, name: config.hostName || 'HR Admin' }));
+      }
 
       await batch.commit();
       
@@ -278,6 +298,9 @@ export const GameProvider = ({ children }) => {
       setIsHost(isSavedHost);
       sessionStorage.setItem('sabi_game_code', code);
       if (!isSavedHost) sessionStorage.setItem('sabi_is_host', 'false');
+      
+      setIsSpectator(false);
+      sessionStorage.setItem('sabi_is_spectator', 'false');
       
       // Fire and forget player write for instant UI transition
       const playerRef = doc(db, 'games', code, 'players', sessionId);
@@ -431,7 +454,7 @@ export const GameProvider = ({ children }) => {
       gameCode, createGame, joinGameWithCode, gameConfig, gameQuestions,
       gameState, currentQ, timeLeft, answered, bonusRound, chosenAnswer,
       flashColor, streakToast,
-      startRace, handleAnswer, isHost, cancelGame, kickPlayer
+      startRace, handleAnswer, isHost, cancelGame, kickPlayer, isSpectator
     }}>
       {children}
     </GameContext.Provider>

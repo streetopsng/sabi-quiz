@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { Plus, Gamepad2, Trophy, Users, Clock } from 'lucide-react';
 import { useGame } from '../context/GameContext';
+import { VEHICLES } from '../constants';
 
 export default function Home() {
   const { navigate } = useGame();
@@ -22,7 +23,7 @@ export default function Home() {
 
   return (
     <motion.div 
-      className="flex flex-col md:flex-row h-full max-w-[430px] md:max-w-5xl mx-auto justify-between md:justify-center md:items-center md:gap-16 bg-navy relative overflow-hidden"
+      className="flex flex-col md:flex-row h-full max-w-[430px] md:max-w-5xl mx-auto justify-between md:justify-center md:items-center md:gap-16 relative overflow-hidden"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
@@ -50,15 +51,15 @@ export default function Home() {
         </motion.p>
         
         <motion.div variants={itemVariants} className="flex gap-4 mt-8 justify-center md:justify-start">
-          {['🏎️', '🚙', '🛻', '🚘'].map((car, idx) => (
-            <motion.div
+          {VEHICLES.slice(0, 4).map((car, idx) => (
+            <motion.img
               key={idx}
+              src={car.icon}
+              alt={car.name}
               animate={{ y: [0, -8, 0] }}
               transition={{ repeat: Infinity, duration: 2, delay: idx * 0.2, ease: "easeInOut" }}
-              className="text-[40px] drop-shadow-2xl filter saturate-150"
-            >
-              {car}
-            </motion.div>
+              className="w-16 h-16 drop-shadow-2xl object-contain"
+            />
           ))}
         </motion.div>
         

@@ -22,7 +22,7 @@ export default function FleetSelection() {
 
   return (
     <motion.div 
-      className="flex flex-col md:flex-row h-full max-w-[430px] md:max-w-4xl mx-auto bg-navy relative md:items-center md:gap-16 overflow-hidden md:overflow-visible"
+      className="flex flex-col md:flex-row h-full max-w-[430px] md:max-w-4xl mx-auto relative md:items-center md:gap-16 overflow-hidden md:overflow-visible"
       initial={{ opacity: 0, y: '100%' }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: '100%' }}
@@ -57,7 +57,7 @@ export default function FleetSelection() {
               transition={{ type: 'spring', bounce: 0.5 }}
               className="z-10 drop-shadow-xl"
             >
-              {VEHICLES[selectedV].icon}
+              <img src={VEHICLES[selectedV].icon} alt="vehicle" className="w-[120px] h-[120px] md:w-[180px] md:h-[180px] object-contain drop-shadow-2xl z-10" />
             </motion.div>
           </AnimatePresence>
         </div>
@@ -92,7 +92,7 @@ export default function FleetSelection() {
                 `}
                 style={{ borderColor: i === selectedV ? COLORS[selectedC] : undefined }}
               >
-                <div className="text-[32px] drop-shadow-md">{v.icon}</div>
+                <img src={v.icon} alt={v.name} className="w-12 h-12 object-contain drop-shadow-md" />
                 <div className="text-[11px] font-medium text-white/80">{v.name}</div>
               </motion.div>
             ))}

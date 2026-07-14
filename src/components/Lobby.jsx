@@ -4,7 +4,7 @@ import { ChevronDown, Check, Users, MessageSquare, Flag, Copy, QrCode, X } from 
 import { useGame } from '../context/GameContext';
 
 export default function Lobby() {
-  const { navigate, gameCode, player, setPlayer, opponents, startRace, isHost, cancelGame, kickPlayer } = useGame();
+  const { navigate, gameCode, player, setPlayer, opponents, startRace, isHost, cancelGame, kickPlayer, isSpectator } = useGame();
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -38,7 +38,7 @@ export default function Lobby() {
 
   return (
     <motion.div 
-      className="flex flex-col md:flex-row h-full max-w-[430px] md:max-w-5xl mx-auto bg-navy relative md:items-start md:pt-16 md:gap-10 overflow-hidden md:overflow-visible"
+      className="flex flex-col md:flex-row h-full max-w-[430px] md:max-w-5xl mx-auto relative md:items-start md:pt-16 md:gap-10 overflow-hidden md:overflow-visible"
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 1.05 }}
@@ -164,19 +164,21 @@ export default function Lobby() {
         </div>
 
         <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 px-5 pb-4">
-          <motion.div 
-            whileHover={{ scale: 1.02 }}
-            onClick={() => navigate('fleet')}
-            className="rounded-2xl border-[1.5px] p-2 flex flex-col items-center justify-center gap-1.5 bg-gradient-to-b from-white/10 to-transparent cursor-pointer shadow-lg relative overflow-hidden backdrop-blur-md"
-            style={{ borderColor: player.color, boxShadow: `0 4px 20px ${player.color}15` }}
-          >
-            <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ background: `radial-gradient(circle at top right, ${player.color}, transparent)` }} />
-            <div className="text-[40px] drop-shadow-md z-10 mt-1">{player.vehicle}</div>
-            <div className="text-[12px] font-bold text-center leading-tight px-1 z-10 text-white">{player.name}</div>
-            <div className="text-[10px] italic text-center leading-[1.3] min-h-[28px] px-1 z-10 font-medium" style={{ color: player.color }}>
-              {player.banter || <span className="opacity-50">Tap to customise</span>}
-            </div>
-          </motion.div>
+          {!isSpectator && (
+            <motion.div 
+              whileHover={{ scale: 1.02 }}
+              onClick={() => navigate('fleet')}
+              className="rounded-2xl border-[1.5px] p-2 flex flex-col items-center justify-center gap-1.5 bg-gradient-to-b from-white/10 to-transparent cursor-pointer shadow-lg relative overflow-hidden backdrop-blur-md"
+              style={{ borderColor: player.color, boxShadow: `0 4px 20px ${player.color}15` }}
+            >
+              <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ background: `radial-gradient(circle at top right, ${player.color}, transparent)` }} />
+              <img src={player.vehicle} alt="vehicle" className="w-16 h-16 object-contain z-10 mt-1 drop-shadow-md" />
+              <div className="text-[12px] font-bold text-center leading-tight px-1 z-10 text-white">{player.name}</div>
+              <div className="text-[10px] italic text-center leading-[1.3] min-h-[28px] px-1 z-10 font-medium" style={{ color: player.color }}>
+                {player.banter || <span className="opacity-50">Tap to customise</span>}
+              </div>
+            </motion.div>
+          )}
 
           {opponents.map((o, idx) => (
             <motion.div 
@@ -199,7 +201,7 @@ export default function Lobby() {
                     </button>
                   )}
                   <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ background: `radial-gradient(circle at top right, ${o.color}, transparent)` }} />
-                  <div className="text-[40px] drop-shadow-md z-10 mt-1">{o.vehicle}</div>
+                  <img src={o.vehicle} alt="vehicle" className="w-16 h-16 object-contain z-10 mt-1 drop-shadow-md" />
                   <div className="text-[12px] font-bold text-center leading-tight px-1 z-10 text-white/90">{o.name}</div>
                   <div className="text-[10px] italic text-center leading-[1.3] min-h-[28px] px-1 z-10 font-medium" style={{ color: o.color }}>
                     {o.banter}
@@ -210,10 +212,8 @@ export default function Lobby() {
                   <motion.div 
                     animate={{ opacity: [0.3, 0.8, 0.3] }} 
                     transition={{ repeat: Infinity, duration: 2 }}
-                    className="text-[36px] mb-1"
-                  >
-                    🚗
-                  </motion.div>
+                    className="w-10 h-10 mb-1 rounded-full border border-dashed border-white/40"
+                  />
                   <div className="text-[10px] font-semibold text-center uppercase tracking-wider">Waiting</div>
                 </div>
               )}

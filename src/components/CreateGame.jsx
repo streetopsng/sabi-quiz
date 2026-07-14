@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Check, Type, BookOpen, Hash, Clock, Zap, Flame, ShieldAlert, ArrowLeft } from 'lucide-react';
+import { ChevronDown, Check, Type, BookOpen, Hash, Clock, Zap, Flame, ShieldAlert, ArrowLeft, User, Eye } from 'lucide-react';
 import { useGame } from '../context/GameContext';
 
 export default function CreateGame() {
@@ -14,6 +14,8 @@ export default function CreateGame() {
   const [bonusRounds, setBonusRounds] = useState(true);
   const [streakMultipliers, setStreakMultipliers] = useState(true);
   const [hardMode, setHardMode] = useState(false);
+  const [playAsContestant, setPlayAsContestant] = useState(false);
+  const [hostName, setHostName] = useState('');
 
   const topics = [
     "General Knowledge",
@@ -25,7 +27,7 @@ export default function CreateGame() {
 
   return (
     <motion.div 
-      className="flex flex-col h-full max-w-[430px] md:max-w-3xl mx-auto bg-navy relative"
+      className="flex flex-col h-full max-w-[430px] md:max-w-3xl mx-auto relative"
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
@@ -50,7 +52,7 @@ export default function CreateGame() {
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
           {/* Card 1: Basics */}
-          <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-4 backdrop-blur-md z-20 relative">
+          <div className="glass-panel rounded-2xl p-4 z-20 relative">
           <div className="mb-4">
             <label className="text-[13px] font-medium text-white/80 flex items-center gap-2 mb-2.5">
               <Type size={14} className="text-amber" /> Session name
@@ -120,7 +122,7 @@ export default function CreateGame() {
         </div>
 
         {/* Card 2: Mechanics */}
-        <div className="bg-white/[0.03] border border-white/10 rounded-2xl p-4 backdrop-blur-md z-10 relative">
+        <div className="glass-panel rounded-2xl p-4 z-10 relative">
           <div className="mb-5">
             <label className="text-[13px] font-medium text-white/80 flex items-center gap-2 mb-3">
               <Hash size={14} className="text-amber" /> Number of questions
@@ -197,6 +199,53 @@ export default function CreateGame() {
             </div>
           ))}
         </div>
+
+        {/* Card 4: Host Options */}
+        <div className="glass-panel rounded-2xl mt-4 p-4 mb-4 relative z-10">
+          <div className="flex items-center justify-between">
+            <div className="flex gap-3 items-center">
+              <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center shrink-0">
+                <Eye size={16} color="#3B82F6" />
+              </div>
+              <div>
+                <div className="text-[14px] font-medium text-white">Play in this session?</div>
+                <div className="text-[11px] text-white/50 mt-0.5">Toggle to play alongside the team.</div>
+              </div>
+            </div>
+            <div 
+              onClick={() => setPlayAsContestant(!playAsContestant)}
+              className={`w-[46px] h-[26px] rounded-full relative cursor-pointer transition-colors duration-300 shrink-0 ${playAsContestant ? 'bg-amber' : 'bg-white/15'}`}
+            >
+              <motion.div 
+                layout
+                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                className={`absolute top-[3px] w-5 h-5 bg-white rounded-full shadow-sm ${playAsContestant ? 'left-[23px]' : 'left-[3px]'}`} 
+              />
+            </div>
+          </div>
+          <AnimatePresence>
+            {playAsContestant && (
+              <motion.div
+                initial={{ height: 0, opacity: 0, marginTop: 0 }}
+                animate={{ height: 'auto', opacity: 1, marginTop: 16 }}
+                exit={{ height: 0, opacity: 0, marginTop: 0 }}
+                className="overflow-hidden"
+              >
+                <label className="text-[13px] font-medium text-white/80 flex items-center gap-2 mb-2.5">
+                  <User size={14} className="text-amber" /> Your Nickname
+                </label>
+                <input 
+                  type="text" 
+                  placeholder="e.g. HR Admin" 
+                  value={hostName}
+                  onChange={(e) => setHostName(e.target.value)}
+                  className="w-full bg-black/20 border border-white/10 rounded-xl text-white text-[15px] py-3.5 px-4 outline-none focus:border-amber/60 focus:bg-white/5 transition-all"
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
       </div>
 
       {/* Floating Action Button area */}
@@ -211,7 +260,9 @@ export default function CreateGame() {
               timerMode,
               bonusRounds,
               streakMultipliers,
-              hardMode
+              hardMode,
+              playAsContestant,
+              hostName
             })}
             className="w-full p-[18px] rounded-xl bg-amber text-[#1a1a00] text-[16px] font-extrabold tracking-[0.5px] uppercase border-none cursor-pointer shadow-[0_4px_20px_rgba(245,166,35,0.3)] flex items-center justify-center gap-2"
           >
