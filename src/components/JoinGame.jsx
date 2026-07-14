@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeft, LogIn, KeyRound } from 'lucide-react';
 import { useGame } from '../context/GameContext';
+import { playJoin } from '../utils/audio';
 
 export default function JoinGame() {
   const { navigate, joinGameWithCode, setPlayer } = useGame();
@@ -44,6 +45,7 @@ export default function JoinGame() {
   const handleJoin = () => {
     const fullCode = code.join('');
     if (fullCode.length === 6 && playerName.trim()) {
+      playJoin();
       setPlayer(p => ({ ...p, name: playerName.trim() }));
       joinGameWithCode(fullCode, playerName.trim());
     }
@@ -53,7 +55,7 @@ export default function JoinGame() {
 
   return (
     <motion.div 
-      className="flex flex-col md:flex-row h-full max-w-[430px] md:max-w-4xl mx-auto bg-navy relative md:items-center md:gap-16 overflow-hidden md:overflow-visible"
+      className="flex flex-col md:flex-row h-full max-w-[430px] md:max-w-4xl mx-auto relative md:items-center md:gap-16 overflow-hidden md:overflow-visible"
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
@@ -90,7 +92,7 @@ export default function JoinGame() {
       {/* RIGHT COLUMN (Desktop) / BOTTOM (Mobile) */}
       <div className="flex-1 flex flex-col z-10 w-full h-full pt-4 md:pt-0 pb-[100px] md:pb-0 justify-start md:justify-center px-5">
         
-        <div className="bg-white/[0.03] border border-white/10 rounded-3xl p-6 md:p-10 backdrop-blur-md shadow-xl flex flex-col items-center text-center">
+        <div className="glass-panel rounded-3xl p-6 md:p-10 flex flex-col items-center text-center">
           
           <div className="w-full mb-8">
             <div className="text-[13px] md:text-[15px] text-white/80 font-semibold mb-3 flex items-center justify-center gap-2">

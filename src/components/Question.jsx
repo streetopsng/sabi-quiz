@@ -1,15 +1,16 @@
 import { motion } from 'framer-motion';
 import { useGame } from '../context/GameContext';
 import { LETTERS } from '../constants';
+import { playSelect } from '../utils/audio';
 
 export default function Question() {
   const { 
     gameState, currentQ, player, opponents,
     timeLeft, answered, bonusRound, chosenAnswer,
-    handleAnswer, gameQuestions, gameConfig
+    handleAnswer, gameQuestions, gameConfig, isSpectator
   } = useGame();
 
-  const allPlayers = [player, ...opponents.filter(o => o._joined)].sort((a, b) => b.score - a.score);
+  const allPlayers = (isSpectator ? opponents.filter(o => o._joined) : [player, ...opponents.filter(o => o._joined)]).sort((a, b) => b.score - a.score);
 
   const q = gameQuestions[currentQ] || gameQuestions[0]; // Fallback prevents crash during exit animation
   const isTF = q.type === 'tf';
@@ -17,7 +18,7 @@ export default function Question() {
 
   return (
     <motion.div 
-      className="flex flex-col md:flex-row h-full max-w-[430px] md:max-w-5xl mx-auto bg-navy relative md:items-center md:gap-12 md:py-12 overflow-y-auto no-scrollbar"
+      className="flex flex-col md:flex-row h-full max-w-[430px] md:max-w-5xl mx-auto relative md:items-center md:gap-12 md:py-12 overflow-y-auto no-scrollbar"
       initial={{ opacity: 0, x: 50 }}
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -50 }}
@@ -72,7 +73,7 @@ export default function Question() {
                   style={{ borderColor: p === player ? p.color : undefined }}
                 >
                   <div className="text-[10px] md:text-[12px] font-black text-white/30 w-3">{i + 1}</div>
-                  <div className="text-[18px] md:text-[22px] drop-shadow-md">{p.vehicle}</div>
+                  <img src={p.vehicle} alt="vehicle" className="w-8 h-8 object-contain drop-shadow-md" />
                   <div className="text-[12px] md:text-[14px] font-bold" style={{ color: p === player ? p.color : 'white' }}>
                     {Math.round(p.score)}
                   </div>
@@ -137,9 +138,12 @@ export default function Question() {
             return (
               <motion.button
                 key={`${currentQ}-${i}`}
-                whileTap={!answered ? { scale: 0.96 } : {}}
-                disabled={answered}
-                onClick={() => handleAnswer(i)}
+                whileTap={!answered && !isSpectator ? { scale: 0.96 } : {}}
+                disabled={answered || isSpectator}
+                onClick={() => {
+                  if (!answered && !isSpectator) playSelect();
+                  handleAnswer(i);
+                }}
                 className={`
                   flex items-center gap-3 md:gap-4 w-full p-4 md:p-5 rounded-2xl border-[1.5px] text-[15px] md:text-[17px] font-medium text-left transition-all backdrop-blur-sm
                   ${btnClass} ${isDimmed && !isWrong ? 'opacity-30 scale-95' : ''}
