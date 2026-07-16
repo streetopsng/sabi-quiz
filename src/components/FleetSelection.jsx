@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Check } from 'lucide-react';
+import CarAvatar from './CarAvatar';
 import { useGame } from '../context/GameContext';
 import { VEHICLES, COLORS } from '../constants';
 
@@ -57,7 +58,7 @@ export default function FleetSelection() {
               transition={{ type: 'spring', bounce: 0.5 }}
               className="z-10 drop-shadow-xl"
             >
-              <img src={VEHICLES[selectedV].icon} alt="vehicle" className="w-[120px] h-[120px] md:w-[180px] md:h-[180px] object-contain drop-shadow-2xl z-10" />
+              <CarAvatar src={VEHICLES[selectedV].icon} color={COLORS[selectedC]} className="w-[120px] h-[120px] md:w-[180px] md:h-[180px]" />
             </motion.div>
           </AnimatePresence>
         </div>
@@ -92,7 +93,7 @@ export default function FleetSelection() {
                 `}
                 style={{ borderColor: i === selectedV ? COLORS[selectedC] : undefined }}
               >
-                <img src={v.icon} alt={v.name} className="w-12 h-12 object-contain drop-shadow-md" />
+                <CarAvatar src={v.icon} color={i === selectedV ? COLORS[selectedC] : undefined} alt={v.name} className="w-12 h-12" />
                 <div className="text-[11px] font-medium text-white/80">{v.name}</div>
               </motion.div>
             ))}

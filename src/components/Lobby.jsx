@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown, Check, Users, MessageSquare, Flag, Copy, QrCode, X } from 'lucide-react';
+import CarAvatar from './CarAvatar';
 import { useGame } from '../context/GameContext';
 
 export default function Lobby() {
@@ -172,7 +173,7 @@ export default function Lobby() {
               style={{ borderColor: player.color, boxShadow: `0 4px 20px ${player.color}15` }}
             >
               <div className="absolute inset-0 opacity-20 pointer-events-none" style={{ background: `radial-gradient(circle at top right, ${player.color}, transparent)` }} />
-              <img src={player.vehicle} alt="vehicle" className="w-16 h-16 object-contain z-10 mt-1 drop-shadow-md" />
+              <CarAvatar src={player.vehicle} color={player.color} className="w-16 h-16 mt-1" />
               <div className="text-[12px] font-bold text-center leading-tight px-1 z-10 text-white">{player.name}</div>
               <div className="text-[10px] italic text-center leading-[1.3] min-h-[28px] px-1 z-10 font-medium" style={{ color: player.color }}>
                 {player.banter || <span className="opacity-50">Tap to customise</span>}
@@ -201,7 +202,7 @@ export default function Lobby() {
                     </button>
                   )}
                   <div className="absolute inset-0 opacity-10 pointer-events-none" style={{ background: `radial-gradient(circle at top right, ${o.color}, transparent)` }} />
-                  <img src={o.vehicle} alt="vehicle" className="w-16 h-16 object-contain z-10 mt-1 drop-shadow-md" />
+                  <CarAvatar src={o.vehicle} color={o.color} className="w-16 h-16 mt-1" />
                   <div className="text-[12px] font-bold text-center leading-tight px-1 z-10 text-white/90">{o.name}</div>
                   <div className="text-[10px] italic text-center leading-[1.3] min-h-[28px] px-1 z-10 font-medium" style={{ color: o.color }}>
                     {o.banter}

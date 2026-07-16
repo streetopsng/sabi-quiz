@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { useGame } from '../context/GameContext';
 import { LETTERS } from '../constants';
 import { playSelect } from '../utils/audio';
+import CarAvatar from './CarAvatar';
 
 export default function Question() {
   const { 
@@ -73,7 +74,7 @@ export default function Question() {
                   style={{ borderColor: p === player ? p.color : undefined }}
                 >
                   <div className="text-[10px] md:text-[12px] font-black text-white/30 w-3">{i + 1}</div>
-                  <img src={p.vehicle} alt="vehicle" className="w-8 h-8 object-contain drop-shadow-md" />
+                  <CarAvatar src={p.vehicle} color={p.color} className="w-8 h-8" />
                   <div className="text-[12px] md:text-[14px] font-bold" style={{ color: p === player ? p.color : 'white' }}>
                     {Math.round(p.score)}
                   </div>

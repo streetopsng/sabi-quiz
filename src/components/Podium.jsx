@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useGame } from '../context/GameContext';
 import { Home } from 'lucide-react';
+import CarAvatar from './CarAvatar';
 
 export default function Podium() {
   const { player, opponents, navigate, isSpectator } = useGame();
@@ -75,7 +76,7 @@ export default function Podium() {
                   transition={{ delay: i * 0.2 + 0.3, type: "spring", damping: 15 }}
                 >
                   <div className="absolute inset-0 bg-white/20 blur-xl rounded-full" />
-                  <img src={slot.p.vehicle} alt="vehicle" className="w-16 h-16 md:w-20 md:h-20 object-contain drop-shadow-xl" />
+                  <CarAvatar src={slot.p.vehicle} color={slot.p.color} className="w-16 h-16 md:w-20 md:h-20" />
                 </motion.div>
                 <div className="text-[13px] md:text-[16px] font-bold text-center max-w-[100px] md:max-w-[120px] truncate text-white drop-shadow-md">{slot.p.name}</div>
                 <div className="text-[10px] md:text-[12px] italic text-center max-w-[100px] md:max-w-[120px] leading-[1.3] truncate h-4 font-medium" style={{ color: slot.p.color }}>
@@ -115,7 +116,7 @@ export default function Podium() {
             {allPlayers.map((p, i) => (
               <div key={p.sessionId || i} className={`flex items-center gap-3 py-2 px-3 rounded-xl border transition-colors ${i === 0 ? 'bg-amber/10 border-amber/30' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}>
                 <div className={`w-6 text-[14px] font-black text-center ${i === 0 ? 'text-amber' : 'text-white/40'}`}>{i + 1}</div>
-                <img src={p.vehicle} alt="vehicle" className="w-8 h-8 object-contain drop-shadow-md" />
+                <CarAvatar src={p.vehicle} color={p.color} className="w-8 h-8" />
                 <div className="flex-1 font-bold text-[15px]" style={{ color: p.color }}>{p.name}</div>
                 <div className={`text-[16px] font-black ${i === 0 ? 'text-amber' : 'text-white/80'}`}>{Math.round(p.score)}</div>
               </div>

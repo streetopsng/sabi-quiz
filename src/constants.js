@@ -5,6 +5,15 @@ export const VEHICLES = [
   { name: 'Porsche', icon: '/cars/porsche.png' },
   { name: 'Mustang', icon: '/cars/mustang.png' },
   { name: 'Hilux', icon: '/cars/hilux.png' },
+  { name: 'RR Phantom', icon: '/cars/rr_phantom.png' },
+  { name: 'Wrangler', icon: '/cars/wrangler.png' },
+  { name: 'Rover Defender', icon: '/cars/rover_defender.png' },
+  { name: 'Landcruiser', icon: '/cars/landcruiser.png' },
+  { name: 'C300', icon: '/cars/c300.png' },
+  { name: 'Huracan', icon: '/cars/huracan.png' },
+  { name: 'McLaren', icon: '/cars/mclaren.png' },
+  { name: 'Brabus', icon: '/cars/brabus.png' },
+  { name: 'Dodge Charger', icon: '/cars/dodge_charger.png' },
 ];
 
 export const COLORS = [
