@@ -3,6 +3,7 @@ import { db } from '../firebase';
 import { doc, collection, setDoc, getDoc, updateDoc, onSnapshot, getDocs, deleteDoc, writeBatch } from 'firebase/firestore';
 import { INITIAL_PLAYER, QUESTIONS } from '../constants';
 import { playJoin, playStart, playTick, playCorrect, playWrong, playWin, playSelect } from '../utils/audio';
+import { resolveGummyGumLaunch, reportGummyGumResult } from '../lib/gummygumSession';
 
 const GameContext = createContext();
 
@@ -44,6 +45,14 @@ export const GameProvider = ({ children }) => {
   const [isHost, setIsHost] = useState(false);
   const [isSpectator, setIsSpectator] = useState(() => sessionStorage.getItem('sabi_is_spectator') === 'true');
 
+  // GummyGum hub identity handoff (who launched this session, if anyone)
+  const [ggSession, setGgSession] = useState(null);
+  const ggReportedRef = useRef(false);
+
+  useEffect(() => {
+    resolveGummyGumLaunch().then(setGgSession);
+  }, []);
+
   // Auto-rejoin logic
   useEffect(() => {
     const savedCode = sessionStorage.getItem('sabi_game_code');
@@ -51,6 +60,18 @@ export const GameProvider = ({ children }) => {
       joinGameWithCode(savedCode);
     }
   }, []);
+
+  // Report the launching player's own result back to GummyGum once the
+  // race ends, so it shows up on their profile and the org admin view.
+  useEffect(() => {
+    if (gameState !== 'podium' || ggReportedRef.current || !ggSession) return;
+    ggReportedRef.current = true;
+    reportGummyGumResult({
+      score: player.score,
+      streak: player.streak,
+      name: player.name,
+    });
+  }, [gameState, ggSession, player.score, player.streak, player.name]);
 
   // Firebase Realtime Listeners
   useEffect(() => {
@@ -454,7 +475,8 @@ export const GameProvider = ({ children }) => {
       gameCode, createGame, joinGameWithCode, gameConfig, gameQuestions,
       gameState, currentQ, timeLeft, answered, bonusRound, chosenAnswer,
       flashColor, streakToast,
-      startRace, handleAnswer, isHost, cancelGame, kickPlayer, isSpectator
+      startRace, handleAnswer, isHost, cancelGame, kickPlayer, isSpectator,
+      ggSession
     }}>
       {children}
     </GameContext.Provider>
