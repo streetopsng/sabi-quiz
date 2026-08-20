@@ -61,17 +61,28 @@ export const GameProvider = ({ children }) => {
     }
   }, []);
 
-  // Report the launching player's own result back to GummyGum once the
-  // race ends, so it shows up on their profile and the org admin view.
+  // Report the result back to GummyGum once the race ends. The host is
+  // usually running this for their whole team, so this reports the full
+  // roster (host + everyone who joined with the PIN), not just the host's
+  // own score, plus the host's own placement for convenience.
   useEffect(() => {
     if (gameState !== 'podium' || ggReportedRef.current || !ggSession) return;
     ggReportedRef.current = true;
+    const roster = [{ name: player.name, score: player.score, streak: player.streak, isHost: true }, ...opponents.map((o) => ({
+      name: o.name,
+      score: o.score,
+      streak: o.streak,
+      isHost: false,
+    }))].sort((a, b) => b.score - a.score);
     reportGummyGumResult({
-      score: player.score,
-      streak: player.streak,
-      name: player.name,
+      gameCode,
+      hostName: player.name,
+      hostScore: player.score,
+      hostStreak: player.streak,
+      participantCount: roster.length,
+      leaderboard: roster,
     });
-  }, [gameState, ggSession, player.score, player.streak, player.name]);
+  }, [gameState, ggSession, player.score, player.streak, player.name, opponents, gameCode]);
 
   // Firebase Realtime Listeners
   useEffect(() => {
