@@ -45,12 +45,21 @@ export const GameProvider = ({ children }) => {
   const [isHost, setIsHost] = useState(false);
   const [isSpectator, setIsSpectator] = useState(() => sessionStorage.getItem('sabi_is_spectator') === 'true');
 
-  // GummyGum hub identity handoff (who launched this session, if anyone)
+  // GummyGum hub identity handoff (who launched this session, if anyone).
+  // This experience is only playable when arriving via a hub launch link, so
+  // we also track access separately from the session payload itself:
+  // 'checking' while the resolve promise is in flight, 'granted' once we
+  // have a real session, 'denied' once resolution comes back empty (no
+  // token, nothing stored — i.e. direct/bookmarked access).
   const [ggSession, setGgSession] = useState(null);
+  const [ggAccessState, setGgAccessState] = useState('checking');
   const ggReportedRef = useRef(false);
 
   useEffect(() => {
-    resolveGummyGumLaunch().then(setGgSession);
+    resolveGummyGumLaunch().then((session) => {
+      setGgSession(session);
+      setGgAccessState(session ? 'granted' : 'denied');
+    });
   }, []);
 
   // Auto-rejoin logic
@@ -487,7 +496,7 @@ export const GameProvider = ({ children }) => {
       gameState, currentQ, timeLeft, answered, bonusRound, chosenAnswer,
       flashColor, streakToast,
       startRace, handleAnswer, isHost, cancelGame, kickPlayer, isSpectator,
-      ggSession
+      ggSession, ggAccessState
     }}>
       {children}
     </GameContext.Provider>
