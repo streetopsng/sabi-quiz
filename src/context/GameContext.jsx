@@ -70,6 +70,22 @@ export const GameProvider = ({ children }) => {
     }
   }, []);
 
+  // Routing back through Create would overwrite an already-created game doc.
+  useEffect(() => {
+    if (!ggSession || !ggSession.roomCode) return;
+    if (!ggSession.isHost) {
+      joinGameWithCode(ggSession.roomCode, ggSession.player?.name);
+      return;
+    }
+    getDoc(doc(db, 'games', ggSession.roomCode)).then((existing) => {
+      if (existing.exists()) {
+        joinGameWithCode(ggSession.roomCode, ggSession.player?.name);
+      } else {
+        navigate('create');
+      }
+    });
+  }, [ggSession]);
+
   // Report the result back to GummyGum once the race ends. The host is
   // usually running this for their whole team, so this reports the full
   // roster (host + everyone who joined with the PIN), not just the host's
@@ -246,9 +262,11 @@ export const GameProvider = ({ children }) => {
       setGameConfig(config);
       setIsHost(true);
       
-      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-      let code = '';
-      for(let i=0; i<6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+      let code = ggSession && ggSession.isHost && ggSession.roomCode ? ggSession.roomCode : '';
+      if (!code) {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        for(let i=0; i<6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
       
       let pool = [...QUESTIONS].sort(() => Math.random() - 0.5);
       let generatedQuestions = [];
