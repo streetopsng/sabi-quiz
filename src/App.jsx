@@ -33,9 +33,11 @@ function GummyGumLockedScreen() {
 }
 
 function ScreenManager() {
-  const { currentScreen, ggAccessState } = useGame();
+  const { currentScreen, ggAccessState, ggSession } = useGame();
 
-  if (ggAccessState === 'checking') {
+  const routingIntoGgRoom = ggSession && ggSession.roomCode && currentScreen === 'home';
+
+  if (ggAccessState === 'checking' || routingIntoGgRoom) {
     return <div className="h-[100dvh] w-full bg-navy" />;
   }
 
