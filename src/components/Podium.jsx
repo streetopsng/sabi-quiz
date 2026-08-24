@@ -1,151 +1,163 @@
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { useGame } from '../context/GameContext';
-import { Home } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import VectorDecor from './VectorDecor';
+import SideToolbar from './SideToolbar';
 import CarAvatar from './CarAvatar';
+import { useGame } from '../context/GameContext';
+import { playSelect } from '../utils/audio';
 
 export default function Podium() {
-  const { player, opponents, navigate, isSpectator } = useGame();
-  const allPlayers = (isSpectator ? opponents.filter(o => o._joined) : [player, ...opponents.filter(o => o._joined)]).sort((a, b) => b.score - a.score);
+  const { navigate, player, opponents } = useGame();
+  
+  // Step 1: Game Over splash (Mockup 8), Step 2: Leaderboard (Mockup 9)
+  const [podiumStep, setPodiumStep] = useState(1);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackText, setFeedbackText] = useState('');
 
-  const [confetti, setConfetti] = useState([]);
-
+  // Auto transition from Game Over to Leaderboard after 2.5 seconds
   useEffect(() => {
-    const cols = ['#F5A623', '#3B82F6', '#22C55E', '#EF4444', '#8B5CF6', '#F97316'];
-    const pieces = Array.from({ length: 40 }).map((_, i) => ({
-      id: i,
-      left: Math.random() * 100,
-      color: cols[Math.floor(Math.random() * cols.length)],
-      delay: Math.random() * 0.8,
-      duration: 1 + Math.random() * 0.8
-    }));
-    setConfetti(pieces);
+    const timer = setTimeout(() => {
+      setPodiumStep(2);
+    }, 2500);
+    return () => clearTimeout(timer);
   }, []);
 
-  const react = (e) => {
-    e.currentTarget.style.transform = 'scale(1.3)';
-    setTimeout(() => {
-      e.target.style.transform = '';
-    }, 200);
-  };
-
-  const podiumSlots = [
-    { p: allPlayers[1], cls: 'bg-gradient-to-b from-[#e2e8f0] to-[#94a3b8] h-[80px] md:h-[120px]', medal: '🥈' },
-    { p: allPlayers[0], cls: 'bg-gradient-to-b from-amber to-[#c47e10] h-[110px] md:h-[160px] shadow-[0_0_30px_rgba(245,166,35,0.4)] z-10', medal: '🥇' },
-    { p: allPlayers[2], cls: 'bg-gradient-to-b from-[#d97706] to-[#92400e] h-[60px] md:h-[90px]', medal: '🥉' }
-  ];
+  // Sort all contestants by score
+  const leaderboard = [player, ...opponents.filter(o => o._joined)].sort((a, b) => b.score - a.score);
 
   return (
-    <motion.div 
-      className="flex flex-col md:flex-row h-full max-w-[430px] md:max-w-5xl mx-auto md:gap-12 md:py-10 overflow-y-auto no-scrollbar"
-      initial={{ opacity: 0, y: 50 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      {/* LEFT COLUMN (Desktop) / TOP (Mobile) */}
-      <div className="flex flex-col items-center md:flex-1 shrink-0 w-full relative z-10">
-        
-        {/* Confetti Container */}
-        <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none rounded-3xl z-20">
-          {confetti.map(c => (
-            <motion.div
-              key={c.id}
-              className="absolute top-[-20px] w-[8px] h-[12px] md:w-[10px] md:h-[16px] rounded-[2px]"
-              style={{ left: `${c.left}%`, backgroundColor: c.color }}
-              initial={{ y: -50, rotate: 0, opacity: 1 }}
-              animate={{ y: 500, rotate: 720, opacity: 0 }}
-              transition={{ delay: c.delay, duration: c.duration, ease: "easeOut" }}
-            />
-          ))}
-        </div>
+    <div className="relative min-h-[100dvh] w-full bg-[#0e1f29] text-white flex flex-col justify-between overflow-hidden select-none font-sans">
+      <VectorDecor showConfetti={true} variant="teal" />
+      <SideToolbar onGiveFeedback={() => setShowFeedbackModal(true)} />
 
-        <div className="pt-6 md:pt-4 px-5 w-full text-center z-10">
-          <div className="text-[12px] md:text-[14px] tracking-[2px] md:tracking-[4px] uppercase text-amber font-bold">Race complete</div>
-          <h1 className="text-[28px] md:text-[40px] font-black text-white mt-1 drop-shadow-md">Final Standings</h1>
-        </div>
-
-        <div className="flex items-end justify-center gap-2 pt-8 md:pt-16 px-4 w-full z-10">
-          {podiumSlots.map((slot, i) => {
-            if (!slot.p) return null;
-            return (
-              <div key={i} className="flex flex-col items-center gap-1.5 md:gap-2">
-                <motion.div 
-                  className="text-[48px] md:text-[64px] drop-shadow-xl relative"
-                  initial={{ opacity: 0, y: -40 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.2 + 0.3, type: "spring", damping: 15 }}
-                >
-                  <div className="absolute inset-0 bg-white/20 blur-xl rounded-full" />
-                  <CarAvatar src={slot.p.vehicle} color={slot.p.color} className="w-16 h-16 md:w-20 md:h-20" />
-                </motion.div>
-                <div className="text-[13px] md:text-[16px] font-bold text-center max-w-[100px] md:max-w-[120px] truncate text-white drop-shadow-md">{slot.p.name}</div>
-                <div className="text-[10px] md:text-[12px] italic text-center max-w-[100px] md:max-w-[120px] leading-[1.3] truncate h-4 font-medium" style={{ color: slot.p.color }}>
-                  {slot.p.banter}
-                </div>
-                <motion.div 
-                  className={`w-[100px] md:w-[130px] rounded-t-xl flex items-center justify-center text-[24px] md:text-[32px] font-black text-white/90 border-t border-white/20 shadow-inner ${slot.cls}`}
-                  initial={{ height: 0 }}
-                  animate={{ height: slot.cls.match(/h-\[([^\]]+)\]/)[1] }}
-                  transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
-                >
-                  <span className="drop-shadow-md">{slot.medal}</span>
-                </motion.div>
-              </div>
-            );
-          })}
-        </div>
-
-        <motion.div 
-          className="mx-5 mt-6 md:mt-10 text-[20px] md:text-[28px] font-black text-center leading-[1.3] text-transparent bg-clip-text bg-gradient-to-r from-amber to-[#e69b19] italic px-4 py-3 bg-white/[0.03] backdrop-blur-md rounded-2xl border border-white/10 shadow-lg relative z-10"
-          initial={{ opacity: 0, scale: 0.85 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 1.2, duration: 0.6, type: "spring" }}
-        >
-          "{allPlayers[0]?.banter || 'What a race!'}"
-        </motion.div>
-      </div>
-
-      {/* RIGHT COLUMN (Desktop) / BOTTOM (Mobile) */}
-      <div className="flex flex-col md:w-[400px] shrink-0 md:h-full md:max-h-full md:overflow-hidden mt-6 md:mt-0 z-10 bg-black/20 md:bg-white/[0.02] md:border md:border-white/10 md:rounded-3xl md:shadow-2xl md:backdrop-blur-sm w-full">
-        
-        <div className="md:flex-1 overflow-visible md:overflow-y-auto px-5 md:px-6 py-4 md:py-6 w-full no-scrollbar">
-          <div className="text-[11px] md:text-[13px] tracking-[2px] uppercase text-muted mb-4 md:mb-6 font-bold flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-amber/80" /> Full results
-          </div>
-          <div className="flex flex-col gap-3 md:gap-4">
-            {allPlayers.map((p, i) => (
-              <div key={p.sessionId || i} className={`flex items-center gap-3 py-2 px-3 rounded-xl border transition-colors ${i === 0 ? 'bg-amber/10 border-amber/30' : 'bg-white/5 border-white/5 hover:bg-white/10'}`}>
-                <div className={`w-6 text-[14px] font-black text-center ${i === 0 ? 'text-amber' : 'text-white/40'}`}>{i + 1}</div>
-                <CarAvatar src={p.vehicle} color={p.color} className="w-8 h-8" />
-                <div className="flex-1 font-bold text-[15px]" style={{ color: p.color }}>{p.name}</div>
-                <div className={`text-[16px] font-black ${i === 0 ? 'text-amber' : 'text-white/80'}`}>{Math.round(p.score)}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-4 py-4 px-5 pb-8 md:pb-6 w-full bg-gradient-to-t from-navy via-navy/80 to-transparent shrink-0">
-          <div className="flex gap-3 justify-center">
-            {['🔥', '😂', '😱', '👏', '👑'].map((emoji, i) => (
-              <div 
-                key={i}
-                onClick={react}
-                className="text-[28px] md:text-[32px] bg-white/[0.05] border border-white/10 rounded-full w-[56px] h-[56px] md:w-[64px] md:h-[64px] flex items-center justify-center cursor-pointer transition-all shadow-md hover:bg-white/10 hover:border-white/30 hover:scale-110 active:scale-95"
-              >
-                {emoji}
-              </div>
-            ))}
-          </div>
+      {/* MAIN CONTENT AREA */}
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 max-w-4xl w-full mx-auto my-auto py-8">
+        <AnimatePresence mode="wait">
           
-          <button 
-            onClick={() => window.location.reload()}
-            className="w-full p-[14px] rounded-xl bg-white/5 border border-white/10 text-white font-bold text-[14px] tracking-[0.5px] uppercase cursor-pointer hover:bg-white/10 transition-colors flex items-center justify-center gap-2 mt-2"
-          >
-            <Home size={16} /> Return to Homepage
-          </button>
-        </div>
+          {/* STEP 1: GAME OVER SPLASH (MATCHES MOCKUP 8) */}
+          {podiumStep === 1 && (
+            <motion.div
+              key="gameOverStep"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.5 }}
+              onClick={() => setPodiumStep(2)}
+              className="cursor-pointer flex flex-col items-center justify-center text-center py-16"
+            >
+              <h1 className="text-5xl sm:text-6xl md:text-7xl font-black text-white tracking-tight drop-shadow-2xl mb-4">
+                Game Over
+              </h1>
+              <p className="text-white/60 text-base font-medium">Tap anywhere for final standings...</p>
 
-      </div>
-    </motion.div>
+              {/* Floating Bottom Toolbar Preview with Give Feedback Pill */}
+              <div className="fixed bottom-10 left-8 z-30 flex items-center gap-3 bg-[#152e3c]/90 border border-white/10 p-2.5 rounded-full shadow-2xl backdrop-blur-md">
+                <button 
+                  onClick={(e) => { e.stopPropagation(); setShowFeedbackModal(true); }}
+                  className="px-5 py-2 rounded-full bg-[#ff6f3c] text-white text-xs font-extrabold uppercase tracking-wide shadow-lg hover:bg-[#e65c2b] transition-all cursor-pointer"
+                >
+                  Give Feedback
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* STEP 2: LEADERBOARD PODIUM (MATCHES MOCKUP 9) */}
+          {podiumStep === 2 && (
+            <motion.div
+              key="leaderboardStep"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.4 }}
+              className="flex flex-col items-center justify-center w-full max-w-xl text-center"
+            >
+              {/* Gold Sabi Logo */}
+              <div className="text-4xl font-black text-[#f5a623] drop-shadow-md tracking-tight mb-8">
+                sabi
+              </div>
+
+              {/* Leaderboard List with Medal Ribbons */}
+              <div className="w-full space-y-4 mb-10 max-h-80 overflow-y-auto px-2">
+                {leaderboard.map((p, rank) => (
+                  <motion.div
+                    key={p.sessionId || rank}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: rank * 0.1 }}
+                    className={`flex items-center justify-between p-4 rounded-3xl border backdrop-blur-md transition-all ${rank === 0 ? 'bg-[#1a3845] border-amber-400/50 shadow-xl' : 'bg-white/5 border-white/10'}`}
+                  >
+                    <div className="flex items-center gap-4">
+                      {/* Medal Ribbon Icon */}
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl">
+                        {rank === 0 ? '🥇' : rank === 1 ? '🥈' : rank === 2 ? '🥉' : `#${rank + 1}`}
+                      </div>
+
+                      {/* Avatar Circle with Red Background */}
+                      <div className="w-12 h-12 rounded-full bg-red-600 border-2 border-white/20 flex items-center justify-center overflow-hidden shadow-md">
+                        <CarAvatar src={p.vehicle} color={p.color} className="w-9 h-9" />
+                      </div>
+
+                      {/* Player Name */}
+                      <span className="text-lg font-bold text-white tracking-wide">
+                        {p.name || `Player ${rank + 1}`}
+                      </span>
+                    </div>
+
+                    {/* Score */}
+                    <div className="text-xl font-black text-white tracking-wider">
+                      {Math.round(p.score || 0)}
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
+                <motion.button
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => { playSelect(); navigate('create'); }}
+                  className="flex-1 py-4 rounded-full border-2 border-white/80 bg-black/40 text-white font-bold text-base tracking-wide hover:bg-white/10 transition-all cursor-pointer backdrop-blur-sm"
+                >
+                  play More
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => { playSelect(); navigate('home'); }}
+                  className="flex-1 py-4 rounded-full bg-[#ff6f3c] border-2 border-white/80 text-white font-extrabold text-base uppercase tracking-wide shadow-lg hover:bg-[#e65c2b] transition-all cursor-pointer"
+                >
+                  Back to Home
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
+
+        </AnimatePresence>
+      </main>
+
+      {/* FEEDBACK MODAL */}
+      <AnimatePresence>
+        {showFeedbackModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-5">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowFeedbackModal(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="relative bg-[#152e3c] border border-white/10 p-6 rounded-3xl shadow-2xl max-w-md w-full text-center z-10">
+              <h3 className="text-xl font-bold text-white mb-2">Give Feedback</h3>
+              <p className="text-xs text-white/60 mb-4">How was your trivia session experience?</p>
+              <textarea
+                rows={4}
+                placeholder="Share your thoughts..."
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                className="w-full bg-black/30 border border-white/15 rounded-xl p-3 text-white text-sm outline-none mb-4"
+              />
+              <div className="flex gap-3">
+                <button onClick={() => setShowFeedbackModal(false)} className="flex-1 py-3 rounded-xl bg-white/10 text-white font-bold">Cancel</button>
+                <button onClick={() => { alert("Thank you for your feedback!"); setShowFeedbackModal(false); setFeedbackText(''); }} className="flex-1 py-3 rounded-xl bg-[#ff6f3c] text-white font-bold">Submit</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

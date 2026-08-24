@@ -1,28 +1,32 @@
 import { useState, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { ArrowLeft, LogIn, KeyRound } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '../context/GameContext';
-import { playJoin } from '../utils/audio';
+import VectorDecor from './VectorDecor';
+import { playJoin, playSelect } from '../utils/audio';
+import { VEHICLES } from '../constants';
+import CarAvatar from './CarAvatar';
 
 export default function JoinGame() {
-  const { navigate, joinGameWithCode, setPlayer } = useGame();
-  const [code, setCode] = useState(['', '', '', '', '', '']);
+  const { navigate, joinGameWithCode, setPlayer, player } = useGame();
+  
+  // Step 1: PIN entry, Step 2: Name & Avatar selection
+  const [joinStep, setJoinStep] = useState(1);
+  const [code, setCode] = useState(['', '', '', '', '']);
   const [playerName, setPlayerName] = useState('');
+  const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const inputRefs = useRef([]);
 
-  const handleChange = (index, value) => {
-    const newCode = [...code];
-    // Only allow alphanumeric uppercase
+  const handleDigitChange = (index, value) => {
     const cleanValue = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
-    
-    // Handle pasting a full code
+    const newCode = [...code];
+
     if (cleanValue.length > 1) {
-      const chars = cleanValue.split('').slice(0, 6);
+      const chars = cleanValue.split('').slice(0, 5);
       chars.forEach((c, i) => {
-        if (index + i < 6) newCode[index + i] = c;
+        if (index + i < 5) newCode[index + i] = c;
       });
       setCode(newCode);
-      const nextFocus = Math.min(index + chars.length, 5);
+      const nextFocus = Math.min(index + chars.length, 4);
       inputRefs.current[nextFocus]?.focus();
       return;
     }
@@ -30,8 +34,7 @@ export default function JoinGame() {
     newCode[index] = cleanValue;
     setCode(newCode);
 
-    // Auto-advance
-    if (cleanValue && index < 5) {
+    if (cleanValue && index < 4) {
       inputRefs.current[index + 1]?.focus();
     }
   };
@@ -42,109 +45,154 @@ export default function JoinGame() {
     }
   };
 
-  const handleJoin = () => {
+  const handlePinSubmit = () => {
     const fullCode = code.join('');
-    if (fullCode.length === 6 && playerName.trim()) {
-      playJoin();
-      setPlayer(p => ({ ...p, name: playerName.trim() }));
-      joinGameWithCode(fullCode, playerName.trim());
+    if (fullCode.length >= 5) {
+      playSelect();
+      setJoinStep(2);
+    } else {
+      alert("Please enter a valid 5-digit Game PIN");
     }
   };
 
-  const isComplete = code.join('').length === 6 && playerName.trim().length > 0;
+  const handleFinalJoin = () => {
+    const fullCode = code.join('');
+    if (playerName.trim()) {
+      playJoin();
+      setPlayer(p => ({ ...p, name: playerName.trim() }));
+      joinGameWithCode(fullCode, playerName.trim());
+    } else {
+      alert("Please enter your nickname!");
+    }
+  };
 
   return (
-    <motion.div 
-      className="flex flex-col md:flex-row h-full max-w-[430px] md:max-w-4xl mx-auto relative md:items-center md:gap-16 overflow-hidden md:overflow-visible"
-      initial={{ opacity: 0, x: 50 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -50 }}
-      transition={{ duration: 0.3 }}
-    >
-      {/* Background Glow */}
-      <div className="absolute top-[-100px] left-1/2 -translate-x-1/2 w-[300px] h-[300px] bg-amber/10 blur-[100px] rounded-full pointer-events-none" />
+    <div className="relative min-h-[100dvh] w-full bg-[#0e1f29] text-white flex flex-col justify-between overflow-hidden select-none font-sans">
+      <VectorDecor showConfetti={true} variant={joinStep === 1 ? 'dark' : 'teal'} />
 
-      {/* LEFT COLUMN (Desktop) / TOP (Mobile) */}
-      <div className="flex flex-col md:w-[350px] shrink-0 z-10 md:text-left">
-        <div className="pt-12 md:pt-0 px-5 flex items-center gap-3.5 mb-8">
-          <button 
-            onClick={() => navigate('home')}
-            className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center transition-colors hover:bg-white/20 active:scale-95"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          <div>
-            <div className="text-[11px] tracking-[2px] uppercase text-amber font-semibold">Join the race</div>
-            <div className="text-[20px] md:text-[28px] font-extrabold mt-0.5 tracking-tight text-white">Enter Game Code</div>
-          </div>
-        </div>
-
-        <div className="hidden md:flex flex-col items-center justify-center py-10 px-6 bg-white/[0.02] border border-white/5 rounded-3xl backdrop-blur-md shadow-2xl">
-          <div className="w-24 h-24 bg-amber/10 rounded-full flex items-center justify-center mb-6 border-[2px] border-amber/20 shadow-[0_0_30px_rgba(245,166,35,0.15)]">
-            <KeyRound size={40} className="text-amber drop-shadow-md" />
-          </div>
-          <p className="text-center text-white/60 text-[15px] font-medium leading-relaxed">
-            Get the 6-character game code from your Race Director to enter the lobby.
-          </p>
-        </div>
-      </div>
-
-      {/* RIGHT COLUMN (Desktop) / BOTTOM (Mobile) */}
-      <div className="flex-1 flex flex-col z-10 w-full h-full pt-4 md:pt-0 pb-[100px] md:pb-0 justify-start md:justify-center px-5">
-        
-        <div className="glass-panel rounded-3xl p-6 md:p-10 flex flex-col items-center text-center">
+      {/* Main Content Container */}
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-8 max-w-xl mx-auto w-full">
+        <AnimatePresence mode="wait">
           
-          <div className="w-full mb-8">
-            <div className="text-[13px] md:text-[15px] text-white/80 font-semibold mb-3 flex items-center justify-center gap-2">
-               Your Nickname
-            </div>
-            <input 
-              type="text" 
-              placeholder="e.g. SpeedRacer" 
-              value={playerName}
-              onChange={(e) => setPlayerName(e.target.value)}
-              className="w-full max-w-[280px] md:max-w-[320px] bg-black/20 border border-white/10 rounded-xl text-white text-[16px] md:text-[18px] py-4 px-5 text-center font-bold outline-none focus:border-amber/60 focus:bg-white/5 transition-all mx-auto block"
-            />
-          </div>
+          {/* STEP 1: PIN ENTRY (MATCHES MOCKUP 4) */}
+          {joinStep === 1 && (
+            <motion.div
+              key="joinStep1"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col items-center justify-center w-full text-center"
+            >
+              {/* 5 Outlined Digit Boxes */}
+              <div className="flex gap-3 md:gap-4 justify-center mb-10">
+                {code.map((v, i) => (
+                  <input
+                    key={i}
+                    ref={el => inputRefs.current[i] = el}
+                    type="text"
+                    maxLength={5}
+                    value={v}
+                    onChange={(e) => handleDigitChange(i, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(i, e)}
+                    onFocus={(e) => e.target.select()}
+                    className="w-14 h-20 md:w-16 md:h-24 text-center text-3xl md:text-4xl font-black uppercase rounded-2xl border-2 border-white bg-black/40 text-white outline-none focus:border-[#ff6f3c] focus:bg-white/10 transition-all shadow-xl"
+                  />
+                ))}
+              </div>
 
-          <div className="text-[13px] md:text-[15px] text-white/80 font-semibold mb-3 flex items-center gap-2">
-             Game Code
-          </div>
-          
-          <div className="flex gap-2 md:gap-3 justify-center mb-8 w-full">
-            {code.map((v, i) => (
-              <motion.input
-                key={i}
-                ref={el => inputRefs.current[i] = el}
-                type="text"
-                maxLength={6}
-                value={v}
-                onChange={(e) => handleChange(i, e.target.value)}
-                onKeyDown={(e) => handleKeyDown(i, e)}
-                onFocus={(e) => e.target.select()}
-                className={`w-[45px] h-[56px] md:w-[60px] md:h-[72px] text-center text-[24px] md:text-[32px] font-black uppercase rounded-xl border-[2px] outline-none transition-all
-                  ${v ? 'bg-amber/10 border-amber text-amber shadow-[0_0_15px_rgba(245,166,35,0.15)]' : 'bg-black/30 border-white/10 text-white focus:border-amber/50 focus:bg-white/5'}
-                `}
-                whileFocus={{ scale: 1.05 }}
-              />
-            ))}
-          </div>
+              {/* Action Buttons */}
+              <div className="flex flex-col gap-4 w-full max-w-xs">
+                <motion.button
+                  whileTap={{ scale: 0.96 }}
+                  onClick={handlePinSubmit}
+                  className="w-full py-4 rounded-full bg-[#ff6f3c] text-white text-lg font-extrabold uppercase tracking-wide border-2 border-white/80 shadow-[0_4px_25px_rgba(255,111,60,0.5)] hover:bg-[#e65c2b] transition-all cursor-pointer"
+                >
+                  Join
+                </motion.button>
+                <motion.button
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => alert("Scan QR Code using your device camera!")}
+                  className="w-full py-4 rounded-full border-2 border-white/80 bg-black/40 text-white text-base font-bold tracking-wide hover:bg-white/10 transition-all cursor-pointer backdrop-blur-sm"
+                >
+                  Scan QR Code
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
 
-          <motion.button 
-            whileTap={isComplete ? { scale: 0.96 } : {}}
-            disabled={!isComplete}
-            onClick={handleJoin}
-            className={`w-full p-[18px] md:p-[20px] rounded-2xl text-[16px] md:text-[18px] font-extrabold tracking-[1px] uppercase border-none transition-all flex items-center justify-center gap-2
-              ${isComplete 
-                ? 'bg-gradient-to-r from-amber to-[#e69b19] text-[#1a1a00] shadow-[0_8px_30px_rgba(245,166,35,0.3)] cursor-pointer hover:shadow-[0_8px_40px_rgba(245,166,35,0.5)]' 
-                : 'bg-white/5 text-white/30 cursor-not-allowed'
-              }
-            `}
-          >
-            Enter Lobby <LogIn size={20} strokeWidth={3} />
-          </motion.button>
-        </div>
-      </div>
-    </motion.div>
+          {/* STEP 2: ENTER NAME & AVATAR (MATCHES MOCKUP 5) */}
+          {joinStep === 2 && (
+            <motion.div
+              key="joinStep2"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col items-center justify-center w-full text-center"
+            >
+              {/* Circular Avatar Container with Red Circle Background & Tap to Change */}
+              <div className="relative mb-8 group cursor-pointer" onClick={() => setShowAvatarPicker(true)}>
+                <div className="w-36 h-36 md:w-44 md:h-44 rounded-full bg-red-600 border-4 border-white/20 flex flex-col items-center justify-center overflow-hidden shadow-2xl relative">
+                  <CarAvatar src={player.vehicle} color={player.color} className="w-24 h-24 md:w-28 md:h-28" />
+                  <div className="absolute bottom-0 inset-x-0 bg-red-800/80 py-1.5 text-center text-white text-xs font-bold uppercase tracking-wider">
+                    Tap to Change
+                  </div>
+                </div>
+              </div>
+
+              {/* Clean White Underline Input for Name */}
+              <div className="w-full max-w-sm mb-10">
+                <input
+                  type="text"
+                  placeholder="Enter Name"
+                  value={playerName}
+                  onChange={(e) => setPlayerName(e.target.value)}
+                  className="w-full bg-transparent border-b-2 border-white text-center text-2xl font-extrabold text-white py-3 px-4 outline-none placeholder:text-white/70 focus:border-[#ff6f3c] transition-all"
+                  autoFocus
+                />
+              </div>
+
+              {/* Action Button */}
+              <motion.button
+                whileTap={{ scale: 0.96 }}
+                onClick={handleFinalJoin}
+                className="w-full max-w-xs py-4 rounded-full bg-[#ff6f3c] text-white text-lg font-extrabold uppercase tracking-wide border-2 border-white/80 shadow-[0_4px_25px_rgba(255,111,60,0.5)] hover:bg-[#e65c2b] transition-all cursor-pointer"
+              >
+                Continue
+              </motion.button>
+            </motion.div>
+          )}
+
+        </AnimatePresence>
+      </main>
+
+      {/* Avatar Picker Modal */}
+      <AnimatePresence>
+        {showAvatarPicker && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-5">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowAvatarPicker(false)} />
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="relative bg-[#152e3c] border border-white/10 p-6 rounded-3xl shadow-2xl max-w-md w-full text-center z-10">
+              <h3 className="text-xl font-bold text-white mb-4">Choose Your Vehicle Avatar</h3>
+              <div className="grid grid-cols-4 gap-3 max-h-60 overflow-y-auto p-2">
+                {VEHICLES.map((v, i) => (
+                  <div
+                    key={i}
+                    onClick={() => {
+                      setPlayer(p => ({ ...p, vehicle: v.icon }));
+                      setShowAvatarPicker(false);
+                    }}
+                    className={`p-2 rounded-2xl border cursor-pointer flex flex-col items-center hover:bg-white/10 transition-colors ${player.vehicle === v.icon ? 'border-amber-400 bg-white/10' : 'border-white/10'}`}
+                  >
+                    <img src={v.icon} alt={v.name} className="w-12 h-12 object-contain" />
+                  </div>
+                ))}
+              </div>
+              <button onClick={() => setShowAvatarPicker(false)} className="mt-4 w-full py-3 rounded-xl bg-white/10 text-white font-bold hover:bg-white/20 transition-all">Done</button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }

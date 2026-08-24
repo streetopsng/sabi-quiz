@@ -1,107 +1,227 @@
-import { motion } from 'framer-motion';
-import { Plus, Gamepad2, Trophy, Users, Clock } from 'lucide-react';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '../context/GameContext';
-import { VEHICLES } from '../constants';
+import VectorDecor from './VectorDecor';
+import { playSelect } from '../utils/audio';
+import { X, HelpCircle, Sparkles, CreditCard, LifeBuoy } from 'lucide-react';
 
 export default function Home() {
   const { navigate } = useGame();
+  const [activeTab, setActiveTab] = useState('Home');
+  const [activeModal, setActiveModal] = useState(null);
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    show: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
+  const handleNavClick = (tab) => {
+    playSelect();
+    setActiveTab(tab);
+    if (tab !== 'Home') {
+      setActiveModal(tab);
     }
   };
 
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
-  };
-
   return (
-    <motion.div 
-      className="flex flex-col md:flex-row h-full max-w-[430px] md:max-w-5xl mx-auto justify-between md:justify-center md:items-center md:gap-16 relative overflow-hidden"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      transition={{ duration: 0.4 }}
-    >
-      {/* Dynamic Background */}
-      <div className="absolute top-[-100px] left-1/2 -translate-x-1/2 w-[350px] h-[350px] bg-amber/15 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-[-100px] right-[-50px] w-[200px] h-[200px] bg-blue-500/10 blur-[100px] rounded-full pointer-events-none" />
+    <div className="relative min-h-[100dvh] w-full bg-[#0a101d] text-white flex flex-col justify-between overflow-hidden font-sans select-none">
+      {/* Background Decor */}
+      <VectorDecor showConfetti={true} variant="dark" />
 
-      <motion.div 
-        className="flex-1 flex flex-col items-center md:items-start justify-center px-6 pt-16 pb-6 text-center md:text-left relative z-10"
-        variants={containerVariants}
-        initial="hidden"
-        animate="show"
-      >
-        <motion.div variants={itemVariants} className="relative">
-          <h1 className="text-[72px] font-black tracking-[-4px] text-transparent bg-clip-text bg-gradient-to-br from-amber to-amber-dim leading-none drop-shadow-lg">
-            SABI
-          </h1>
-          <div className="absolute -top-4 -right-6 text-[24px]">🏆</div>
-        </motion.div>
-        
-        <motion.p variants={itemVariants} className="text-[16px] text-white/70 mt-4 leading-relaxed font-medium max-w-[280px] md:max-w-md">
-          The premium trivia engine built for competitive corporate teams.
-        </motion.p>
-        
-        <motion.div variants={itemVariants} className="flex gap-4 mt-8 justify-center md:justify-start">
-          {VEHICLES.slice(0, 4).map((car, idx) => (
-            <motion.img
-              key={idx}
-              src={car.icon}
-              alt={car.name}
-              animate={{ y: [0, -8, 0] }}
-              transition={{ repeat: Infinity, duration: 2, delay: idx * 0.2, ease: "easeInOut" }}
-              className="w-16 h-16 drop-shadow-2xl object-contain"
-            />
-          ))}
-        </motion.div>
-        
-        <motion.div variants={itemVariants} className="flex gap-3 mt-12 w-full">
-          {[
-            { icon: Trophy, val: '20+', label: 'Questions' },
-            { icon: Users, val: 'Unlimited', label: 'Players' },
-            { icon: Clock, val: '15s', label: 'Per answer' },
-          ].map((stat, idx) => (
-            <div key={idx} className="flex-1 flex flex-col items-center justify-center py-4 px-2 bg-white/[0.03] border border-white/10 rounded-2xl backdrop-blur-sm shadow-inner">
-              <stat.icon size={16} className="text-amber/80 mb-2" />
-              <div className="text-[18px] font-extrabold text-white leading-none mb-1">{stat.val}</div>
-              <div className="text-[10px] text-white/50 uppercase tracking-wider font-semibold">{stat.label}</div>
-            </div>
-          ))}
-        </motion.div>
-      </motion.div>
-
-      <motion.div 
-        className="px-6 py-8 pb-12 flex flex-col gap-3 relative z-10 bg-gradient-to-t from-navy via-navy to-transparent md:bg-none md:w-[380px] md:shrink-0"
-        initial={{ opacity: 0, y: 40 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4, type: "spring", stiffness: 200, damping: 20 }}
-      >
-        <motion.button 
-          whileTap={{ scale: 0.97 }}
-          onClick={() => navigate('create')}
-          className="w-full p-[18px] rounded-2xl bg-gradient-to-r from-amber to-[#e69b19] text-[#1a1a00] text-[16px] font-extrabold tracking-[0.5px] uppercase border-none cursor-pointer shadow-[0_8px_30px_rgba(245,166,35,0.3)] flex items-center justify-center gap-2 transition-shadow hover:shadow-[0_8px_40px_rgba(245,166,35,0.4)]"
+      {/* TOP NAVIGATION BAR */}
+      <header className="relative z-20 w-full max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
+        {/* Brand Logo */}
+        <div 
+          onClick={() => navigate('home')}
+          className="cursor-pointer flex items-center gap-2"
         >
-          <Plus size={20} strokeWidth={3} /> Create Room
-        </motion.button>
-        <motion.button 
-          whileTap={{ scale: 0.97 }}
-          onClick={() => navigate('join')}
-          className="w-full p-[18px] rounded-2xl bg-white/[0.04] border border-white/10 text-white text-[16px] font-bold cursor-pointer transition-all hover:bg-white/[0.08] hover:border-white/20 flex items-center justify-center gap-2 backdrop-blur-md"
-        >
-          <Gamepad2 size={20} /> Join Game
-        </motion.button>
-        <div className="text-[12px] text-white/40 text-center mt-3 font-medium tracking-wide">
-          HR admins create · Everyone else joins
+          <span className="text-[32px] font-black tracking-tight text-[#f5a623] drop-shadow-md">
+            sabi
+          </span>
         </div>
-      </motion.div>
-    </motion.div>
+
+        {/* Center Nav Links */}
+        <nav className="hidden md:flex items-center gap-8 text-[15px] font-semibold">
+          {['Home', 'How it works', 'Features', 'Pricing', 'Supports'].map((item) => (
+            <button
+              key={item}
+              onClick={() => handleNavClick(item)}
+              className={`transition-colors cursor-pointer ${
+                activeTab === item 
+                  ? 'text-[#f5a623] font-bold' 
+                  : 'text-white/70 hover:text-white'
+              }`}
+            >
+              {item}
+            </button>
+          ))}
+        </nav>
+
+        {/* Right Action Buttons */}
+        <div className="flex items-center gap-5">
+          <button 
+            onClick={() => navigate('join')}
+            className="text-[15px] font-bold text-white/80 hover:text-white transition-colors cursor-pointer hidden sm:block"
+          >
+            Log in
+          </button>
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => { playSelect(); navigate('create'); }}
+            className="px-6 py-3 rounded-xl bg-[#7033ff] text-white text-[15px] font-bold shadow-[0_4px_20px_rgba(112,51,255,0.4)] hover:bg-[#6020ef] transition-all cursor-pointer"
+          >
+            Host a Game
+          </motion.button>
+        </div>
+      </header>
+
+      {/* HERO SECTION */}
+      <main className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-6 max-w-4xl mx-auto my-auto py-12">
+        {/* Eyebrow badge */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="text-[12px] md:text-[13px] font-extrabold tracking-[3px] uppercase text-white/60 mb-6"
+        >
+          WORKPLACE TRIVAL. REAL CONNECTIONS
+        </motion.div>
+
+        {/* Main Headline */}
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.1 }}
+          className="text-[36px] sm:text-[54px] md:text-[64px] font-black leading-[1.1] tracking-tight mb-6"
+        >
+          Turn any moment <br />
+          into a <span className="text-[#f75270]">shared</span>{' '}
+          <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#b55fe6] to-[#8000ff]">
+            experience
+          </span>
+        </motion.h1>
+
+        {/* Subtitle */}
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="text-[15px] sm:text-[18px] text-white/70 max-w-2xl font-medium leading-relaxed mb-10"
+        >
+          Sabi is a fun, interactive way to bring your team together, boost knowledge and build a stronger workplace culture
+        </motion.p>
+
+        {/* Primary Call To Actions */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto"
+        >
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => { playSelect(); navigate('join'); }}
+            className="w-full sm:w-auto px-10 py-4 rounded-xl bg-gradient-to-r from-[#ff6b4a] via-[#f75270] to-[#9333ea] text-white text-[16px] font-extrabold tracking-wide shadow-[0_8px_30px_rgba(247,82,112,0.4)] hover:shadow-[0_8px_40px_rgba(247,82,112,0.6)] transition-all cursor-pointer"
+          >
+            Join Game
+          </motion.button>
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => { playSelect(); navigate('create'); }}
+            className="w-full sm:w-auto px-10 py-4 rounded-xl border border-white/20 bg-white/[0.03] text-white text-[16px] font-bold backdrop-blur-md hover:bg-white/[0.08] hover:border-white/40 transition-all cursor-pointer"
+          >
+            Host a Game
+          </motion.button>
+        </motion.div>
+      </main>
+
+      {/* FOOTER BADGE */}
+      <footer className="relative z-10 py-6 px-6 text-center text-white/40 text-xs font-medium">
+        © Sabi Trivia Engine · Built for High Performance Teams
+      </footer>
+
+      {/* INFORMATIONAL MODALS FOR NAV LINKS */}
+      <AnimatePresence>
+        {activeModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-5">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setActiveModal(null)}
+              className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="relative bg-[#152e3c] border border-white/10 p-8 rounded-3xl shadow-2xl max-w-md w-full text-left z-10"
+            >
+              <button 
+                onClick={() => setActiveModal(null)}
+                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:text-white"
+              >
+                <X size={18} />
+              </button>
+
+              {activeModal === 'How it works' && (
+                <div>
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center mb-4">
+                    <HelpCircle size={24} />
+                  </div>
+                  <h3 className="text-2xl font-bold text-white mb-2">How Sabi Works</h3>
+                  <p className="text-white/70 text-sm leading-relaxed mb-4">
+                    1. **Host a Game**: HR admins or team leads configure a trivia room with custom topic packs & rules.<br/>
+                    2. **Join via PIN/QR**: Team members enter the 5-digit PIN or scan the live QR code on any device.<br/>
+                    3. **Live Competition**: Compete in real-time speed rounds with streak multipliers and live leaderboards!
+                  </p>
+                </div>
+              )}
+
+              {activeModal === 'Features' && (
+                <div>
+                  <div className="w-12 h-12 rounded-2xl bg-purple-500/20 text-purple-400 flex items-center justify-center mb-4">
+                    <Sparkles size={24} />
+                  </div>
+                  <h3 className="text-2xl font-bold text-white mb-2">Sabi Features</h3>
+                  <ul className="text-white/70 text-sm space-y-2 mb-4">
+                    <li>⚡ **Instant PIN & QR Join**: Zero login required for players.</li>
+                    <li>🔥 **Streak Multipliers & Bonus Rounds**: Reward consecutive correct answers.</li>
+                    <li>📺 **Presenter & Team Modes**: Perfect for screen sharing or all-hands meetings.</li>
+                    <li>📊 **Private HR-Safe Scoring**: Optional score privacy mode.</li>
+                  </ul>
+                </div>
+              )}
+
+              {activeModal === 'Pricing' && (
+                <div>
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center mb-4">
+                    <CreditCard size={24} />
+                  </div>
+                  <h3 className="text-2xl font-bold text-white mb-2">Free & Open Access</h3>
+                  <p className="text-white/70 text-sm leading-relaxed mb-4">
+                    Sabi is completely free for corporate team building and company events up to 50 active live players per room.
+                  </p>
+                </div>
+              )}
+
+              {activeModal === 'Supports' && (
+                <div>
+                  <div className="w-12 h-12 rounded-2xl bg-blue-500/20 text-blue-400 flex items-center justify-center mb-4">
+                    <LifeBuoy size={24} />
+                  </div>
+                  <h3 className="text-2xl font-bold text-white mb-2">Support & Assistance</h3>
+                  <p className="text-white/70 text-sm leading-relaxed mb-4">
+                    Need help setting up your team trivia session? Reach out to support or launch directly via GummyGum hub!
+                  </p>
+                </div>
+              )}
+
+              <button 
+                onClick={() => setActiveModal(null)}
+                className="w-full py-3 rounded-xl bg-[#ff6f3c] text-white font-bold uppercase tracking-wider text-sm shadow-lg hover:bg-[#e65c2b] transition-all"
+              >
+                Got it
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
   );
 }
