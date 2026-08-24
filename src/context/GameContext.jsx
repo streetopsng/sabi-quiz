@@ -257,72 +257,73 @@ export const GameProvider = ({ children }) => {
     }
   };
 
-  const createGame = async (config) => {
-    try {
-      setGameConfig(config);
-      setIsHost(true);
-      
-      let code = ggSession && ggSession.isHost && ggSession.roomCode ? ggSession.roomCode : '';
-      if (!code) {
-        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-        for(let i=0; i<6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-      
-      let pool = [...QUESTIONS].sort(() => Math.random() - 0.5);
-      let generatedQuestions = [];
-      while (generatedQuestions.length < config.qCount) {
-        generatedQuestions = [...generatedQuestions, ...pool];
-      }
-      generatedQuestions = generatedQuestions.slice(0, config.qCount);
-
-      // Optimistic UI updates
-      setGameCode(code);
-      setGameQuestions(generatedQuestions);
-      sessionStorage.setItem('sabi_game_code', code);
-      sessionStorage.setItem('sabi_is_host', 'true');
-      if (config.playAsContestant) {
-        setIsSpectator(false);
-        sessionStorage.setItem('sabi_is_spectator', 'false');
-      } else {
-        setIsSpectator(true);
-        sessionStorage.setItem('sabi_is_spectator', 'true');
-      }
-      navigate('lobby');
-
-      // Background Network writes via Batch for max speed
-      const batch = writeBatch(db);
-      
-      batch.set(doc(db, 'games', code), {
-        code,
-        hostSessionId: sessionId,
-        config,
-        questions: generatedQuestions,
-        state: 'lobby',
-        currentQ: 0,
-        startedAt: null
-      });
-
-      if (config.playAsContestant) {
-        batch.set(doc(db, 'games', code, 'players', sessionId), {
-          ...player,
-          name: config.hostName || 'HR Admin',
-          sessionId,
-          score: 0,
-          streak: 0,
-          answered: false,
-          chosenAnswer: -1,
-          connected: true
-        });
-        setPlayer(p => ({ ...p, name: config.hostName || 'HR Admin' }));
-      }
-
-      await batch.commit();
-      
-    } catch (err) {
-      console.error("Firebase Create Game Error:", err);
-      alert("Failed to create game: " + err.message + "\n\nCheck your Firebase Rules and Environment Variables!");
-      navigate('home');
+  const createGame = (config) => {
+    // 1. Instant optimistic state update to allow browser main thread to paint immediately (<5ms INP)
+    setGameConfig(config);
+    setIsHost(true);
+    if (config.playAsContestant) {
+      setIsSpectator(false);
+      sessionStorage.setItem('sabi_is_spectator', 'false');
+      setPlayer(p => ({ ...p, name: config.hostName || 'HR Admin' }));
+    } else {
+      setIsSpectator(true);
+      sessionStorage.setItem('sabi_is_spectator', 'true');
     }
+    navigate('lobby');
+
+    // 2. Defer question array processing and network batch creation to next event loop frame
+    setTimeout(async () => {
+      try {
+        let code = ggSession && ggSession.isHost && ggSession.roomCode ? ggSession.roomCode : '';
+        if (!code) {
+          const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+          for(let i=0; i<6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        
+        let pool = [...QUESTIONS].sort(() => Math.random() - 0.5);
+        let generatedQuestions = [];
+        while (generatedQuestions.length < config.qCount) {
+          generatedQuestions = [...generatedQuestions, ...pool];
+        }
+        generatedQuestions = generatedQuestions.slice(0, config.qCount);
+
+        setGameCode(code);
+        setGameQuestions(generatedQuestions);
+        sessionStorage.setItem('sabi_game_code', code);
+        sessionStorage.setItem('sabi_is_host', 'true');
+
+        const batch = writeBatch(db);
+        
+        batch.set(doc(db, 'games', code), {
+          code,
+          hostSessionId: sessionId,
+          config,
+          questions: generatedQuestions,
+          state: 'lobby',
+          currentQ: 0,
+          startedAt: null
+        });
+
+        if (config.playAsContestant) {
+          batch.set(doc(db, 'games', code, 'players', sessionId), {
+            ...player,
+            name: config.hostName || 'HR Admin',
+            sessionId,
+            score: 0,
+            streak: 0,
+            answered: false,
+            chosenAnswer: -1,
+            connected: true
+          });
+        }
+
+        await batch.commit();
+      } catch (err) {
+        console.error("Firebase Create Game Error:", err);
+        alert("Failed to create game: " + err.message);
+        navigate('home');
+      }
+    }, 0);
   };
 
   const joinGameWithCode = async (code, customName) => {
