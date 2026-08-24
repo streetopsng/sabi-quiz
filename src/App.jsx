@@ -46,17 +46,20 @@ function ScreenManager() {
   }
 
   return (
-    <div className="h-[100dvh] w-full relative bg-navy overflow-hidden">
-      <Overlays />
-      <AnimatePresence mode="wait">
-        {currentScreen === 'home' && <Home key="home" />}
-        {currentScreen === 'create' && <CreateGame key="create" />}
-        {currentScreen === 'join' && <JoinGame key="join" />}
-        {currentScreen === 'lobby' && <Lobby key="lobby" />}
-        {currentScreen === 'fleet' && <FleetSelection key="fleet" />}
-        {currentScreen === 'question' && <Question key="question" />}
-        {currentScreen === 'podium' && <Podium key="podium" />}
-      </AnimatePresence>
+    <div className="h-[100dvh] w-full relative bg-[#0a101d] overflow-hidden flex items-center justify-center p-2 md:p-4">
+      {/* 80% Default Viewport Scaled Stage Container */}
+      <div className="w-full h-full max-w-[1400px] max-h-[920px] scale-100 sm:scale-95 md:scale-[0.82] lg:scale-[0.80] origin-center flex flex-col justify-between overflow-hidden relative shadow-2xl rounded-3xl border border-white/10 bg-[#0e1f29]">
+        <Overlays />
+        <AnimatePresence mode="wait">
+          {currentScreen === 'home' && <Home key="home" />}
+          {currentScreen === 'create' && <CreateGame key="create" />}
+          {currentScreen === 'join' && <JoinGame key="join" />}
+          {currentScreen === 'lobby' && <Lobby key="lobby" />}
+          {currentScreen === 'fleet' && <FleetSelection key="fleet" />}
+          {currentScreen === 'question' && <Question key="question" />}
+          {currentScreen === 'podium' && <Podium key="podium" />}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }
