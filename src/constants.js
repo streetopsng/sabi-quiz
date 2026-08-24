@@ -17,10 +17,10 @@ export const VEHICLES = [
 ];
 
 export const COLORS = [
-  '#3B82F6', '#F97316', '#8B5CF6', '#22C55E',
-  '#EF4444', '#EC4899', '#14B8A6', '#F59E0B',
-  '#6366F1', '#10B981', '#F43F5E', '#84CC16',
-  '#0EA5E9', '#A855F7', '#FF6B35', '#06B6D4',
+  '#FF355E', '#0070F3', '#10B981', '#FF6B35',
+  '#F59E0B', '#00D2FF', '#E11D48', '#84CC16',
+  '#06B6D4', '#F43F5E', '#FFB800', '#10B981',
+  '#3B82F6', '#EF4444', '#14B8A6', '#F97316',
 ];
 
 export const QUESTIONS = [

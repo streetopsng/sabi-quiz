@@ -45,7 +45,7 @@ export default function Lobby() {
       </header>
 
       {/* MAIN LOBBY CONTENT */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-6 max-w-4xl w-full mx-auto">
+      <main className="relative z-10 flex-1 overflow-y-auto no-scrollbar px-4 py-6 max-w-4xl w-full mx-auto flex flex-col items-center justify-start">
         
         {/* HOST LOBBY VIEW (MATCHES MOCKUP 3) */}
         {isHost ? (

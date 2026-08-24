@@ -1,8 +1,8 @@
 import { motion } from 'framer-motion';
 import { 
-  TargetVector, BriefcaseVector, ThinkingEmojiVector, ClipboardVector, 
-  BrainMascotVector, MascotBookVector, LightBulbVector, TrophyHandVector,
-  GoldStarVector, Brain3DVector, FilmStripVector, ClapboardVector 
+  BriefcaseVector, ThinkingEmojiVector, ClipboardVector, 
+  BrainMascotVector, MascotBookVector,
+  GoldStarVector, FilmStripVector, ClapboardVector 
 } from './VectorIcons';
 
 export default function VectorDecor({ showConfetti = false, variant = 'teal' }) {
@@ -15,20 +15,24 @@ export default function VectorDecor({ showConfetti = false, variant = 'teal' }) 
         <div className="absolute inset-0 bg-[#0a101d]" />
       ) : null}
 
-      {/* 1. Target Arrow Icon Top Left */}
+      {/* 1. Realistic 3D Target Arrow Icon Top Left */}
       <motion.div 
         initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 0.25, scale: 1 }}
+        animate={{ opacity: 0.85, scale: 1 }}
         transition={{ duration: 1 }}
-        className="absolute top-4 left-4 md:top-8 md:left-8 drop-shadow-xl"
+        className="absolute top-4 left-4 md:top-8 md:left-8 drop-shadow-2xl z-10"
       >
-        <TargetVector className="w-24 h-24 md:w-36 md:h-36" />
+        <img 
+          src="/assets/target_arrow.jpg" 
+          alt="Target Bullseye" 
+          className="w-28 h-28 md:w-40 md:h-40 object-contain rounded-full mix-blend-screen drop-shadow-[0_10px_30px_rgba(239,68,68,0.4)]"
+        />
       </motion.div>
 
       {/* 2. Leather Briefcase Top Right */}
       <motion.div 
         initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 0.22, scale: 1 }}
+        animate={{ opacity: 0.25, scale: 1 }}
         transition={{ duration: 1, delay: 0.1 }}
         className="absolute top-6 right-6 md:top-10 md:right-10 drop-shadow-2xl"
       >
@@ -47,20 +51,24 @@ export default function VectorDecor({ showConfetti = false, variant = 'teal' }) 
       {/* 4. Checklist Clipboard Mid Right */}
       <motion.div 
         initial={{ opacity: 0 }}
-        animate={{ opacity: 0.28 }}
+        animate={{ opacity: 0.3 }}
         transition={{ duration: 1 }}
         className="absolute top-1/2 right-4 md:right-10 opacity-30"
       >
         <ClipboardVector className="w-16 h-22 md:w-22 md:h-30" />
       </motion.div>
 
-      {/* 5. Brain Mascot with Light Bulb Bottom Left */}
+      {/* 5. Realistic 3D Light Bulb Bottom Left */}
       <motion.div 
-        animate={{ scale: [1, 1.06, 1], y: [0, -4, 0] }}
+        animate={{ scale: [1, 1.05, 1], y: [0, -4, 0] }}
         transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut" }}
-        className="absolute bottom-8 left-4 md:bottom-12 md:left-12 opacity-35"
+        className="absolute bottom-6 left-4 md:bottom-10 md:left-10 z-10"
       >
-        <BrainMascotVector className="w-16 h-16" />
+        <img 
+          src="/assets/light_bulb.jpg" 
+          alt="Glowing Light Bulb" 
+          className="w-24 h-24 md:w-36 md:h-36 object-contain rounded-full mix-blend-screen drop-shadow-[0_10px_30px_rgba(245,158,11,0.5)]"
+        />
       </motion.div>
 
       {/* 6. Mascot with Magnifying Glass & Book Bottom Center */}
@@ -72,7 +80,20 @@ export default function VectorDecor({ showConfetti = false, variant = 'teal' }) 
         <MascotBookVector className="w-20 h-20" />
       </motion.div>
 
-      {/* 7. Extra Extracted Vectors */}
+      {/* 7. Realistic 3D Hand Holding Trophy Bottom Right */}
+      <motion.div 
+        animate={{ y: [0, -6, 0] }}
+        transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
+        className="absolute bottom-4 right-4 md:bottom-8 md:right-8 z-10"
+      >
+        <img 
+          src="/assets/trophy_hand.jpg" 
+          alt="Golden Trophy" 
+          className="w-32 h-32 md:w-52 md:h-52 object-contain rounded-3xl mix-blend-screen drop-shadow-[0_10px_40px_rgba(245,158,11,0.5)]"
+        />
+      </motion.div>
+
+      {/* 8. Extra Extracted Vectors */}
       <div className="absolute top-1/4 right-1/4 opacity-20">
         <FilmStripVector className="w-8 h-12" />
       </div>
@@ -81,9 +102,6 @@ export default function VectorDecor({ showConfetti = false, variant = 'teal' }) 
       </div>
       <div className="absolute top-1/3 right-12 opacity-25">
         <GoldStarVector className="w-8 h-8" />
-      </div>
-      <div className="absolute bottom-1/3 left-1/4 opacity-25">
-        <TrophyHandVector className="w-16 h-20" />
       </div>
 
       {/* Confetti Rain Layer */}

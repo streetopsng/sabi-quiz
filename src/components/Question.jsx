@@ -52,7 +52,7 @@ export default function Question() {
       </header>
 
       {/* MAIN QUESTION & ANSWERS AREA */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 max-w-4xl w-full mx-auto my-auto py-6">
+      <main className="relative z-10 flex-1 overflow-y-auto no-scrollbar px-6 py-6 max-w-4xl w-full mx-auto flex flex-col items-center justify-start">
         
         {/* Question Headline */}
         <motion.h1 
