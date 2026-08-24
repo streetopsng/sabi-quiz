@@ -3,6 +3,7 @@ import { db } from '../firebase';
 import { doc, collection, setDoc, getDoc, updateDoc, onSnapshot, getDocs, deleteDoc, writeBatch } from 'firebase/firestore';
 import { INITIAL_PLAYER, QUESTIONS } from '../constants';
 import { playJoin, playStart, playTick, playCorrect, playWrong, playWin, playSelect } from '../utils/audio';
+import { resolveGummyGumLaunch, reportGummyGumResult } from '../lib/gummygumSession';
 
 const GameContext = createContext();
 
@@ -44,6 +45,23 @@ export const GameProvider = ({ children }) => {
   const [isHost, setIsHost] = useState(false);
   const [isSpectator, setIsSpectator] = useState(() => sessionStorage.getItem('sabi_is_spectator') === 'true');
 
+  // GummyGum hub identity handoff (who launched this session, if anyone).
+  // This experience is only playable when arriving via a hub launch link, so
+  // we also track access separately from the session payload itself:
+  // 'checking' while the resolve promise is in flight, 'granted' once we
+  // have a real session, 'denied' once resolution comes back empty (no
+  // token, nothing stored — i.e. direct/bookmarked access).
+  const [ggSession, setGgSession] = useState(null);
+  const [ggAccessState, setGgAccessState] = useState('checking');
+  const ggReportedRef = useRef(false);
+
+  useEffect(() => {
+    resolveGummyGumLaunch().then((session) => {
+      setGgSession(session);
+      setGgAccessState(session ? 'granted' : 'denied');
+    });
+  }, []);
+
   // Auto-rejoin logic
   useEffect(() => {
     const savedCode = sessionStorage.getItem('sabi_game_code');
@@ -51,6 +69,45 @@ export const GameProvider = ({ children }) => {
       joinGameWithCode(savedCode);
     }
   }, []);
+
+  // Routing back through Create would overwrite an already-created game doc.
+  useEffect(() => {
+    if (!ggSession || !ggSession.roomCode) return;
+    if (!ggSession.isHost) {
+      joinGameWithCode(ggSession.roomCode, ggSession.player?.name);
+      return;
+    }
+    getDoc(doc(db, 'games', ggSession.roomCode)).then((existing) => {
+      if (existing.exists()) {
+        joinGameWithCode(ggSession.roomCode, ggSession.player?.name);
+      } else {
+        navigate('create');
+      }
+    });
+  }, [ggSession]);
+
+  // Report the result back to GummyGum once the race ends. The host is
+  // usually running this for their whole team, so this reports the full
+  // roster (host + everyone who joined with the PIN), not just the host's
+  // own score, plus the host's own placement for convenience.
+  useEffect(() => {
+    if (gameState !== 'podium' || ggReportedRef.current || !ggSession) return;
+    ggReportedRef.current = true;
+    const roster = [{ name: player.name, score: player.score, streak: player.streak, isHost: true }, ...opponents.map((o) => ({
+      name: o.name,
+      score: o.score,
+      streak: o.streak,
+      isHost: false,
+    }))].sort((a, b) => b.score - a.score);
+    reportGummyGumResult({
+      gameCode,
+      hostName: player.name,
+      hostScore: player.score,
+      hostStreak: player.streak,
+      participantCount: roster.length,
+      leaderboard: roster,
+    });
+  }, [gameState, ggSession, player.score, player.streak, player.name, opponents, gameCode]);
 
   // Firebase Realtime Listeners
   useEffect(() => {
@@ -205,9 +262,11 @@ export const GameProvider = ({ children }) => {
       setGameConfig(config);
       setIsHost(true);
       
-      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-      let code = '';
-      for(let i=0; i<6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+      let code = ggSession && ggSession.isHost && ggSession.roomCode ? ggSession.roomCode : '';
+      if (!code) {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        for(let i=0; i<6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
       
       let pool = [...QUESTIONS].sort(() => Math.random() - 0.5);
       let generatedQuestions = [];
@@ -454,7 +513,8 @@ export const GameProvider = ({ children }) => {
       gameCode, createGame, joinGameWithCode, gameConfig, gameQuestions,
       gameState, currentQ, timeLeft, answered, bonusRound, chosenAnswer,
       flashColor, streakToast,
-      startRace, handleAnswer, isHost, cancelGame, kickPlayer, isSpectator
+      startRace, handleAnswer, isHost, cancelGame, kickPlayer, isSpectator,
+      ggSession, ggAccessState
     }}>
       {children}
     </GameContext.Provider>
