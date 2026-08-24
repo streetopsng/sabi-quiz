@@ -3,8 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '../context/GameContext';
 import VectorDecor from './VectorDecor';
 import { playJoin, playSelect } from '../utils/audio';
-import { VEHICLES } from '../constants';
-import CarAvatar from './CarAvatar';
+import AvatarBadge from './AvatarBadge';
 
 export default function JoinGame() {
   const { navigate, joinGameWithCode, setPlayer, player } = useGame();
@@ -131,14 +130,14 @@ export default function JoinGame() {
               transition={{ duration: 0.3 }}
               className="flex flex-col items-center justify-center w-full text-center"
             >
-              {/* Circular Avatar Container with Red Circle Background & Tap to Change */}
-              <div className="relative mb-8 group cursor-pointer" onClick={() => setShowAvatarPicker(true)}>
-                <div className="w-36 h-36 md:w-44 md:h-44 rounded-full bg-red-600 border-4 border-white/20 flex flex-col items-center justify-center overflow-hidden shadow-2xl relative">
-                  <CarAvatar src={player.vehicle} color={player.color} className="w-24 h-24 md:w-28 md:h-28" />
-                  <div className="absolute bottom-0 inset-x-0 bg-red-800/80 py-1.5 text-center text-white text-xs font-bold uppercase tracking-wider">
-                    Tap to Change
-                  </div>
-                </div>
+              {/* Circular Avatar Badge matching Mockups */}
+              <div className="mb-8 flex justify-center">
+                <AvatarBadge
+                  src={player.vehicle}
+                  color={player.color}
+                  size="lg"
+                  onClick={() => setShowAvatarPicker(true)}
+                />
               </div>
 
               {/* Clean White Underline Input for Name */}

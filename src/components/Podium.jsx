@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import VectorDecor from './VectorDecor';
+import { GoldMedalVector, PodiumVector } from './VectorIcons';
 import SideToolbar from './SideToolbar';
 import CarAvatar from './CarAvatar';
 import { useGame } from '../context/GameContext';
@@ -89,8 +90,8 @@ export default function Podium() {
                   >
                     <div className="flex items-center gap-4">
                       {/* Medal Ribbon Icon */}
-                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-xl">
-                        {rank === 0 ? '🥇' : rank === 1 ? '🥈' : rank === 2 ? '🥉' : `#${rank + 1}`}
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center">
+                        {rank === 0 ? <GoldMedalVector className="w-10 h-10" /> : rank === 1 ? '🥈' : rank === 2 ? '🥉' : `#${rank + 1}`}
                       </div>
 
                       {/* Avatar Circle with Red Background */}
