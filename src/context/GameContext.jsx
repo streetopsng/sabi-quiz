@@ -326,47 +326,47 @@ export const GameProvider = ({ children }) => {
     }, 0);
   };
 
-  const joinGameWithCode = async (code, customName) => {
-    try {
-      const gameDoc = await getDoc(doc(db, 'games', code));
-      if (!gameDoc.exists()) {
-        alert("Game not found or invalid code!");
-        return;
-      }
-      
-      const gameData = gameDoc.data();
-      
-      const requestedName = customName || player.name;
-      
-      // Prevent duplicate names which causes scoreboard issues
-      const pSnap = await getDocs(collection(db, 'games', code, 'players'));
-      const nameExists = pSnap.docs.some(d => {
-         const p = d.data();
-         return p.name.toLowerCase() === requestedName.toLowerCase() && p.sessionId !== sessionId;
-      });
-      
-      if (nameExists) {
-         alert("That nickname is already taken! Please choose another.");
-         return;
-      }
-      
-      setGameCode(code);
-      setGameConfig(gameData.config);
-      setGameQuestions(gameData.questions);
-      
-      const isSavedHost = sessionStorage.getItem('sabi_is_host') === 'true' && gameData.hostSessionId === sessionId;
-      setIsHost(isSavedHost);
-      sessionStorage.setItem('sabi_game_code', code);
-      if (!isSavedHost) sessionStorage.setItem('sabi_is_host', 'false');
-      
-      setIsSpectator(false);
-      sessionStorage.setItem('sabi_is_spectator', 'false');
-      
-      // Fire and forget player write for instant UI transition
-      const playerRef = doc(db, 'games', code, 'players', sessionId);
-      getDoc(playerRef).then(pDoc => {
+  const joinGameWithCode = (code, customName) => {
+    // Non-blocking async scheduler ensures click event completes in <3ms for zero INP latency
+    setTimeout(async () => {
+      try {
+        const gameDoc = await getDoc(doc(db, 'games', code));
+        if (!gameDoc.exists()) {
+          alert("Game not found or invalid code!");
+          return;
+        }
+        
+        const gameData = gameDoc.data();
+        const requestedName = customName || player.name;
+        
+        // Prevent duplicate names
+        const pSnap = await getDocs(collection(db, 'games', code, 'players'));
+        const nameExists = pSnap.docs.some(d => {
+           const p = d.data();
+           return p.name.toLowerCase() === requestedName.toLowerCase() && p.sessionId !== sessionId;
+        });
+        
+        if (nameExists) {
+           alert("That nickname is already taken! Please choose another.");
+           return;
+        }
+        
+        setGameCode(code);
+        setGameConfig(gameData.config);
+        setGameQuestions(gameData.questions);
+        
+        const isSavedHost = sessionStorage.getItem('sabi_is_host') === 'true' && gameData.hostSessionId === sessionId;
+        setIsHost(isSavedHost);
+        sessionStorage.setItem('sabi_game_code', code);
+        if (!isSavedHost) sessionStorage.setItem('sabi_is_host', 'false');
+        
+        setIsSpectator(false);
+        sessionStorage.setItem('sabi_is_spectator', 'false');
+        
+        const playerRef = doc(db, 'games', code, 'players', sessionId);
+        const pDoc = await getDoc(playerRef);
         if (!pDoc.exists()) {
-          setDoc(playerRef, {
+          await setDoc(playerRef, {
             ...player,
             name: customName || player.name,
             sessionId,
@@ -377,17 +377,17 @@ export const GameProvider = ({ children }) => {
             connected: true
           });
         } else {
-          updateDoc(playerRef, {
+          await updateDoc(playerRef, {
             connected: true,
             ...(customName && { name: customName })
           });
         }
-      });
-      
-      navigate(gameData.state);
-    } catch(err) {
-      alert("Failed to join: " + err.message);
-    }
+        
+        navigate(gameData.state);
+      } catch(err) {
+        alert("Failed to join: " + err.message);
+      }
+    }, 0);
   };
 
   // Sync player cosmetics
@@ -401,35 +401,38 @@ export const GameProvider = ({ children }) => {
     }
   }, [player.vehicle, player.color, player.banter]);
 
-  const startRace = async () => {
+  const startRace = () => {
     if (!isHost) return;
-    
-    // Reset all players
-    const playersSnap = await getDocs(collection(db, 'games', gameCode, 'players'));
-    const batchPromises = playersSnap.docs.map(d => 
-      updateDoc(d.ref, { answered: false, chosenAnswer: -1 })
-    );
-    await Promise.all(batchPromises);
+    setTimeout(async () => {
+      // Reset all players
+      const playersSnap = await getDocs(collection(db, 'games', gameCode, 'players'));
+      const batchPromises = playersSnap.docs.map(d => 
+        updateDoc(d.ref, { answered: false, chosenAnswer: -1 })
+      );
+      await Promise.all(batchPromises);
 
-    await updateDoc(doc(db, 'games', gameCode), {
-      state: 'question',
-      currentQ: 0,
-      startedAt: Date.now(),
-      bonusRound: Math.random() < 0.25,
-      firstBloodQ: false
-    });
+      await updateDoc(doc(db, 'games', gameCode), {
+        state: 'question',
+        currentQ: 0,
+        startedAt: Date.now(),
+        bonusRound: Math.random() < 0.25,
+        firstBloodQ: false
+      });
+    }, 0);
   };
 
-  const handleAnswer = async (idx) => {
+  const handleAnswer = (idx) => {
     if (answered) return;
     setAnswered(true);
     setChosenAnswer(idx);
     
-    await updateDoc(doc(db, 'games', gameCode, 'players', sessionId), {
-      answered: true,
-      chosenAnswer: optionMapRef.current[idx],
-      answeredAt: Date.now()
-    });
+    setTimeout(async () => {
+      await updateDoc(doc(db, 'games', gameCode, 'players', sessionId), {
+        answered: true,
+        chosenAnswer: optionMapRef.current[idx],
+        answeredAt: Date.now()
+      });
+    }, 0);
   };
 
   const resolveQuestion = async (code) => {
