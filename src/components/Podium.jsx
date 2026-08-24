@@ -32,7 +32,7 @@ export default function Podium() {
       <SideToolbar onGiveFeedback={() => setShowFeedbackModal(true)} />
 
       {/* MAIN CONTENT AREA */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 max-w-4xl w-full mx-auto my-auto py-8">
+      <main className="relative z-10 flex-1 overflow-y-auto no-scrollbar px-6 py-6 max-w-4xl w-full mx-auto flex flex-col items-center justify-start">
         <AnimatePresence mode="wait">
           
           {/* STEP 1: GAME OVER SPLASH (MATCHES MOCKUP 8) */}

@@ -70,7 +70,7 @@ export default function JoinGame() {
       <VectorDecor showConfetti={true} variant={joinStep === 1 ? 'dark' : 'teal'} />
 
       {/* Main Content Container */}
-      <main className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-8 max-w-xl mx-auto w-full">
+      <main className="relative z-10 flex-1 overflow-y-auto no-scrollbar px-4 py-6 max-w-xl mx-auto w-full flex flex-col items-center justify-start">
         <AnimatePresence mode="wait">
           
           {/* STEP 1: PIN ENTRY (MATCHES MOCKUP 4) */}
