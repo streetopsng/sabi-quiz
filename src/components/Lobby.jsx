@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Check, Copy, X } from 'lucide-react';
+import AvatarBadge from './AvatarBadge';
 import CarAvatar from './CarAvatar';
 import VectorDecor from './VectorDecor';
 import SideToolbar from './SideToolbar';
@@ -145,14 +146,14 @@ export default function Lobby() {
               The game will begin shortly!
             </h2>
 
-            {/* Circular Avatar Container with Red Circle Background & Tap to Change */}
-            <div className="relative mb-6 cursor-pointer group" onClick={() => setShowAvatarPicker(true)}>
-              <div className="w-36 h-36 md:w-44 md:h-44 rounded-full bg-red-600 border-4 border-white/20 flex flex-col items-center justify-center overflow-hidden shadow-2xl relative">
-                <CarAvatar src={player.vehicle} color={player.color} className="w-24 h-24 md:w-28 md:h-28" />
-                <div className="absolute bottom-0 inset-x-0 bg-red-800/80 py-1.5 text-center text-white text-xs font-bold uppercase tracking-wider">
-                  Tap to Change
-                </div>
-              </div>
+            {/* Circular Avatar Badge matching Mockups */}
+            <div className="mb-6 flex justify-center">
+              <AvatarBadge
+                src={player.vehicle}
+                color={player.color}
+                size="lg"
+                onClick={() => setShowAvatarPicker(true)}
+              />
             </div>
 
             {/* Player's Chosen Nickname */}
