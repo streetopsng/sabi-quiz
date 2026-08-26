@@ -68,7 +68,7 @@ export default function CreateGame() {
       <VectorDecor variant="teal" />
 
       {/* Top Header */}
-      <header className="relative z-20 w-full max-w-2xl mx-auto px-6 pt-5 pb-2 flex items-center justify-between shrink-0">
+      <header className="relative z-20 w-full px-4 sm:px-6 md:px-8 pt-5 pb-2 flex items-center justify-between shrink-0">
         <button 
           onClick={handleBack}
           className="w-10 h-10 rounded-full bg-white/10 border border-white/15 text-white flex items-center justify-center transition-all hover:bg-white/20 active:scale-95 cursor-pointer"

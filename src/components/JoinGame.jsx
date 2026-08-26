@@ -1,12 +1,13 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeft } from 'lucide-react';
 import { useGame } from '../context/GameContext';
 import VectorDecor from './VectorDecor';
 import { playJoin, playSelect } from '../utils/audio';
 import AvatarBadge from './AvatarBadge';
 
 export default function JoinGame() {
-  const { navigate, joinGameWithCode, setPlayer, player } = useGame();
+  const { navigate, joinGameWithCode, setPlayer, player, showAlertModal } = useGame();
   
   // Step 1: PIN entry, Step 2: Name & Avatar selection
   const [joinStep, setJoinStep] = useState(1);
@@ -14,6 +15,15 @@ export default function JoinGame() {
   const [playerName, setPlayerName] = useState('');
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const inputRefs = useRef([]);
+
+  const handleBack = () => {
+    playSelect();
+    if (joinStep === 2) {
+      setJoinStep(1);
+    } else {
+      navigate('home');
+    }
+  };
 
   const handleDigitChange = (index, value) => {
     const cleanValue = value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
@@ -50,7 +60,7 @@ export default function JoinGame() {
       playSelect();
       setJoinStep(2);
     } else {
-      alert("Please enter a valid 5-digit Game PIN");
+      showAlertModal("Please enter a valid 5-digit Game PIN", "Invalid PIN");
     }
   };
 
@@ -61,7 +71,7 @@ export default function JoinGame() {
       setPlayer(p => ({ ...p, name: playerName.trim() }));
       joinGameWithCode(fullCode, playerName.trim());
     } else {
-      alert("Please enter your nickname!");
+      showAlertModal("Please enter your nickname to continue!", "Nickname Required");
     }
   };
 
@@ -69,8 +79,26 @@ export default function JoinGame() {
     <div className="relative min-h-[100dvh] w-full bg-[#0e1f29] text-white flex flex-col justify-between overflow-hidden select-none font-sans">
       <VectorDecor showConfetti={true} variant={joinStep === 1 ? 'dark' : 'teal'} />
 
+      {/* Top Header with Back Button */}
+      <header className="relative z-20 w-full px-4 sm:px-6 md:px-8 pt-5 pb-1 flex items-center justify-between shrink-0">
+        <button 
+          onClick={handleBack}
+          className="w-10 h-10 rounded-full bg-white/10 border border-white/15 text-white flex items-center justify-center transition-all hover:bg-white/20 active:scale-95 cursor-pointer"
+          title="Back"
+        >
+          <ArrowLeft size={20} />
+        </button>
+        <div 
+          onClick={() => navigate('home')}
+          className="cursor-pointer text-[28px] font-black text-[#f5a623] drop-shadow-md tracking-tight"
+        >
+          sabi
+        </div>
+        <div className="w-10" />
+      </header>
+
       {/* Main Content Container */}
-      <main className="relative z-10 flex-1 overflow-y-auto no-scrollbar px-4 py-6 max-w-xl mx-auto w-full flex flex-col items-center justify-start">
+      <main className="relative z-10 flex-1 overflow-y-auto no-scrollbar px-4 py-6 max-w-xl mx-auto w-full flex flex-col items-center justify-center my-auto">
         <AnimatePresence mode="wait">
           
           {/* STEP 1: PIN ENTRY (MATCHES MOCKUP 4) */}
@@ -111,7 +139,7 @@ export default function JoinGame() {
                 </motion.button>
                 <motion.button
                   whileTap={{ scale: 0.96 }}
-                  onClick={() => alert("Scan QR Code using your device camera!")}
+                  onClick={() => showAlertModal("Point your device camera at the host screen's QR code to join instantly!", "Scan QR Code")}
                   className="w-full py-4 rounded-full border-2 border-white/80 bg-black/40 text-white text-base font-bold tracking-wide hover:bg-white/10 transition-all cursor-pointer backdrop-blur-sm"
                 >
                   Scan QR Code

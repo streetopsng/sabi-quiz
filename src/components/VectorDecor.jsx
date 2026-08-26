@@ -10,31 +10,43 @@ export default function VectorDecor({ showConfetti = false, variant = 'teal' }) 
     <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 select-none">
       {/* Background Teal Gradient or Navy Gradient */}
       {variant === 'teal' ? (
-        <div className="absolute inset-0 bg-gradient-to-br from-[#1b5e65] via-[#16444c] to-[#0e202b]" />
+        <>
+          <div className="absolute inset-0 bg-gradient-to-br from-[#1b5e65] via-[#16444c] to-[#0e202b]" />
+          <div className="absolute -top-24 left-1/4 w-[600px] h-[600px] bg-[#14b8a6]/15 rounded-full blur-[140px] pointer-events-none" />
+          <div className="absolute -bottom-24 right-1/4 w-[600px] h-[600px] bg-[#0284c7]/15 rounded-full blur-[140px] pointer-events-none" />
+        </>
       ) : variant === 'dark' ? (
-        <div className="absolute inset-0 bg-[#0a101d]" />
+        <>
+          <div className="absolute inset-0 bg-[#0a101d]" />
+          <div className="absolute -top-24 left-1/4 w-[600px] h-[600px] bg-[#7033ff]/12 rounded-full blur-[140px] pointer-events-none" />
+          <div className="absolute -bottom-24 right-1/4 w-[600px] h-[600px] bg-[#f75270]/12 rounded-full blur-[140px] pointer-events-none" />
+        </>
       ) : null}
 
-      {/* 1. Realistic 3D Target Arrow Icon Top Left */}
+      {/* 1. Realistic 3D Target Arrow Icon Top Left - Faded & Seamlessly Matched */}
       <motion.div 
         initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 0.85, scale: 1 }}
+        animate={{ opacity: 0.22, scale: 1 }}
         transition={{ duration: 1 }}
-        className="absolute top-4 left-4 md:top-8 md:left-8 drop-shadow-2xl z-10"
+        className="absolute top-4 left-4 md:top-8 md:left-8 z-0 pointer-events-none"
       >
         <img 
           src="/assets/target_arrow.jpg" 
           alt="Target Bullseye" 
-          className="w-28 h-28 md:w-40 md:h-40 object-contain rounded-full mix-blend-screen drop-shadow-[0_10px_30px_rgba(239,68,68,0.4)]"
+          style={{ 
+            maskImage: 'radial-gradient(circle, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 95%)', 
+            WebkitMaskImage: 'radial-gradient(circle, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 95%)' 
+          }}
+          className="w-28 h-28 md:w-40 md:h-40 object-contain rounded-full mix-blend-screen filter contrast-[0.9] brightness-[0.9]"
         />
       </motion.div>
 
       {/* 2. Leather Briefcase Top Right */}
       <motion.div 
         initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 0.25, scale: 1 }}
+        animate={{ opacity: 0.18, scale: 1 }}
         transition={{ duration: 1, delay: 0.1 }}
-        className="absolute top-6 right-6 md:top-10 md:right-10 drop-shadow-2xl"
+        className="absolute top-6 right-6 md:top-10 md:right-10 pointer-events-none"
       >
         <BriefcaseVector className="w-20 h-16 md:w-32 md:h-24" />
       </motion.div>
@@ -43,7 +55,7 @@ export default function VectorDecor({ showConfetti = false, variant = 'teal' }) 
       <motion.div 
         animate={{ y: [0, -6, 0] }}
         transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-        className="absolute top-1/3 left-4 md:left-10 opacity-35"
+        className="absolute top-1/3 left-4 md:left-10 opacity-20 pointer-events-none"
       >
         <ThinkingEmojiVector className="w-16 h-16 md:w-22 md:h-22" />
       </motion.div>
@@ -51,23 +63,27 @@ export default function VectorDecor({ showConfetti = false, variant = 'teal' }) 
       {/* 4. Checklist Clipboard Mid Right */}
       <motion.div 
         initial={{ opacity: 0 }}
-        animate={{ opacity: 0.3 }}
+        animate={{ opacity: 0.18 }}
         transition={{ duration: 1 }}
-        className="absolute top-1/2 right-4 md:right-10 opacity-30"
+        className="absolute top-1/2 right-4 md:right-10 opacity-20 pointer-events-none"
       >
         <ClipboardVector className="w-16 h-22 md:w-22 md:h-30" />
       </motion.div>
 
-      {/* 5. Realistic 3D Light Bulb Bottom Left */}
+      {/* 5. Realistic 3D Light Bulb Bottom Left - Faded & Seamlessly Matched */}
       <motion.div 
-        animate={{ scale: [1, 1.05, 1], y: [0, -4, 0] }}
+        animate={{ scale: [1, 1.03, 1], y: [0, -4, 0], opacity: [0.18, 0.25, 0.18] }}
         transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut" }}
-        className="absolute bottom-6 left-4 md:bottom-10 md:left-10 z-10"
+        className="absolute bottom-6 left-4 md:bottom-10 md:left-10 z-0 pointer-events-none"
       >
         <img 
           src="/assets/light_bulb.jpg" 
           alt="Glowing Light Bulb" 
-          className="w-24 h-24 md:w-36 md:h-36 object-contain rounded-full mix-blend-screen drop-shadow-[0_10px_30px_rgba(245,158,11,0.5)]"
+          style={{ 
+            maskImage: 'radial-gradient(circle, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 95%)', 
+            WebkitMaskImage: 'radial-gradient(circle, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 95%)' 
+          }}
+          className="w-24 h-24 md:w-36 md:h-36 object-contain rounded-full mix-blend-screen filter contrast-[0.9] brightness-[0.9]"
         />
       </motion.div>
 
@@ -75,32 +91,36 @@ export default function VectorDecor({ showConfetti = false, variant = 'teal' }) 
       <motion.div 
         animate={{ y: [0, -8, 0] }}
         transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
-        className="absolute bottom-2 left-1/2 -translate-x-1/2 opacity-30"
+        className="absolute bottom-2 left-1/2 -translate-x-1/2 opacity-20 pointer-events-none"
       >
         <MascotBookVector className="w-20 h-20" />
       </motion.div>
 
-      {/* 7. Realistic 3D Hand Holding Trophy Bottom Right */}
+      {/* 7. Realistic 3D Hand Holding Trophy Bottom Right - Faded & Seamlessly Matched */}
       <motion.div 
-        animate={{ y: [0, -6, 0] }}
+        animate={{ y: [0, -6, 0], opacity: [0.2, 0.28, 0.2] }}
         transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-        className="absolute bottom-4 right-4 md:bottom-8 md:right-8 z-10"
+        className="absolute bottom-4 right-4 md:bottom-8 md:right-8 z-0 pointer-events-none"
       >
         <img 
           src="/assets/trophy_hand.jpg" 
           alt="Golden Trophy" 
-          className="w-32 h-32 md:w-52 md:h-52 object-contain rounded-3xl mix-blend-screen drop-shadow-[0_10px_40px_rgba(245,158,11,0.5)]"
+          style={{ 
+            maskImage: 'radial-gradient(circle, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 95%)', 
+            WebkitMaskImage: 'radial-gradient(circle, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 95%)' 
+          }}
+          className="w-32 h-32 md:w-52 md:h-52 object-contain rounded-3xl mix-blend-screen filter contrast-[0.9] brightness-[0.9]"
         />
       </motion.div>
 
       {/* 8. Extra Extracted Vectors */}
-      <div className="absolute top-1/4 right-1/4 opacity-20">
+      <div className="absolute top-1/4 right-1/4 opacity-15 pointer-events-none">
         <FilmStripVector className="w-8 h-12" />
       </div>
-      <div className="absolute bottom-1/4 right-1/3 opacity-20">
+      <div className="absolute bottom-1/4 right-1/3 opacity-15 pointer-events-none">
         <ClapboardVector className="w-10 h-10" />
       </div>
-      <div className="absolute top-1/3 right-12 opacity-25">
+      <div className="absolute top-1/3 right-12 opacity-18 pointer-events-none">
         <GoldStarVector className="w-8 h-8" />
       </div>
 

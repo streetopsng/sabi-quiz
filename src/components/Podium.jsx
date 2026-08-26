@@ -8,7 +8,7 @@ import { useGame } from '../context/GameContext';
 import { playSelect } from '../utils/audio';
 
 export default function Podium() {
-  const { navigate, player, opponents } = useGame();
+  const { navigate, player, opponents, showAlertModal } = useGame();
   
   // Step 1: Game Over splash (Mockup 8), Step 2: Leaderboard (Mockup 9)
   const [podiumStep, setPodiumStep] = useState(1);
@@ -153,7 +153,7 @@ export default function Podium() {
               />
               <div className="flex gap-3">
                 <button onClick={() => setShowFeedbackModal(false)} className="flex-1 py-3 rounded-xl bg-white/10 text-white font-bold">Cancel</button>
-                <button onClick={() => { alert("Thank you for your feedback!"); setShowFeedbackModal(false); setFeedbackText(''); }} className="flex-1 py-3 rounded-xl bg-[#ff6f3c] text-white font-bold">Submit</button>
+                <button onClick={() => { showAlertModal("Thank you for your feedback!", "Feedback Submitted"); setShowFeedbackModal(false); setFeedbackText(''); }} className="flex-1 py-3 rounded-xl bg-[#ff6f3c] text-white font-bold">Submit</button>
               </div>
             </motion.div>
           </div>

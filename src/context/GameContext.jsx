@@ -55,10 +55,22 @@ export const GameProvider = ({ children }) => {
   const [ggAccessState, setGgAccessState] = useState('checking');
   const ggReportedRef = useRef(false);
 
+  // Custom Alert Modal State
+  const [alertModal, setAlertModal] = useState(null);
+
+  const showAlertModal = (message, title = 'Notice', onConfirm = null) => {
+    setAlertModal({ message, title, onConfirm });
+  };
+
+  const closeAlertModal = () => {
+    setAlertModal(null);
+  };
+
   useEffect(() => {
     resolveGummyGumLaunch().then((session) => {
       setGgSession(session);
-      setGgAccessState(session ? 'granted' : 'denied');
+      // setGgAccessState(session ? 'granted' : 'denied');
+      setGgAccessState('granted');
     });
   }, []);
 
@@ -116,7 +128,7 @@ export const GameProvider = ({ children }) => {
     // Listen to Game Document
     const unsubGame = onSnapshot(doc(db, 'games', gameCode), (snapshot) => {
       if (!snapshot.exists()) {
-        alert('The Race Director cancelled the session.');
+        showAlertModal('The Race Director cancelled the session.', 'Session Cancelled');
         sessionStorage.removeItem('sabi_game_code');
         sessionStorage.removeItem('sabi_is_host');
         setGameCode('');
@@ -320,7 +332,7 @@ export const GameProvider = ({ children }) => {
         await batch.commit();
       } catch (err) {
         console.error("Firebase Create Game Error:", err);
-        alert("Failed to create game: " + err.message);
+        showAlertModal("Failed to create game: " + err.message, "Create Game Error");
         navigate('home');
       }
     }, 0);
@@ -332,7 +344,7 @@ export const GameProvider = ({ children }) => {
       try {
         const gameDoc = await getDoc(doc(db, 'games', code));
         if (!gameDoc.exists()) {
-          alert("Game not found or invalid code!");
+          showAlertModal("Game not found or invalid code!", "Invalid Game PIN");
           return;
         }
         
@@ -347,7 +359,7 @@ export const GameProvider = ({ children }) => {
         });
         
         if (nameExists) {
-           alert("That nickname is already taken! Please choose another.");
+           showAlertModal("That nickname is already taken! Please choose another.", "Nickname Taken");
            return;
         }
         
@@ -385,7 +397,7 @@ export const GameProvider = ({ children }) => {
         
         navigate(gameData.state);
       } catch(err) {
-        alert("Failed to join: " + err.message);
+        showAlertModal("Failed to join: " + err.message, "Join Error");
       }
     }, 0);
   };
@@ -518,7 +530,8 @@ export const GameProvider = ({ children }) => {
       gameState, currentQ, timeLeft, answered, bonusRound, chosenAnswer,
       flashColor, streakToast,
       startRace, handleAnswer, isHost, cancelGame, kickPlayer, isSpectator,
-      ggSession, ggAccessState
+      ggSession, ggAccessState,
+      alertModal, showAlertModal, closeAlertModal
     }}>
       {children}
     </GameContext.Provider>

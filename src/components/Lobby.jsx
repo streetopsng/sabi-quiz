@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Copy, X } from 'lucide-react';
+import { Check, Copy, X, ArrowLeft } from 'lucide-react';
 import AvatarBadge from './AvatarBadge';
 import CarAvatar from './CarAvatar';
 import VectorDecor from './VectorDecor';
@@ -35,13 +35,21 @@ export default function Lobby() {
       <SideToolbar />
 
       {/* TOP HEADER */}
-      <header className="relative z-20 w-full max-w-4xl mx-auto px-6 pt-6 flex flex-col items-center">
+      <header className="relative z-20 w-full px-4 sm:px-6 md:px-8 pt-5 pb-1 flex items-center justify-between shrink-0">
+        <button 
+          onClick={() => { playSelect(); navigate('home'); }}
+          className="w-10 h-10 rounded-full bg-white/10 border border-white/15 text-white flex items-center justify-center transition-all hover:bg-white/20 active:scale-95 cursor-pointer"
+          title="Back to Homepage"
+        >
+          <ArrowLeft size={20} />
+        </button>
         <div 
           onClick={() => navigate('home')}
-          className="cursor-pointer text-[36px] font-black text-[#f5a623] drop-shadow-md tracking-tight mb-1"
+          className="cursor-pointer text-[32px] font-black text-[#f5a623] drop-shadow-md tracking-tight"
         >
           sabi
         </div>
+        <div className="w-10" />
       </header>
 
       {/* MAIN LOBBY CONTENT */}

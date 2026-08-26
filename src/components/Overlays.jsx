@@ -1,8 +1,9 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '../context/GameContext';
+import { AlertCircle } from 'lucide-react';
 
 export default function Overlays() {
-  const { flashColor, streakToast } = useGame();
+  const { flashColor, streakToast, alertModal, closeAlertModal } = useGame();
 
   return (
     <>
@@ -29,6 +30,51 @@ export default function Overlays() {
           >
             {streakToast}
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* GLOBAL CONFIRMATION / ALERT MODAL */}
+      <AnimatePresence>
+        {alertModal && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                if (alertModal.onConfirm) alertModal.onConfirm();
+                closeAlertModal();
+              }}
+              className="absolute inset-0 bg-black/65 backdrop-blur-md"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.88, y: 15 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.88, y: 15 }}
+              transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+              className="relative bg-[#122430] border border-white/20 p-6 md:p-8 rounded-3xl shadow-2xl max-w-sm w-full text-center z-10 select-none"
+            >
+              <div className="w-14 h-14 rounded-2xl bg-[#f5a623]/20 border border-[#f5a623]/30 text-[#f5a623] flex items-center justify-center mx-auto mb-4 shadow-lg shadow-[#f5a623]/10">
+                <AlertCircle size={28} />
+              </div>
+              <h3 className="text-xl font-bold text-white mb-2 tracking-tight">
+                {alertModal.title || 'Notice'}
+              </h3>
+              <p className="text-white/80 text-sm leading-relaxed mb-6 font-medium">
+                {alertModal.message}
+              </p>
+              <motion.button
+                whileTap={{ scale: 0.96 }}
+                onClick={() => {
+                  if (alertModal.onConfirm) alertModal.onConfirm();
+                  closeAlertModal();
+                }}
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#ff6b4a] via-[#f75270] to-[#9333ea] text-white font-extrabold text-[15px] uppercase tracking-wider shadow-[0_6px_20px_rgba(247,82,112,0.4)] hover:shadow-[0_6px_25px_rgba(247,82,112,0.6)] transition-all cursor-pointer"
+              >
+                Got it
+              </motion.button>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </>
