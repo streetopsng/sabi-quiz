@@ -41,9 +41,10 @@ function ScreenManager() {
     return <div className="h-[100dvh] w-full bg-navy" />;
   }
 
-  if (ggAccessState === 'denied') {
-    return <GummyGumLockedScreen />;
-  }
+  // Restriction disabled: allow direct visits
+  // if (ggAccessState === 'denied') {
+  //   return <GummyGumLockedScreen />;
+  // }
 
   return (
     <div className="h-[100dvh] w-full relative bg-[#0e1f29] overflow-hidden">
