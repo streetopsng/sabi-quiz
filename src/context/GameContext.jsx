@@ -69,8 +69,7 @@ export const GameProvider = ({ children }) => {
   useEffect(() => {
     resolveGummyGumLaunch().then((session) => {
       setGgSession(session);
-      // setGgAccessState(session ? 'granted' : 'denied');
-      setGgAccessState('granted');
+      setGgAccessState(session ? 'granted' : 'denied');
     });
   }, []);
 
