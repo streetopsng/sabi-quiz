@@ -90,7 +90,7 @@ export const GameProvider = ({ children }) => {
     }
     getDoc(doc(db, 'games', ggSession.roomCode)).then((existing) => {
       if (existing.exists()) {
-        joinGameWithCode(ggSession.roomCode, ggSession.player?.name);
+        claimHostedRoom(ggSession.roomCode, ggSession.player?.name);
       } else {
         navigate('create');
       }
@@ -333,6 +333,60 @@ export const GameProvider = ({ children }) => {
         console.error("Firebase Create Game Error:", err);
         showAlertModal("Failed to create game: " + err.message, "Create Game Error");
         navigate('home');
+      }
+    }, 0);
+  };
+
+  // GummyGum pre-creates the room doc but can't know this browser's Sabi
+  // sessionId in advance (it's only generated once this page actually
+  // loads), so it leaves hostSessionId null and writes no player doc.
+  // Claiming here mirrors what createGame() does for a host creating
+  // their own room, just against a doc that already exists — and
+  // deliberately doesn't reuse joinGameWithCode's "name already taken"
+  // guard, which is meant to stop two different people picking the same
+  // nickname, not to block the host from entering their own room.
+  const claimHostedRoom = (code, hostName) => {
+    setTimeout(async () => {
+      try {
+        const gameDoc = await getDoc(doc(db, 'games', code));
+        if (!gameDoc.exists()) {
+          navigate('create');
+          return;
+        }
+        const gameData = gameDoc.data();
+        const name = hostName || player.name || 'HR Admin';
+
+        setGameCode(code);
+        setGameConfig(gameData.config);
+        setGameQuestions(gameData.questions);
+        setIsHost(true);
+        sessionStorage.setItem('sabi_game_code', code);
+        sessionStorage.setItem('sabi_is_host', 'true');
+
+        await updateDoc(doc(db, 'games', code), { hostSessionId: sessionId });
+
+        if (gameData.config?.playAsContestant) {
+          setIsSpectator(false);
+          sessionStorage.setItem('sabi_is_spectator', 'false');
+          setPlayer((p) => ({ ...p, name }));
+          await setDoc(doc(db, 'games', code, 'players', sessionId), {
+            ...player,
+            name,
+            sessionId,
+            score: 0,
+            streak: 0,
+            answered: false,
+            chosenAnswer: -1,
+            connected: true,
+          });
+        } else {
+          setIsSpectator(true);
+          sessionStorage.setItem('sabi_is_spectator', 'true');
+        }
+
+        navigate(gameData.state);
+      } catch (err) {
+        showAlertModal('Failed to join: ' + err.message, 'Join Error');
       }
     }, 0);
   };
