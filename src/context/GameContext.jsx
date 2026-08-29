@@ -3,7 +3,7 @@ import { db } from '../firebase';
 import { doc, collection, setDoc, getDoc, updateDoc, onSnapshot, getDocs, deleteDoc, writeBatch } from 'firebase/firestore';
 import { INITIAL_PLAYER, QUESTIONS } from '../constants';
 import { playJoin, playStart, playTick, playCorrect, playWrong, playWin, playSelect } from '../utils/audio';
-import { resolveGummyGumLaunch, reportGummyGumResult } from '../lib/gummygumSession';
+import { resolveGummyGumLaunch, reportGummyGumResult, reportGummyGumCancel } from '../lib/gummygumSession';
 
 const GameContext = createContext();
 
@@ -577,6 +577,9 @@ export const GameProvider = ({ children }) => {
       sessionStorage.removeItem('sabi_game_code');
       sessionStorage.removeItem('sabi_is_host');
       setGameCode('');
+      // Only relevant for a room launched through GummyGum — a no-op
+      // (early return) for a plain direct-visit game with nothing stored.
+      reportGummyGumCancel();
       navigate('home');
     }
   };
