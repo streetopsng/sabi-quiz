@@ -33,9 +33,12 @@ function GummyGumLockedScreen() {
 }
 
 function ScreenManager() {
-  const { currentScreen, ggAccessState, ggSession } = useGame();
+  const { currentScreen, ggAccessState, ggSession, ggRouted } = useGame();
 
-  const routingIntoGgRoom = ggSession && ggSession.roomCode && currentScreen === 'home';
+  // Only blank the screen while that initial routing decision is still
+  // in flight — once it's settled, going back to 'home' later (e.g. via
+  // Podium's "Back to Home") should actually show Home, not this again.
+  const routingIntoGgRoom = ggSession && ggSession.roomCode && currentScreen === 'home' && !ggRouted;
 
   if (ggAccessState === 'checking' || routingIntoGgRoom) {
     return <div className="h-[100dvh] w-full bg-navy" />;
