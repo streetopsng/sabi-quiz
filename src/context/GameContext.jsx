@@ -53,6 +53,12 @@ export const GameProvider = ({ children }) => {
   // token, nothing stored — i.e. direct/bookmarked access).
   const [ggSession, setGgSession] = useState(null);
   const [ggAccessState, setGgAccessState] = useState('checking');
+  // Only true for the brief window while the initial GummyGum routing
+  // decision is being made — the blank loading screen it gates should
+  // never come back once that's settled, or "Back to Home" after a game
+  // ends re-triggers it every time currentScreen cycles back to 'home'
+  // (looks exactly like the page silently refreshing).
+  const [ggRouted, setGgRouted] = useState(false);
   const ggReportedRef = useRef(false);
 
   // Custom Alert Modal State
@@ -86,6 +92,7 @@ export const GameProvider = ({ children }) => {
     if (!ggSession || !ggSession.roomCode) return;
     if (!ggSession.isHost) {
       joinGameWithCode(ggSession.roomCode, ggSession.player?.name);
+      setGgRouted(true);
       return;
     }
     getDoc(doc(db, 'games', ggSession.roomCode)).then((existing) => {
@@ -94,6 +101,7 @@ export const GameProvider = ({ children }) => {
       } else {
         navigate('create');
       }
+      setGgRouted(true);
     });
   }, [ggSession]);
 
@@ -102,7 +110,12 @@ export const GameProvider = ({ children }) => {
   // roster (host + everyone who joined with the PIN), not just the host's
   // own score, plus the host's own placement for convenience.
   useEffect(() => {
-    if (gameState !== 'podium' || ggReportedRef.current || !ggSession) return;
+    // isHost matters here: every GummyGum-launched participant reaches
+    // podium too, and without this guard each of their browsers would
+    // independently report the *same* full roster — self-labeled as host
+    // in their own copy — multiplying every score and session count by
+    // however many people launched through their own link.
+    if (gameState !== 'podium' || ggReportedRef.current || !ggSession || !isHost) return;
     ggReportedRef.current = true;
     const roster = [{ name: player.name, score: player.score, streak: player.streak, isHost: true }, ...opponents.map((o) => ({
       name: o.name,
@@ -118,7 +131,7 @@ export const GameProvider = ({ children }) => {
       participantCount: roster.length,
       leaderboard: roster,
     });
-  }, [gameState, ggSession, player.score, player.streak, player.name, opponents, gameCode]);
+  }, [gameState, ggSession, isHost, player.score, player.streak, player.name, opponents, gameCode]);
 
   // Firebase Realtime Listeners
   useEffect(() => {
@@ -583,7 +596,7 @@ export const GameProvider = ({ children }) => {
       gameState, currentQ, timeLeft, answered, bonusRound, chosenAnswer,
       flashColor, streakToast,
       startRace, handleAnswer, isHost, cancelGame, kickPlayer, isSpectator,
-      ggSession, ggAccessState,
+      ggSession, ggAccessState, ggRouted,
       alertModal, showAlertModal, closeAlertModal
     }}>
       {children}
