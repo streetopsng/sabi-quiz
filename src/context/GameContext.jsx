@@ -91,17 +91,16 @@ export const GameProvider = ({ children }) => {
   useEffect(() => {
     if (!ggSession || !ggSession.roomCode) return;
     if (!ggSession.isHost) {
-      joinGameWithCode(ggSession.roomCode, ggSession.player?.name);
-      setGgRouted(true);
+      joinGameWithCode(ggSession.roomCode, ggSession.player?.name, () => setGgRouted(true), ggSession.player?.email);
       return;
     }
     getDoc(doc(db, 'games', ggSession.roomCode)).then((existing) => {
       if (existing.exists()) {
-        claimHostedRoom(ggSession.roomCode, ggSession.player?.name);
+        claimHostedRoom(ggSession.roomCode, ggSession.player?.name, () => setGgRouted(true));
       } else {
         navigate('create');
+        setGgRouted(true);
       }
-      setGgRouted(true);
     });
   }, [ggSession]);
 
@@ -358,7 +357,7 @@ export const GameProvider = ({ children }) => {
   // deliberately doesn't reuse joinGameWithCode's "name already taken"
   // guard, which is meant to stop two different people picking the same
   // nickname, not to block the host from entering their own room.
-  const claimHostedRoom = (code, hostName) => {
+  const claimHostedRoom = (code, hostName, onSettled) => {
     setTimeout(async () => {
       try {
         const gameDoc = await getDoc(doc(db, 'games', code));
@@ -375,6 +374,12 @@ export const GameProvider = ({ children }) => {
         setIsHost(true);
         sessionStorage.setItem('sabi_game_code', code);
         sessionStorage.setItem('sabi_is_host', 'true');
+
+        // Clear the previous tab's stale player doc so the host isn't doubled up.
+        const staleHostSessionId = gameData.hostSessionId;
+        if (staleHostSessionId && staleHostSessionId !== sessionId) {
+          await deleteDoc(doc(db, 'games', code, 'players', staleHostSessionId)).catch(() => undefined);
+        }
 
         await updateDoc(doc(db, 'games', code), { hostSessionId: sessionId });
 
@@ -400,11 +405,13 @@ export const GameProvider = ({ children }) => {
         navigate(gameData.state);
       } catch (err) {
         showAlertModal('Failed to join: ' + err.message, 'Join Error');
+      } finally {
+        onSettled?.();
       }
     }, 0);
   };
 
-  const joinGameWithCode = (code, customName) => {
+  const joinGameWithCode = (code, customName, onSettled, ggEmail) => {
     // Non-blocking async scheduler ensures click event completes in <3ms for zero INP latency
     setTimeout(async () => {
       try {
@@ -413,41 +420,65 @@ export const GameProvider = ({ children }) => {
           showAlertModal("Game not found or invalid code!", "Invalid Game PIN");
           return;
         }
-        
+
         const gameData = gameDoc.data();
         const requestedName = customName || player.name;
-        
-        // Prevent duplicate names
+        const normalizedGgEmail = ggEmail ? ggEmail.toLowerCase().trim() : null;
+
         const pSnap = await getDocs(collection(db, 'games', code, 'players'));
-        const nameExists = pSnap.docs.some(d => {
-           const p = d.data();
-           return p.name.toLowerCase() === requestedName.toLowerCase() && p.sessionId !== sessionId;
-        });
-        
-        if (nameExists) {
-           showAlertModal("That nickname is already taken! Please choose another.", "Nickname Taken");
-           return;
+
+        // Reconnect via a stale ggEmail match instead of name, so a closed-tab rejoin reclaims rather than collides.
+        let staleDoc = null;
+        if (normalizedGgEmail) {
+          staleDoc = pSnap.docs.find(d => (d.data().ggEmail || '').toLowerCase() === normalizedGgEmail && d.id !== sessionId) || null;
         }
-        
+
+        if (!staleDoc) {
+          const nameExists = pSnap.docs.some(d => {
+             const p = d.data();
+             return p.name.toLowerCase() === requestedName.toLowerCase() && p.sessionId !== sessionId;
+          });
+
+          if (nameExists) {
+             showAlertModal("That nickname is already taken! Please choose another.", "Nickname Taken");
+             return;
+          }
+        }
+
         setGameCode(code);
         setGameConfig(gameData.config);
         setGameQuestions(gameData.questions);
-        
+
         const isSavedHost = sessionStorage.getItem('sabi_is_host') === 'true' && gameData.hostSessionId === sessionId;
         setIsHost(isSavedHost);
         sessionStorage.setItem('sabi_game_code', code);
         if (!isSavedHost) sessionStorage.setItem('sabi_is_host', 'false');
-        
+
         setIsSpectator(false);
         sessionStorage.setItem('sabi_is_spectator', 'false');
-        
+
         const playerRef = doc(db, 'games', code, 'players', sessionId);
         const pDoc = await getDoc(playerRef);
-        if (!pDoc.exists()) {
+        if (staleDoc) {
+          const prior = staleDoc.data();
+          await deleteDoc(doc(db, 'games', code, 'players', staleDoc.id)).catch(() => undefined);
           await setDoc(playerRef, {
             ...player,
             name: customName || player.name,
             sessionId,
+            ggEmail: normalizedGgEmail,
+            score: prior.score || 0,
+            streak: prior.streak || 0,
+            answered: prior.answered || false,
+            chosenAnswer: prior.chosenAnswer ?? -1,
+            connected: true
+          });
+        } else if (!pDoc.exists()) {
+          await setDoc(playerRef, {
+            ...player,
+            name: customName || player.name,
+            sessionId,
+            ...(normalizedGgEmail && { ggEmail: normalizedGgEmail }),
             score: 0,
             streak: 0,
             answered: false,
@@ -457,13 +488,16 @@ export const GameProvider = ({ children }) => {
         } else {
           await updateDoc(playerRef, {
             connected: true,
-            ...(customName && { name: customName })
+            ...(customName && { name: customName }),
+            ...(normalizedGgEmail && { ggEmail: normalizedGgEmail })
           });
         }
-        
+
         navigate(gameData.state);
       } catch(err) {
         showAlertModal("Failed to join: " + err.message, "Join Error");
+      } finally {
+        onSettled?.();
       }
     }, 0);
   };
