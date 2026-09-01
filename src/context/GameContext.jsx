@@ -91,7 +91,7 @@ export const GameProvider = ({ children }) => {
   useEffect(() => {
     if (!ggSession || !ggSession.roomCode) return;
     if (!ggSession.isHost) {
-      joinGameWithCode(ggSession.roomCode, ggSession.player?.name, () => setGgRouted(true));
+      joinGameWithCode(ggSession.roomCode, ggSession.player?.name, () => setGgRouted(true), ggSession.player?.email);
       return;
     }
     getDoc(doc(db, 'games', ggSession.roomCode)).then((existing) => {
@@ -411,7 +411,7 @@ export const GameProvider = ({ children }) => {
     }, 0);
   };
 
-  const joinGameWithCode = (code, customName, onSettled) => {
+  const joinGameWithCode = (code, customName, onSettled, ggEmail) => {
     // Non-blocking async scheduler ensures click event completes in <3ms for zero INP latency
     setTimeout(async () => {
       try {
@@ -423,17 +423,31 @@ export const GameProvider = ({ children }) => {
 
         const gameData = gameDoc.data();
         const requestedName = customName || player.name;
+        const normalizedGgEmail = ggEmail ? ggEmail.toLowerCase().trim() : null;
 
-        // Prevent duplicate names
         const pSnap = await getDocs(collection(db, 'games', code, 'players'));
-        const nameExists = pSnap.docs.some(d => {
-           const p = d.data();
-           return p.name.toLowerCase() === requestedName.toLowerCase() && p.sessionId !== sessionId;
-        });
 
-        if (nameExists) {
-           showAlertModal("That nickname is already taken! Please choose another.", "Nickname Taken");
-           return;
+        // A GummyGum-routed join carries a stable identity (their invite
+        // email) — a closed tab loses sessionStorage and mints a fresh
+        // sessionId on return, so name-matching alone can't tell "same
+        // person reconnecting" from "someone else picked the same name".
+        // Find their prior doc by email instead and reclaim it (carrying
+        // score/streak forward) so they never end up doubled in the room.
+        let staleDoc = null;
+        if (normalizedGgEmail) {
+          staleDoc = pSnap.docs.find(d => (d.data().ggEmail || '').toLowerCase() === normalizedGgEmail && d.id !== sessionId) || null;
+        }
+
+        if (!staleDoc) {
+          const nameExists = pSnap.docs.some(d => {
+             const p = d.data();
+             return p.name.toLowerCase() === requestedName.toLowerCase() && p.sessionId !== sessionId;
+          });
+
+          if (nameExists) {
+             showAlertModal("That nickname is already taken! Please choose another.", "Nickname Taken");
+             return;
+          }
         }
 
         setGameCode(code);
@@ -450,11 +464,26 @@ export const GameProvider = ({ children }) => {
 
         const playerRef = doc(db, 'games', code, 'players', sessionId);
         const pDoc = await getDoc(playerRef);
-        if (!pDoc.exists()) {
+        if (staleDoc) {
+          const prior = staleDoc.data();
+          await deleteDoc(doc(db, 'games', code, 'players', staleDoc.id)).catch(() => undefined);
           await setDoc(playerRef, {
             ...player,
             name: customName || player.name,
             sessionId,
+            ggEmail: normalizedGgEmail,
+            score: prior.score || 0,
+            streak: prior.streak || 0,
+            answered: prior.answered || false,
+            chosenAnswer: prior.chosenAnswer ?? -1,
+            connected: true
+          });
+        } else if (!pDoc.exists()) {
+          await setDoc(playerRef, {
+            ...player,
+            name: customName || player.name,
+            sessionId,
+            ...(normalizedGgEmail && { ggEmail: normalizedGgEmail }),
             score: 0,
             streak: 0,
             answered: false,
@@ -464,7 +493,8 @@ export const GameProvider = ({ children }) => {
         } else {
           await updateDoc(playerRef, {
             connected: true,
-            ...(customName && { name: customName })
+            ...(customName && { name: customName }),
+            ...(normalizedGgEmail && { ggEmail: normalizedGgEmail })
           });
         }
 
