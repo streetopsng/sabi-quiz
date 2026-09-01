@@ -427,12 +427,7 @@ export const GameProvider = ({ children }) => {
 
         const pSnap = await getDocs(collection(db, 'games', code, 'players'));
 
-        // A GummyGum-routed join carries a stable identity (their invite
-        // email) — a closed tab loses sessionStorage and mints a fresh
-        // sessionId on return, so name-matching alone can't tell "same
-        // person reconnecting" from "someone else picked the same name".
-        // Find their prior doc by email instead and reclaim it (carrying
-        // score/streak forward) so they never end up doubled in the room.
+        // Reconnect via a stale ggEmail match instead of name, so a closed-tab rejoin reclaims rather than collides.
         let staleDoc = null;
         if (normalizedGgEmail) {
           staleDoc = pSnap.docs.find(d => (d.data().ggEmail || '').toLowerCase() === normalizedGgEmail && d.id !== sessionId) || null;
