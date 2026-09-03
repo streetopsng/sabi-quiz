@@ -281,6 +281,10 @@ export const GameProvider = ({ children }) => {
   };
 
   const createGame = (config) => {
+    if (ggAccessState === 'denied') {
+      showAlertModal('This experience is only available through GummyGum. Head back to the hub to launch it.', 'Not available here');
+      return;
+    }
     // 1. Instant optimistic state update to allow browser main thread to paint immediately (<5ms INP)
     setGameConfig(config);
     setIsHost(true);
@@ -412,6 +416,11 @@ export const GameProvider = ({ children }) => {
   };
 
   const joinGameWithCode = (code, customName, onSettled, ggEmail) => {
+    if (ggAccessState === 'denied') {
+      showAlertModal('This experience is only available through GummyGum. Head back to the hub to launch it.', 'Not available here');
+      onSettled?.();
+      return;
+    }
     // Non-blocking async scheduler ensures click event completes in <3ms for zero INP latency
     setTimeout(async () => {
       try {
