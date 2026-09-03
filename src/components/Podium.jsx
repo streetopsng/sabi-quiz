@@ -10,7 +10,7 @@ import { useGame } from '../context/GameContext';
 import { playSelect } from '../utils/audio';
 
 export default function Podium() {
-  const { navigate, player, opponents, showAlertModal, gameCode } = useGame();
+  const { navigate, player, opponents, showAlertModal, gameCode, ggSession } = useGame();
 
   // Step 1: Game Over splash (Mockup 8), Step 2: Leaderboard (Mockup 9)
   const [podiumStep, setPodiumStep] = useState(1);
@@ -152,6 +152,11 @@ export default function Podium() {
                   Back to Home
                 </motion.button>
               </div>
+              {ggSession && (
+                <a href="https://gummygum.app" className="mt-6 text-white/50 text-sm font-semibold hover:text-white transition-colors cursor-pointer">
+                  Done — back to GummyGum →
+                </a>
+              )}
             </motion.div>
           )}
 
