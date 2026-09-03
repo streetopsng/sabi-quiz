@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Copy, X, ArrowLeft } from 'lucide-react';
+import { MailCheck, X, ArrowLeft } from 'lucide-react';
 import AvatarBadge from './AvatarBadge';
 import CarAvatar from './CarAvatar';
 import VectorDecor from './VectorDecor';
@@ -11,21 +11,12 @@ import { VEHICLES } from '../constants';
 
 export default function Lobby() {
   const { 
-    navigate, gameCode, player, setPlayer, opponents, startRace, 
+    navigate, player, setPlayer, opponents, startRace,
     isHost, cancelGame, kickPlayer 
   } = useGame();
 
-  const [copied, setCopied] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
-
-  const copyLink = () => {
-    playSelect();
-    const link = `${window.location.origin}?pin=${gameCode}`;
-    navigator.clipboard.writeText(link);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   const activePlayers = opponents.filter(o => o._joined).length + (isHost ? 0 : 1);
 
@@ -53,49 +44,20 @@ export default function Lobby() {
       </header>
 
       {/* MAIN LOBBY CONTENT */}
-      <main className="relative z-10 flex-1 overflow-y-auto no-scrollbar px-4 py-6 max-w-4xl w-full mx-auto flex flex-col items-center justify-start">
+      <main className="relative z-10 flex-1 min-h-0 overflow-y-auto no-scrollbar px-4 py-6 max-w-4xl w-full mx-auto flex flex-col items-center justify-start">
         
         {/* HOST LOBBY VIEW (MATCHES MOCKUP 3) */}
         {isHost ? (
           <div className="w-full flex flex-col items-center gap-6">
             
-            {/* TOP ROW: SCAN TO JOIN & JOIN BY PIN */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-2xl">
-              
-              {/* Left Card: Scan to Join */}
-              <div className="bg-[#122834]/90 border border-white/10 rounded-3xl p-6 flex flex-col items-center text-center shadow-2xl backdrop-blur-md">
-                <div className="text-sm font-bold text-white/80 uppercase tracking-wider mb-4">Scan to join</div>
-                
-                {/* SVG QR Code Simulation */}
-                <div className="w-32 h-32 bg-white p-2 rounded-2xl mb-4 shadow-md flex items-center justify-center">
-                  <svg viewBox="0 0 100 100" fill="none" className="w-full h-full text-black">
-                    <rect x="10" y="10" width="25" height="25" fill="black" />
-                    <rect x="65" y="10" width="25" height="25" fill="black" />
-                    <rect x="10" y="65" width="25" height="25" fill="black" />
-                    <rect x="45" y="45" width="10" height="10" fill="black" />
-                    <rect x="65" y="65" width="25" height="25" fill="black" />
-                    <rect x="45" y="15" width="10" height="20" fill="black" />
-                    <rect x="15" y="45" width="20" height="10" fill="black" />
-                  </svg>
-                </div>
-
-                <button
-                  onClick={copyLink}
-                  className="px-6 py-2.5 rounded-full bg-[#ff6f3c] text-white text-xs font-extrabold uppercase tracking-wide border border-white/40 shadow-lg hover:bg-[#e65c2b] transition-all cursor-pointer flex items-center gap-2"
-                >
-                  {copied ? <>Copied! <Check size={14} /></> : <>Copy Shareable Link <Copy size={14} /></>}
-                </button>
+            {/* TOP ROW: INVITE STATUS */}
+            <div className="w-full max-w-2xl bg-[#122834]/90 border border-white/10 rounded-3xl p-6 flex items-center gap-4 shadow-2xl backdrop-blur-md">
+              <div className="w-12 h-12 rounded-2xl bg-[#ff6f3c]/15 border border-[#ff6f3c]/30 text-[#ff6f3c] flex items-center justify-center shrink-0">
+                <MailCheck size={22} />
               </div>
-
-              {/* Right Card: Join by Pin */}
-              <div className="bg-[#122834]/90 border border-white/10 rounded-3xl p-6 flex flex-col items-center justify-center text-center shadow-2xl backdrop-blur-md">
-                <div className="text-sm font-bold text-white/80 uppercase tracking-wider mb-1">Join by Pin</div>
-                <div className="text-xs font-semibold text-white/50 mb-4">Go to GummyGum.app</div>
-                
-                {/* Large Colorful PIN Display */}
-                <div className="text-5xl font-black tracking-widest bg-gradient-to-r from-white via-pink-400 to-cyan-400 bg-clip-text text-transparent my-2">
-                  {gameCode}
-                </div>
+              <div className="text-left">
+                <div className="text-sm font-bold text-white">Invites already sent</div>
+                <div className="text-xs text-white/50 mt-0.5">Your team got their join link by email the moment you started this session — no need to share anything else.</div>
               </div>
             </div>
 
@@ -121,7 +83,7 @@ export default function Lobby() {
 
                 {activePlayers === 0 && (
                   <div className="col-span-full py-4 text-xs text-white/40 italic">
-                    Share the PIN or QR code to let players enter...
+                    Waiting for your team to open their invite…
                   </div>
                 )}
               </div>
@@ -150,7 +112,7 @@ export default function Lobby() {
           <div className="flex flex-col items-center justify-center w-full text-center max-w-md">
             
             {/* Sub-header Text */}
-            <h2 className="text-2xl md:text-3xl font-bold text-white mb-8">
+            <h2 className="text-xl md:text-2xl font-bold text-white mb-8">
               The game will begin shortly!
             </h2>
 
@@ -165,7 +127,7 @@ export default function Lobby() {
             </div>
 
             {/* Player's Chosen Nickname */}
-            <div className="text-3xl font-black text-white tracking-wide mb-8">
+            <div className="text-2xl font-black text-white tracking-wide mb-8">
               {player.name || 'Contestant'}
             </div>
 

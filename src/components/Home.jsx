@@ -33,7 +33,7 @@ export default function Home() {
           transition={{ duration: 0.5 }}
           className="text-[12px] md:text-[13px] font-extrabold tracking-[3px] uppercase text-white/60 mb-6"
         >
-          WORKPLACE TRIVAL. REAL CONNECTIONS
+          WORKPLACE TRIVIA. REAL CONNECTIONS
         </motion.div>
 
         {/* Main Headline */}
@@ -41,7 +41,7 @@ export default function Home() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
-          className="text-[36px] sm:text-[54px] md:text-[64px] font-black leading-[1.1] tracking-tight mb-6"
+          className="text-[32px] sm:text-[44px] md:text-[52px] font-black leading-[1.1] tracking-tight mb-6"
         >
           Turn any moment <br />
           into a <span className="text-[#f75270]">shared</span>{' '}

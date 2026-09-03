@@ -98,7 +98,7 @@ export default function JoinGame() {
       </header>
 
       {/* Main Content Container */}
-      <main className="relative z-10 flex-1 overflow-y-auto no-scrollbar px-4 py-6 max-w-xl mx-auto w-full flex flex-col items-center justify-center my-auto">
+      <main className="relative z-10 flex-1 min-h-0 overflow-y-auto no-scrollbar px-4 py-6 max-w-xl mx-auto w-full flex flex-col items-center justify-center my-auto">
         <AnimatePresence mode="wait">
           
           {/* STEP 1: PIN ENTRY (MATCHES MOCKUP 4) */}

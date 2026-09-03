@@ -5,8 +5,8 @@ import SideToolbar from './SideToolbar';
 import { playSelect } from '../utils/audio';
 
 export default function Question() {
-  const { 
-    gameState, currentQ,
+  const {
+    gameState, currentQ, player,
     timeLeft, answered, chosenAnswer,
     handleAnswer, gameQuestions, gameConfig, isSpectator, startRace, isHost
   } = useGame();
@@ -39,7 +39,7 @@ export default function Question() {
       <VectorDecor variant="teal" />
       <SideToolbar onNewRound={isHost ? startRace : null} />
 
-      {/* TOP LEFT INFO BAR */}
+      {/* TOP INFO BAR */}
       <header className="relative z-20 w-full max-w-5xl mx-auto px-6 pt-6 flex items-start justify-between">
         <div>
           <div className="text-xs font-bold text-white/70 tracking-wider">
@@ -49,16 +49,30 @@ export default function Question() {
             Round {currentQ + 1} of {totalQuestions}
           </div>
         </div>
+
+        {!isSpectator && (
+          <div className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-2xl px-4 py-2 backdrop-blur-md">
+            <div className="text-right">
+              <div className="text-[10px] font-bold text-white/50 uppercase tracking-wider">Score</div>
+              <div className="text-lg font-black text-white leading-none">{Math.round(player?.score || 0)}</div>
+            </div>
+            {player?.streak > 1 && (
+              <div className="text-xs font-extrabold text-[#ff6f3c] bg-[#ff6f3c]/15 border border-[#ff6f3c]/30 rounded-full px-2 py-1 ml-1">
+                🔥 {player.streak}
+              </div>
+            )}
+          </div>
+        )}
       </header>
 
       {/* MAIN QUESTION & ANSWERS AREA */}
-      <main className="relative z-10 flex-1 overflow-y-auto no-scrollbar px-6 py-6 max-w-4xl w-full mx-auto flex flex-col items-center justify-start">
+      <main className="relative z-10 flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 py-6 max-w-4xl w-full mx-auto flex flex-col items-center justify-start">
         
         {/* Question Headline */}
         <motion.h1 
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-2xl sm:text-3xl md:text-4xl font-bold leading-snug text-center text-white mb-10 max-w-3xl drop-shadow-md"
+          className="text-xl sm:text-2xl md:text-3xl font-bold leading-snug text-center text-white mb-10 max-w-3xl drop-shadow-md"
         >
           {q.q}
         </motion.h1>
@@ -100,7 +114,7 @@ export default function Question() {
                   if (!answered && !isSpectator) playSelect();
                   handleAnswer(i);
                 }}
-                className={`py-8 px-6 rounded-3xl font-extrabold text-xl md:text-2xl text-center transition-all cursor-pointer flex items-center justify-center shadow-2xl backdrop-blur-sm min-h-[90px] ${cardClass}`}
+                className={`py-6 px-6 rounded-3xl font-extrabold text-lg md:text-xl text-center transition-all cursor-pointer flex items-center justify-center shadow-2xl backdrop-blur-sm min-h-[80px] ${cardClass}`}
               >
                 <span>{opt}</span>
               </motion.button>
