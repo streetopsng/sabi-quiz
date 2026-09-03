@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 import VectorDecor from './VectorDecor';
 import { GoldMedalVector, PodiumVector } from './VectorIcons';
 import SideToolbar from './SideToolbar';
@@ -8,12 +10,32 @@ import { useGame } from '../context/GameContext';
 import { playSelect } from '../utils/audio';
 
 export default function Podium() {
-  const { navigate, player, opponents, showAlertModal } = useGame();
-  
+  const { navigate, player, opponents, showAlertModal, gameCode } = useGame();
+
   // Step 1: Game Over splash (Mockup 8), Step 2: Leaderboard (Mockup 9)
   const [podiumStep, setPodiumStep] = useState(1);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
+  const [submittingFeedback, setSubmittingFeedback] = useState(false);
+
+  const submitFeedback = async () => {
+    if (!feedbackText.trim() || submittingFeedback) return;
+    setSubmittingFeedback(true);
+    try {
+      await setDoc(doc(db, 'games', gameCode, 'feedback', player.sessionId), {
+        name: player.name,
+        text: feedbackText.trim(),
+        submittedAt: Date.now(),
+      });
+      showAlertModal("Thank you for your feedback!", "Feedback Submitted");
+      setShowFeedbackModal(false);
+      setFeedbackText('');
+    } catch (err) {
+      showAlertModal("Failed to send feedback: " + err.message, "Feedback Error");
+    } finally {
+      setSubmittingFeedback(false);
+    }
+  };
 
   // Auto transition from Game Over to Leaderboard after 2.5 seconds
   useEffect(() => {
@@ -153,7 +175,9 @@ export default function Podium() {
               />
               <div className="flex gap-3">
                 <button onClick={() => setShowFeedbackModal(false)} className="flex-1 py-3 rounded-xl bg-white/10 text-white font-bold">Cancel</button>
-                <button onClick={() => { showAlertModal("Thank you for your feedback!", "Feedback Submitted"); setShowFeedbackModal(false); setFeedbackText(''); }} className="flex-1 py-3 rounded-xl bg-[#ff6f3c] text-white font-bold">Submit</button>
+                <button onClick={submitFeedback} disabled={submittingFeedback} className="flex-1 py-3 rounded-xl bg-[#ff6f3c] text-white font-bold disabled:opacity-60">
+                  {submittingFeedback ? 'Sending…' : 'Submit'}
+                </button>
               </div>
             </motion.div>
           </div>
