@@ -34,11 +34,11 @@ export default function SideToolbar({ onNewRound, onGiveFeedback }) {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, x: -30 }}
+            initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -30 }}
+            exit={{ opacity: 0, x: 30 }}
             transition={{ type: "spring", stiffness: 350, damping: 25 }}
-            className="fixed top-20 left-6 z-50 flex flex-col items-center bg-[#152e3c]/90 border border-white/10 rounded-2xl p-2.5 shadow-2xl backdrop-blur-md gap-3 w-14"
+            className="fixed top-20 right-6 z-50 flex flex-col items-center bg-[#152e3c]/90 border border-white/10 rounded-2xl p-2.5 shadow-2xl backdrop-blur-md gap-3 w-14"
           >
             <button 
               onClick={() => setIsOpen(false)}

@@ -502,6 +502,10 @@ export const GameProvider = ({ children }) => {
           });
         }
 
+        if (gameData.state !== 'lobby') {
+          setStreakToast('Joining a game in progress…');
+          setTimeout(() => setStreakToast(null), 2200);
+        }
         navigate(gameData.state);
       } catch(err) {
         showAlertModal("Failed to join: " + err.message, "Join Error");

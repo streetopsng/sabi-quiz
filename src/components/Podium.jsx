@@ -54,7 +54,7 @@ export default function Podium() {
       <SideToolbar onGiveFeedback={() => setShowFeedbackModal(true)} />
 
       {/* MAIN CONTENT AREA */}
-      <main className="relative z-10 flex-1 overflow-y-auto no-scrollbar px-6 py-6 max-w-4xl w-full mx-auto flex flex-col items-center justify-start">
+      <main className="relative z-10 flex-1 min-h-0 overflow-y-auto no-scrollbar px-6 py-6 max-w-4xl w-full mx-auto flex flex-col items-center justify-start">
         <AnimatePresence mode="wait">
           
           {/* STEP 1: GAME OVER SPLASH (MATCHES MOCKUP 8) */}
@@ -68,7 +68,7 @@ export default function Podium() {
               onClick={() => setPodiumStep(2)}
               className="cursor-pointer flex flex-col items-center justify-center text-center py-16"
             >
-              <h1 className="text-5xl sm:text-6xl md:text-7xl font-black text-white tracking-tight drop-shadow-2xl mb-4">
+              <h1 className="text-4xl sm:text-5xl md:text-6xl font-black text-white tracking-tight drop-shadow-2xl mb-4">
                 Game Over
               </h1>
               <p className="text-white/60 text-base font-medium">Tap anywhere for final standings...</p>
@@ -139,10 +139,17 @@ export default function Podium() {
               <div className="flex flex-col sm:flex-row gap-4 w-full max-w-md">
                 <motion.button
                   whileTap={{ scale: 0.96 }}
-                  onClick={() => { playSelect(); navigate('create'); }}
+                  onClick={() => {
+                    playSelect();
+                    // Creating a new room here would never touch GummyGum —
+                    // no roster, no invites, no report. Send them back to set
+                    // the next one up properly instead.
+                    if (ggSession) window.location.href = 'https://gummygum.app/my-experiences';
+                    else navigate('create');
+                  }}
                   className="flex-1 py-4 rounded-full border-2 border-white/80 bg-black/40 text-white font-bold text-base tracking-wide hover:bg-white/10 transition-all cursor-pointer backdrop-blur-sm"
                 >
-                  play More
+                  Play More
                 </motion.button>
                 <motion.button
                   whileTap={{ scale: 0.96 }}
