@@ -64,8 +64,8 @@ export const GameProvider = ({ children }) => {
   // Custom Alert Modal State
   const [alertModal, setAlertModal] = useState(null);
 
-  const showAlertModal = (message, title = 'Notice', onConfirm = null) => {
-    setAlertModal({ message, title, onConfirm });
+  const showAlertModal = (message, title = 'Notice', onConfirm = null, cta = null) => {
+    setAlertModal({ message, title, onConfirm, cta });
   };
 
   const closeAlertModal = () => {
@@ -282,7 +282,7 @@ export const GameProvider = ({ children }) => {
 
   const createGame = (config) => {
     if (ggAccessState === 'denied') {
-      showAlertModal('This experience is only available through GummyGum. Head back to the hub to launch it.', 'Not available here');
+      showAlertModal('This experience is only available through GummyGum.', 'Not available here', null, { text: 'Back to GummyGum', url: 'https://gummygum.app' });
       return;
     }
     // 1. Instant optimistic state update to allow browser main thread to paint immediately (<5ms INP)
@@ -417,7 +417,7 @@ export const GameProvider = ({ children }) => {
 
   const joinGameWithCode = (code, customName, onSettled, ggEmail) => {
     if (ggAccessState === 'denied') {
-      showAlertModal('This experience is only available through GummyGum. Head back to the hub to launch it.', 'Not available here');
+      showAlertModal('This experience is only available through GummyGum.', 'Not available here', null, { text: 'Back to GummyGum', url: 'https://gummygum.app' });
       onSettled?.();
       return;
     }
