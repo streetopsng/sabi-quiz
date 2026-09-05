@@ -36,6 +36,7 @@ export const GameProvider = ({ children }) => {
   const [chosenAnswer, setChosenAnswer] = useState(-1);
   const [flashColor, setFlashColor] = useState(null); 
   const [streakToast, setStreakToast] = useState(null);
+  const [loadingMessage, setLoadingMessage] = useState('');
   
   const optionMapRef = useRef([]);
   const shuffledQRef = useRef(-1);
@@ -160,6 +161,7 @@ export const GameProvider = ({ children }) => {
       setGameState(data.state);
       setCurrentQ(data.currentQ);
       setBonusRound(data.bonusRound);
+      setLoadingMessage(data.loadingMessage || '');
       
       // Handle screen routing based on game state
       if (data.state === 'question') {
@@ -555,9 +557,10 @@ export const GameProvider = ({ children }) => {
       await Promise.all(batchPromises);
 
       // Show loading screen before Round 1
+      const totalQ = gameQuestions.length || 12;
       await updateDoc(doc(db, 'games', gameCode), {
         state: 'loading',
-        loadingMessage: 'Starting Round 1 of 12...',
+        loadingMessage: `Preparing for Round 1 of ${totalQ}...`,
         currentQ: 0
       });
 
@@ -653,7 +656,7 @@ export const GameProvider = ({ children }) => {
         // Show loading then proceed to final podium
         await updateDoc(doc(db, 'games', gameCode), {
           state: 'loading',
-          loadingMessage: 'Calculating Final Standings...'
+          loadingMessage: 'Preparing Final Standings...'
         });
         setTimeout(async () => {
           await updateDoc(doc(db, 'games', gameCode), { state: 'podium', isFinal: true });
@@ -662,7 +665,8 @@ export const GameProvider = ({ children }) => {
         // Show loading screen before next question
         await updateDoc(doc(db, 'games', gameCode), {
           state: 'loading',
-          loadingMessage: `Get Ready for Round ${nextQIndex + 1} of ${gameData.questions.length}...`
+          currentQ: nextQIndex,
+          loadingMessage: `Preparing for Round ${nextQIndex + 1} of ${gameData.questions.length}...`
         });
 
         // After loading screen, lead to next question
@@ -707,7 +711,7 @@ export const GameProvider = ({ children }) => {
       opponents,
       gameCode, createGame, joinGameWithCode, gameConfig, gameQuestions,
       gameState, currentQ, timeLeft, answered, bonusRound, chosenAnswer,
-      flashColor, streakToast,
+      flashColor, streakToast, loadingMessage,
       startRace, nextQuestion, resolveQuestion, handleAnswer, isHost, cancelGame, kickPlayer, isSpectator,
       hostSettings, setHostSettings,
       ggSession, ggAccessState, ggRouted,

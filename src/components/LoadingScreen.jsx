@@ -12,7 +12,7 @@ const TRIVIA_TIPS = [
 ];
 
 export default function LoadingScreen({ message }) {
-  const { currentQ, gameQuestions, gameRef } = useGame();
+  const { currentQ, gameQuestions, loadingMessage } = useGame();
   const [tipIndex, setTipIndex] = useState(0);
 
   useEffect(() => {
@@ -27,10 +27,10 @@ export default function LoadingScreen({ message }) {
   const isFinal = nextQNum > totalQuestions;
 
   const displayMessage = message || 
-    gameRef?.current?.loadingMessage || 
+    loadingMessage || 
     (isFinal 
       ? 'Calculating Final Standings...' 
-      : `Get Ready for Round ${nextQNum} of ${totalQuestions}...`);
+      : `Preparing for Round ${nextQNum} of ${totalQuestions}...`);
 
   return (
     <div className="relative min-h-[100dvh] w-full bg-[#183944] text-white flex flex-col items-center justify-between p-6 overflow-hidden select-none font-poppins">
