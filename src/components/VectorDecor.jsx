@@ -70,11 +70,11 @@ export default function VectorDecor({ showConfetti = false, variant = 'teal' }) 
         <ClipboardVector className="w-16 h-22 md:w-22 md:h-30" />
       </motion.div>
 
-      {/* 5. Realistic 3D Light Bulb Bottom Left - Faded & Seamlessly Matched */}
+      {/* 5. Realistic 3D Light Bulb Bottom Left - Reduced size */}
       <motion.div 
         animate={{ scale: [1, 1.03, 1], y: [0, -4, 0], opacity: [0.18, 0.25, 0.18] }}
         transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut" }}
-        className="absolute bottom-6 left-4 md:bottom-10 md:left-10 z-0 pointer-events-none"
+        className="absolute bottom-4 left-4 md:bottom-8 md:left-8 z-0 pointer-events-none"
       >
         <img 
           src="/assets/light_bulb.jpg" 
@@ -83,7 +83,7 @@ export default function VectorDecor({ showConfetti = false, variant = 'teal' }) 
             maskImage: 'radial-gradient(circle, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 95%)', 
             WebkitMaskImage: 'radial-gradient(circle, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 95%)' 
           }}
-          className="w-24 h-24 md:w-36 md:h-36 object-contain rounded-full mix-blend-screen filter contrast-[0.9] brightness-[0.9]"
+          className="w-14 h-14 md:w-20 md:h-20 object-contain rounded-full mix-blend-screen filter contrast-[0.9] brightness-[0.9]"
         />
       </motion.div>
 
@@ -96,11 +96,11 @@ export default function VectorDecor({ showConfetti = false, variant = 'teal' }) 
         <MascotBookVector className="w-20 h-20" />
       </motion.div>
 
-      {/* 7. Realistic 3D Hand Holding Trophy Bottom Right - Faded & Seamlessly Matched */}
+      {/* 7. Realistic 3D Hand Holding Trophy Bottom Right - Reduced size */}
       <motion.div 
         animate={{ y: [0, -6, 0], opacity: [0.2, 0.28, 0.2] }}
         transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
-        className="absolute bottom-4 right-4 md:bottom-8 md:right-8 z-0 pointer-events-none"
+        className="absolute bottom-4 right-4 md:bottom-6 md:right-6 z-0 pointer-events-none"
       >
         <img 
           src="/assets/trophy_hand.jpg" 
@@ -109,7 +109,7 @@ export default function VectorDecor({ showConfetti = false, variant = 'teal' }) 
             maskImage: 'radial-gradient(circle, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 95%)', 
             WebkitMaskImage: 'radial-gradient(circle, rgba(0,0,0,1) 50%, rgba(0,0,0,0) 95%)' 
           }}
-          className="w-32 h-32 md:w-52 md:h-52 object-contain rounded-3xl mix-blend-screen filter contrast-[0.9] brightness-[0.9]"
+          className="w-18 h-18 md:w-28 md:h-28 object-contain rounded-3xl mix-blend-screen filter contrast-[0.9] brightness-[0.9]"
         />
       </motion.div>
 

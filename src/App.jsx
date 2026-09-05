@@ -6,6 +6,8 @@ import JoinGame from './components/JoinGame';
 import Lobby from './components/Lobby';
 import FleetSelection from './components/FleetSelection';
 import Question from './components/Question';
+import Leaderboard from './components/Leaderboard';
+import LoadingScreen from './components/LoadingScreen';
 import Podium from './components/Podium';
 import Overlays from './components/Overlays';
 
@@ -26,7 +28,7 @@ function ScreenManager() {
   // only hits the "only available through GummyGum" message once they try
   // to create or join, not before they've even seen the app.
   return (
-    <div className="h-[100dvh] w-full relative bg-[#0e1f29] overflow-hidden">
+    <div className="min-h-[100dvh] w-full relative bg-[#091521] overflow-x-hidden overflow-y-auto">
       <Overlays />
       <AnimatePresence mode="wait">
         {currentScreen === 'home' && <Home key="home" />}
@@ -35,6 +37,8 @@ function ScreenManager() {
         {currentScreen === 'lobby' && <Lobby key="lobby" />}
         {currentScreen === 'fleet' && <FleetSelection key="fleet" />}
         {currentScreen === 'question' && <Question key="question" />}
+        {currentScreen === 'leaderboard' && <Leaderboard key="leaderboard" />}
+        {currentScreen === 'loading' && <LoadingScreen key="loading" />}
         {currentScreen === 'podium' && <Podium key="podium" />}
       </AnimatePresence>
     </div>

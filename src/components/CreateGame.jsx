@@ -1,412 +1,241 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Check, Type, BookOpen, Hash, Clock, ArrowLeft, ArrowRight, Zap } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useGame } from '../context/GameContext';
-import VectorDecor from './VectorDecor';
 import { playSelect } from '../utils/audio';
 
 export default function CreateGame() {
-  const { navigate, createGame } = useGame();
-  
-  // Wizard page step (1, 2, 3)
-  const [step, setStep] = useState(1);
-  const [direction, setDirection] = useState(1);
+  const { navigate, createGame, hostSettings, setHostSettings } = useGame();
 
-  // Form State
-  const [sessionName, setSessionName] = useState('');
-  const [topicPack, setTopicPack] = useState('General Knowledge');
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [qCount, setQCount] = useState(20);
-  const [timerMode, setTimerMode] = useState(15);
-  
-  // Mockup 2 Settings (Player & mode / Difficulty)
-  const [teamMode, setTeamMode] = useState(false);
-  const [presenterMode, setPresenterMode] = useState(true);
-  const [showQuestionsOnDevices, setShowQuestionsOnDevices] = useState(true);
-  const [privateScoring, setPrivateScoring] = useState(false);
-  const [difficulty, setDifficulty] = useState('Mixed');
+  const [loading, setLoading] = useState(false);
 
-  // Rules & Host Options
-  const [bonusRounds, setBonusRounds] = useState(true);
-  const [streakMultipliers, setStreakMultipliers] = useState(true);
-  const [hardMode, setHardMode] = useState(false);
-  const [playAsContestant, setPlayAsContestant] = useState(true);
-  const [hostName, setHostName] = useState('');
+  // Local settings bound to hostSettings
+  const [settings, setSettings] = useState({
+    teamMode: hostSettings?.teamMode || false,
+    presenterMode: hostSettings?.presenterMode !== undefined ? hostSettings.presenterMode : true,
+    showQuestionsOnDevices: hostSettings?.showQuestionsOnDevices !== undefined ? hostSettings.showQuestionsOnDevices : true,
+    privateScoring: hostSettings?.privateScoring || false,
+    difficulty: hostSettings?.difficulty || 'Mixed',
+    topicPack: 'General Knowledge',
+    qCount: 12,
+    timerMode: 15
+  });
 
-  const topics = [
-    "General Knowledge",
-    "African Business & Culture",
-    "Tech & Innovation",
-    "Company Values",
-    "Sports & Entertainment"
-  ];
-
-  const handleNext = () => {
+  const toggle = (key) => {
     playSelect();
-    setDirection(1);
-    setStep(prev => Math.min(prev + 1, 3));
+    const updated = { ...settings, [key]: !settings[key] };
+    setSettings(updated);
+    if (setHostSettings) setHostSettings(updated);
   };
 
-  const handleBack = () => {
+  const setDifficulty = (lvl) => {
     playSelect();
-    setDirection(-1);
-    if (step === 1) {
-      navigate('home');
-    } else {
-      setStep(prev => Math.max(prev - 1, 1));
+    const updated = { ...settings, difficulty: lvl };
+    setSettings(updated);
+    if (setHostSettings) setHostSettings(updated);
+  };
+
+  const handleCreate = async () => {
+    playSelect();
+    setLoading(true);
+    try {
+      if (setHostSettings) setHostSettings(settings);
+      await createGame(settings);
+    } catch (err) {
+      console.error('Failed to create game:', err);
+      setLoading(false);
     }
   };
 
-  const pageVariants = {
-    enter: (dir) => ({ x: dir > 0 ? 80 : -80, opacity: 0 }),
-    center: { x: 0, opacity: 1 },
-    exit: (dir) => ({ x: dir > 0 ? -80 : 80, opacity: 0 })
-  };
-
   return (
-    <div className="relative min-h-[100dvh] w-full bg-[#0e1f29] text-white flex flex-col justify-between overflow-hidden select-none font-sans">
-      <VectorDecor variant="teal" />
+    <div className="relative min-h-[100dvh] w-full bg-[#183944] text-white flex flex-col justify-between overflow-x-hidden overflow-y-auto select-none font-poppins pb-10">
+      
+      {/* AMBIENT RADIAL LIGHTS */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-[#224e5d]/40 rounded-full blur-[140px]" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-[#122b34]/60 rounded-full blur-[140px]" />
+      </div>
 
-      {/* Top Header */}
-      <header className="relative z-20 w-full px-4 sm:px-6 md:px-8 pt-5 pb-2 flex items-center justify-between shrink-0">
+      {/* TOP HEADER */}
+      <header className="relative z-20 w-full max-w-[1300px] mx-auto px-6 pt-6 pb-2 flex items-center justify-between shrink-0">
         <button 
-          onClick={handleBack}
-          className="w-10 h-10 rounded-full bg-white/10 border border-white/15 text-white flex items-center justify-center transition-all hover:bg-white/20 active:scale-95 cursor-pointer"
+          onClick={() => { playSelect(); navigate('home'); }}
+          className="w-11 h-11 rounded-full bg-white/10 border border-white/15 text-white flex items-center justify-center transition-all hover:bg-white/20 active:scale-95 cursor-pointer"
+          title="Back to Homepage"
         >
-          <ArrowLeft size={18} />
+          <ArrowLeft size={20} />
         </button>
 
-        {/* Step Progress Pill */}
-        <div className="flex items-center gap-2 bg-white/10 border border-white/15 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider text-amber-300">
-          <span>Page {step} of 3</span>
+        <div 
+          onClick={() => navigate('home')}
+          className="cursor-pointer text-4xl sm:text-5xl font-black text-[#F4D06F] drop-shadow-md tracking-tight group"
+        >
+          <span className="group-hover:scale-105 inline-block transition-transform">sabi</span>
         </div>
 
-        <div className="w-10" />
+        <div className="w-11" />
       </header>
 
-      {/* Main Scrollable Content Area */}
-      <main className="relative z-10 flex-1 min-h-0 overflow-y-auto no-scrollbar px-4 py-4 max-w-xl w-full mx-auto flex flex-col justify-between">
+      {/* MAIN CONTENT: FIGMA 854:892 "SETTINGS" CARD */}
+      <main className="relative z-10 flex-1 max-w-[640px] w-full mx-auto px-6 py-6 flex flex-col items-center justify-center my-auto">
         
-        {/* Card Section */}
-        <div className="w-full my-auto py-2">
-          <AnimatePresence custom={direction} mode="wait">
-            
-            {/* PAGE 1: Session & Topic Basics */}
-            {step === 1 && (
-              <motion.div
-                key="step1"
-                custom={direction}
-                variants={pageVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.3 }}
-                className="w-full bg-[#154b52]/90 border border-[#2b727b]/50 rounded-[32px] p-6 md:p-8 shadow-2xl backdrop-blur-md"
-              >
-                <div className="text-xs font-extrabold tracking-[2px] uppercase text-[#ff6f3c] mb-1">Step 1</div>
-                <h2 className="text-2xl font-black text-white mb-6">Session & Topic Setup</h2>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="w-full rounded-[28px] sm:rounded-[36px] bg-gradient-to-b from-[#2B6071] via-[#244E5D] to-[#1C3E4A] p-5 sm:p-7 md:p-8 text-white shadow-[0_25px_60px_rgba(0,0,0,0.5)] border border-white/15 backdrop-blur-xl"
+        >
+          {/* SECTION: PLAYER & MODE (EXACT MATCH FOR FIGMA 854:892) */}
+          <div className="mb-6 sm:mb-7">
+            <h2 className="text-xl sm:text-2xl font-extrabold mb-3 sm:mb-4 tracking-tight text-white">
+              Player & mode
+            </h2>
 
-                {/* Session Name */}
-                <div className="mb-5">
-                  <label className="text-sm font-semibold text-white/90 flex items-center gap-2 mb-2">
-                    <Type size={16} className="text-[#ff6f3c]" /> Session name
-                  </label>
-                  <input 
-                    type="text" 
-                    placeholder="e.g. Q3 Team Trivia" 
-                    value={sessionName}
-                    onChange={(e) => setSessionName(e.target.value)}
-                    className="w-full bg-black/30 border border-white/15 rounded-xl text-white text-base py-3.5 px-4 outline-none focus:border-[#ff6f3c] transition-all"
+            <div className="space-y-2.5 sm:space-y-3">
+              {/* Team Mode */}
+              <div className="flex items-center justify-between py-2 sm:py-2.5 border-b border-white/15">
+                <span className="text-sm sm:text-base font-medium text-white/90">Team Mode</span>
+                <button
+                  type="button"
+                  onClick={() => toggle('teamMode')}
+                  className={`relative w-12 sm:w-14 h-7 sm:h-8 rounded-full transition-colors cursor-pointer p-1 ${
+                    settings.teamMode ? 'bg-[#FF8A3D]' : 'bg-white/20'
+                  }`}
+                >
+                  <motion.div
+                    layout
+                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    className={`w-5 sm:w-6 h-5 sm:h-6 rounded-full bg-white shadow-md ${
+                      settings.teamMode ? 'ml-auto' : 'mr-auto'
+                    }`}
                   />
-                </div>
+                </button>
+              </div>
 
-                {/* Topic Pack */}
-                <div className="mb-5">
-                  <label className="text-sm font-semibold text-white/90 flex items-center gap-2 mb-2">
-                    <BookOpen size={16} className="text-[#ff6f3c]" /> Topic pack
-                  </label>
-                  <div className="relative">
-                    <div 
-                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                      className="w-full bg-black/30 border border-white/15 rounded-xl text-white text-base py-3.5 px-4 cursor-pointer transition-all hover:bg-white/5 flex items-center justify-between"
-                    >
-                      <span>{topicPack}</span>
-                      <motion.div animate={{ rotate: isDropdownOpen ? 180 : 0 }}>
-                        <ChevronDown size={18} className="text-white/60" />
-                      </motion.div>
-                    </div>
+              {/* Presenter mode */}
+              <div className="flex items-center justify-between py-2 sm:py-2.5 border-b border-white/15">
+                <span className="text-sm sm:text-base font-medium text-white/90">
+                  Presenter mode (share screen only)
+                </span>
+                <button
+                  type="button"
+                  onClick={() => toggle('presenterMode')}
+                  className={`relative w-12 sm:w-14 h-7 sm:h-8 rounded-full transition-colors cursor-pointer p-1 ${
+                    settings.presenterMode ? 'bg-[#FF8A3D]' : 'bg-white/20'
+                  }`}
+                >
+                  <motion.div
+                    layout
+                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    className={`w-5 sm:w-6 h-5 sm:h-6 rounded-full bg-white shadow-md ${
+                      settings.presenterMode ? 'ml-auto' : 'mr-auto'
+                    }`}
+                  />
+                </button>
+              </div>
 
-                    <AnimatePresence>
-                      {isDropdownOpen && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          className="absolute top-full mt-2 left-0 w-full bg-[#122b36] border border-white/15 rounded-xl shadow-2xl z-50 overflow-hidden"
-                        >
-                          {topics.map((topic, idx) => (
-                            <div
-                              key={idx}
-                              onClick={() => {
-                                setTopicPack(topic);
-                                setIsDropdownOpen(false);
-                              }}
-                              className={`px-4 py-3 text-sm cursor-pointer flex items-center justify-between transition-colors ${topicPack === topic ? 'bg-[#ff6f3c]/20 text-[#ff6f3c] font-bold' : 'text-white/90 hover:bg-white/10'}`}
-                            >
-                              {topic}
-                              {topicPack === topic && <Check size={16} />}
-                            </div>
-                          ))}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                </div>
+              {/* Show Questions on Players devices */}
+              <div className="flex items-center justify-between py-2 sm:py-2.5 border-b border-white/15">
+                <span className="text-sm sm:text-base font-medium text-white/90">
+                  Show Questions on Players devices
+                </span>
+                <button
+                  type="button"
+                  onClick={() => toggle('showQuestionsOnDevices')}
+                  className={`relative w-12 sm:w-14 h-7 sm:h-8 rounded-full transition-colors cursor-pointer p-1 ${
+                    settings.showQuestionsOnDevices ? 'bg-[#FF8A3D]' : 'bg-white/20'
+                  }`}
+                >
+                  <motion.div
+                    layout
+                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    className={`w-5 sm:w-6 h-5 sm:h-6 rounded-full bg-white shadow-md ${
+                      settings.showQuestionsOnDevices ? 'ml-auto' : 'mr-auto'
+                    }`}
+                  />
+                </button>
+              </div>
 
-                {/* Questions Count */}
-                <div className="mb-5">
-                  <label className="text-sm font-semibold text-white/90 flex items-center gap-2 mb-2">
-                    <Hash size={16} className="text-[#ff6f3c]" /> Question count
-                  </label>
-                  <div className="grid grid-cols-3 gap-3">
-                    {[10, 20, 30].map(val => (
-                      <button
-                        key={val}
-                        onClick={() => setQCount(val)}
-                        className={`py-3 rounded-xl border text-sm font-bold transition-all cursor-pointer ${qCount === val ? 'bg-[#ff6f3c] border-[#ff6f3c] text-white shadow-lg' : 'bg-black/30 border-white/15 text-white/70 hover:bg-white/10'}`}
-                      >
-                        {val} Qs
-                      </button>
-                    ))}
-                  </div>
-                </div>
+              {/* Private Scoring (HR-safe) */}
+              <div className="flex items-center justify-between py-2 sm:py-2.5 border-b border-white/15">
+                <span className="text-sm sm:text-base font-medium text-white/90">
+                  Private Scoring (HR-safe)
+                </span>
+                <button
+                  type="button"
+                  onClick={() => toggle('privateScoring')}
+                  className={`relative w-12 sm:w-14 h-7 sm:h-8 rounded-full transition-colors cursor-pointer p-1 ${
+                    settings.privateScoring ? 'bg-[#FF8A3D]' : 'bg-white/20'
+                  }`}
+                >
+                  <motion.div
+                    layout
+                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    className={`w-5 sm:w-6 h-5 sm:h-6 rounded-full bg-white shadow-md ${
+                      settings.privateScoring ? 'ml-auto' : 'mr-auto'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
 
-                {/* Timer Mode */}
-                <div>
-                  <label className="text-sm font-semibold text-white/90 flex items-center gap-2 mb-2">
-                    <Clock size={16} className="text-[#ff6f3c]" /> Timer mode
-                  </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { val: 15, label: '15s Standard' },
-                      { val: 10, label: '10s Speed' }
-                    ].map(m => (
-                      <button
-                        key={m.val}
-                        onClick={() => setTimerMode(m.val)}
-                        className={`py-3 px-3 rounded-xl border text-xs font-bold transition-all cursor-pointer ${timerMode === m.val ? 'bg-[#ff6f3c] border-[#ff6f3c] text-white shadow-lg' : 'bg-black/30 border-white/15 text-white/70 hover:bg-white/10'}`}
-                      >
-                        {m.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
-            )}
+          {/* SECTION: DIFFICULTY & FINAL ROUND (EXACT MATCH FOR FIGMA 854:892) */}
+          <div className="mb-6 sm:mb-7">
+            <h2 className="text-xl sm:text-2xl font-extrabold mb-2.5 tracking-tight text-white">
+              Difficulty & Final round
+            </h2>
+            <div className="text-sm sm:text-base font-medium text-white/80 mb-3">
+              Difficulty
+            </div>
 
-            {/* PAGE 2: Player & mode / Difficulty (EXACT MATCH FOR MOCKUP 2) */}
-            {step === 2 && (
-              <motion.div
-                key="step2"
-                custom={direction}
-                variants={pageVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.3 }}
-                className="w-full bg-[#154b52]/90 border border-[#2b727b]/50 rounded-[32px] p-6 md:p-8 shadow-2xl backdrop-blur-md"
-              >
-                {/* Section 1: Player & mode */}
-                <h2 className="text-xl font-bold text-white mb-4">Player & mode</h2>
-                <div className="space-y-4 mb-8">
-                  {/* Item 1: Team Mode */}
-                  <div className="flex items-center justify-between pb-3 border-b border-white/10">
-                    <span className="text-base font-semibold text-white">Team Mode</span>
-                    <button
-                      onClick={() => setTeamMode(!teamMode)}
-                      className={`w-12 h-7 rounded-full transition-colors relative cursor-pointer ${teamMode ? 'bg-[#ff6f3c]' : 'bg-white/20'}`}
-                    >
-                      <div className={`w-5 h-5 bg-white rounded-full absolute top-1 transition-transform ${teamMode ? 'left-6' : 'left-1'}`} />
-                    </button>
-                  </div>
+            {/* Pill Selector: Easy | Mixed | Hard */}
+            <div className="inline-flex p-1.5 rounded-2xl bg-black/25 border border-white/10 gap-1.5">
+              {['Easy', 'Mixed', 'Hard'].map((lvl) => {
+                const isSelected = (settings.difficulty || 'Mixed').toLowerCase() === lvl.toLowerCase();
+                return (
+                  <button
+                    key={lvl}
+                    type="button"
+                    onClick={() => setDifficulty(lvl)}
+                    className={`px-5 sm:px-7 py-2 rounded-xl font-semibold text-xs sm:text-sm transition-all cursor-pointer ${
+                      isSelected
+                        ? 'bg-[#FF8A3D] text-white shadow-md font-bold'
+                        : 'text-white/70 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    {lvl}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-                  {/* Item 2: Presenter mode (share screen only) */}
-                  <div className="flex items-center justify-between pb-3 border-b border-white/10">
-                    <span className="text-base font-semibold text-white">Presenter mode (share screen only)</span>
-                    <button
-                      onClick={() => setPresenterMode(!presenterMode)}
-                      className={`w-12 h-7 rounded-full transition-colors relative cursor-pointer ${presenterMode ? 'bg-[#ff6f3c]' : 'bg-white/20'}`}
-                    >
-                      <div className={`w-5 h-5 bg-white rounded-full absolute top-1 transition-transform ${presenterMode ? 'left-6' : 'left-1'}`} />
-                    </button>
-                  </div>
+          {/* LAUNCH TO LOBBY BUTTON */}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.97 }}
+            disabled={loading}
+            onClick={handleCreate}
+            className="w-full py-3.5 sm:py-4 rounded-full bg-gradient-to-r from-[#FF8A3D] to-[#F97316] text-white text-base sm:text-lg font-bold shadow-[0_8px_25px_rgba(255,138,61,0.4)] hover:shadow-[0_12px_35px_rgba(255,138,61,0.6)] transition-all cursor-pointer flex items-center justify-center gap-2"
+          >
+            <span>{loading ? 'Creating Game Lobby...' : 'Continue to Lobby'}</span>
+            {!loading && <ArrowRight size={18} />}
+          </motion.button>
 
-                  {/* Item 3: Show Questions on Players devices */}
-                  <div className="flex items-center justify-between pb-3 border-b border-white/10">
-                    <span className="text-base font-semibold text-white">Show Questions on Players devices</span>
-                    <button
-                      onClick={() => setShowQuestionsOnDevices(!showQuestionsOnDevices)}
-                      className={`w-12 h-7 rounded-full transition-colors relative cursor-pointer ${showQuestionsOnDevices ? 'bg-[#ff6f3c]' : 'bg-white/20'}`}
-                    >
-                      <div className={`w-5 h-5 bg-white rounded-full absolute top-1 transition-transform ${showQuestionsOnDevices ? 'left-6' : 'left-1'}`} />
-                    </button>
-                  </div>
+        </motion.div>
 
-                  {/* Item 4: Private Scoring (HR-safe) */}
-                  <div className="flex items-center justify-between pb-3 border-b border-white/10">
-                    <span className="text-base font-semibold text-white">Private Scoring (HR-safe)</span>
-                    <button
-                      onClick={() => setPrivateScoring(!privateScoring)}
-                      className={`w-12 h-7 rounded-full transition-colors relative cursor-pointer ${privateScoring ? 'bg-[#ff6f3c]' : 'bg-white/20'}`}
-                    >
-                      <div className={`w-5 h-5 bg-white rounded-full absolute top-1 transition-transform ${privateScoring ? 'left-6' : 'left-1'}`} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Section 2: Difficulty & Final round */}
-                <h2 className="text-xl font-bold text-white mb-3">Difficulty & Final round</h2>
-                <div className="mb-2">
-                  <label className="text-sm font-medium text-white/80 block mb-3">Difficulty</label>
-                  <div className="bg-[#102b36] p-1.5 rounded-full flex gap-1 border border-white/10">
-                    {['Easy', 'Mixed', 'Hard'].map(d => (
-                      <button
-                        key={d}
-                        onClick={() => setDifficulty(d)}
-                        className={`flex-1 py-2.5 rounded-full text-sm font-bold transition-all cursor-pointer ${difficulty === d ? 'bg-[#ff6f3c] text-white shadow-md' : 'text-white/60 hover:text-white'}`}
-                      >
-                        {d}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-            {/* PAGE 3: Rules & Host Launch */}
-            {step === 3 && (
-              <motion.div
-                key="step3"
-                custom={direction}
-                variants={pageVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.3 }}
-                className="w-full bg-[#154b52]/90 border border-[#2b727b]/50 rounded-[32px] p-6 md:p-8 shadow-2xl backdrop-blur-md"
-              >
-                <div className="text-xs font-extrabold tracking-[2px] uppercase text-[#ff6f3c] mb-1">Step 3</div>
-                <h2 className="text-2xl font-black text-white mb-6">Race Modifiers & Host Details</h2>
-
-                <div className="space-y-4 mb-6">
-                  {/* Bonus rounds */}
-                  <div className="flex items-center justify-between pb-3 border-b border-white/10">
-                    <div>
-                      <div className="text-base font-semibold text-white">Bonus rounds</div>
-                      <div className="text-xs text-white/60">Random 2x point surprises</div>
-                    </div>
-                    <button
-                      onClick={() => setBonusRounds(!bonusRounds)}
-                      className={`w-12 h-7 rounded-full transition-colors relative cursor-pointer ${bonusRounds ? 'bg-[#ff6f3c]' : 'bg-white/20'}`}
-                    >
-                      <div className={`w-5 h-5 bg-white rounded-full absolute top-1 transition-transform ${bonusRounds ? 'left-6' : 'left-1'}`} />
-                    </button>
-                  </div>
-
-                  {/* Streak multipliers */}
-                  <div className="flex items-center justify-between pb-3 border-b border-white/10">
-                    <div>
-                      <div className="text-base font-semibold text-white">Streak multipliers</div>
-                      <div className="text-xs text-white/60">Reward consecutive correct answers</div>
-                    </div>
-                    <button
-                      onClick={() => setStreakMultipliers(!streakMultipliers)}
-                      className={`w-12 h-7 rounded-full transition-colors relative cursor-pointer ${streakMultipliers ? 'bg-[#ff6f3c]' : 'bg-white/20'}`}
-                    >
-                      <div className={`w-5 h-5 bg-white rounded-full absolute top-1 transition-transform ${streakMultipliers ? 'left-6' : 'left-1'}`} />
-                    </button>
-                  </div>
-
-                  {/* Sudden death */}
-                  <div className="flex items-center justify-between pb-3 border-b border-white/10">
-                    <div>
-                      <div className="text-base font-semibold text-white">Sudden death</div>
-                      <div className="text-xs text-white/60">One wrong answer eliminates contestant</div>
-                    </div>
-                    <button
-                      onClick={() => setHardMode(!hardMode)}
-                      className={`w-12 h-7 rounded-full transition-colors relative cursor-pointer ${hardMode ? 'bg-[#ff6f3c]' : 'bg-white/20'}`}
-                    >
-                      <div className={`w-5 h-5 bg-white rounded-full absolute top-1 transition-transform ${hardMode ? 'left-6' : 'left-1'}`} />
-                    </button>
-                  </div>
-
-                  {/* Host nickname */}
-                  <div className="pt-2">
-                    <label className="text-sm font-semibold text-white/90 block mb-2">Host Nickname</label>
-                    <input 
-                      type="text" 
-                      placeholder="e.g. Race Director" 
-                      value={hostName}
-                      onChange={(e) => setHostName(e.target.value)}
-                      className="w-full bg-black/30 border border-white/15 rounded-xl text-white text-base py-3 px-4 outline-none focus:border-[#ff6f3c] transition-all"
-                    />
-                  </div>
-                </div>
-              </motion.div>
-            )}
-
-          </AnimatePresence>
-        </div>
-
-        {/* Action Buttons Placed Inside Main Scrollable Area */}
-        <div className="w-full pt-4 pb-6 flex items-center gap-4 shrink-0">
-          {step > 1 && (
-            <button
-              onClick={handleBack}
-              className="px-6 py-4 rounded-xl border border-white/20 bg-white/5 text-white font-bold hover:bg-white/10 transition-all cursor-pointer"
-            >
-              Back
-            </button>
-          )}
-
-          {step < 3 ? (
-            <motion.button
-              whileTap={{ scale: 0.96 }}
-              onClick={handleNext}
-              className="flex-1 py-4 rounded-xl bg-[#ff6f3c] text-white text-base font-extrabold uppercase tracking-wider shadow-lg flex items-center justify-center gap-2 hover:bg-[#e65c2b] transition-all cursor-pointer"
-            >
-              Next Step <ArrowRight size={18} />
-            </motion.button>
-          ) : (
-            <motion.button
-              whileTap={{ scale: 0.96 }}
-              onClick={() => {
-                playSelect();
-                createGame({
-                  sessionName,
-                  topicPack,
-                  qCount,
-                  timerMode,
-                  teamMode,
-                  presenterMode,
-                  showQuestionsOnDevices,
-                  privateScoring,
-                  difficulty,
-                  bonusRounds,
-                  streakMultipliers,
-                  hardMode,
-                  playAsContestant,
-                  hostName
-                });
-              }}
-              className="flex-1 py-4 rounded-xl bg-gradient-to-r from-[#ff6b4a] via-[#f75270] to-[#9333ea] text-white text-base font-extrabold uppercase tracking-wider shadow-xl flex items-center justify-center gap-2 hover:opacity-95 transition-all cursor-pointer"
-            >
-              Create Room <Zap size={18} />
-            </motion.button>
-          )}
-        </div>
       </main>
+
+      {/* FOOTER WATERMARK */}
+      <footer className="relative z-20 w-full max-w-[1300px] mx-auto px-6 py-4 flex items-center justify-end">
+        <img
+          src="/assets/figma/gummygum_footer_badge.png"
+          alt="GummyGum"
+          className="h-6 object-contain opacity-75 hover:opacity-100 transition-opacity"
+        />
+      </footer>
+
     </div>
   );
 }
