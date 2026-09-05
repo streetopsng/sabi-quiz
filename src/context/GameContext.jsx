@@ -44,6 +44,13 @@ export const GameProvider = ({ children }) => {
   
   const [isHost, setIsHost] = useState(false);
   const [isSpectator, setIsSpectator] = useState(() => sessionStorage.getItem('sabi_is_spectator') === 'true');
+  const [hostSettings, setHostSettings] = useState({
+    teamMode: false,
+    presenterMode: true,
+    showQuestionsOnDevices: true,
+    privateScoring: false,
+    difficulty: 'Mixed'
+  });
 
   // GummyGum hub identity handoff (who launched this session, if anyone).
   // This experience is only playable when arriving via a hub launch link, so
@@ -217,6 +224,17 @@ export const GameProvider = ({ children }) => {
       } else if (data.state === 'result') {
         clearInterval(window.currentTimer);
         setAnswered(true); // Ensure players who didn't click still see the result
+      } else if (data.state === 'leaderboard') {
+        clearInterval(window.currentTimer);
+        if (currentScreen !== 'leaderboard') {
+          playSelect();
+          navigate('leaderboard');
+        }
+      } else if (data.state === 'loading') {
+        clearInterval(window.currentTimer);
+        if (currentScreen !== 'loading') {
+          navigate('loading');
+        }
       } else if (data.state === 'podium' && currentScreen !== 'podium') {
         playWin();
         navigate('podium');
@@ -232,7 +250,7 @@ export const GameProvider = ({ children }) => {
       
       const me = playersList.find(p => p.sessionId === sessionId);
       if (me) {
-        setPlayer(prev => ({ ...prev, name: me.name, score: me.score, streak: me.streak, banter: me.banter || prev.banter, vehicle: me.vehicle || prev.vehicle, color: me.color || prev.color }));
+        setPlayer(prev => ({ ...prev, name: me.name, score: me.score, streak: me.streak, roundPoints: me.roundPoints || 0, banter: me.banter || prev.banter, vehicle: me.vehicle || prev.vehicle, color: me.color || prev.color }));
         
         // Handle result flashing
         if (gameRef.current && gameRef.current.state === 'result' && chosenAnswer !== -1) {
@@ -536,13 +554,22 @@ export const GameProvider = ({ children }) => {
       );
       await Promise.all(batchPromises);
 
+      // Show loading screen before Round 1
       await updateDoc(doc(db, 'games', gameCode), {
-        state: 'question',
-        currentQ: 0,
-        startedAt: Date.now(),
-        bonusRound: Math.random() < 0.25,
-        firstBloodQ: false
+        state: 'loading',
+        loadingMessage: 'Starting Round 1 of 12...',
+        currentQ: 0
       });
+
+      setTimeout(async () => {
+        await updateDoc(doc(db, 'games', gameCode), {
+          state: 'question',
+          currentQ: 0,
+          startedAt: Date.now(),
+          bonusRound: Math.random() < 0.25,
+          firstBloodQ: false
+        });
+      }, 2500);
     }, 0);
   };
 
@@ -590,9 +617,9 @@ export const GameProvider = ({ children }) => {
           let streakMult = p.streak >= 7 ? 2.5 : p.streak >= 5 ? 2.0 : p.streak >= 3 ? 1.5 : p.streak >= 2 ? 1.2 : 1.0;
           pts = Math.round(pts * streakMult);
           
-          return updateDoc(d.ref, { score: p.score + pts, streak: p.streak + 1 });
+          return updateDoc(d.ref, { score: (p.score || 0) + pts, streak: (p.streak || 0) + 1, roundPoints: pts });
        } else {
-          return updateDoc(d.ref, { streak: 0 });
+          return updateDoc(d.ref, { streak: 0, roundPoints: 0 });
        }
     });
     
@@ -600,22 +627,58 @@ export const GameProvider = ({ children }) => {
 
     setTimeout(async () => {
        resolvingRef.current = false;
-       if (game.currentQ + 1 >= game.questions.length) {
-          await updateDoc(doc(db, 'games', code), { state: 'podium' });
-       } else {
-          const snap2 = await getDocs(collection(db, 'games', code, 'players'));
-          const rPromises = snap2.docs.map(d => updateDoc(d.ref, { answered: false, chosenAnswer: -1 }));
-          await Promise.all(rPromises);
-          
-          await updateDoc(doc(db, 'games', code), {
-             state: 'question',
-             currentQ: game.currentQ + 1,
-             startedAt: Date.now(),
-             bonusRound: Math.random() < 0.25,
-             firstBloodQ: false
+       // The leaderboard shows after every question has been answered
+       await updateDoc(doc(db, 'games', code), { 
+          state: 'leaderboard',
+          leaderboardStartedAt: Date.now(),
+          isFinalRound: game.currentQ + 1 >= game.questions.length
+       });
+    }, 2200);
+  };
+
+  const nextQuestion = async () => {
+    if (!isHost || !gameCode) return;
+    clearInterval(window.currentTimer);
+    try {
+      const snap = await getDocs(collection(db, 'games', gameCode, 'players'));
+      const rPromises = snap.docs.map(d => updateDoc(d.ref, { answered: false, chosenAnswer: -1, roundPoints: 0 }));
+      await Promise.all(rPromises);
+
+      const gameSnap = await getDoc(doc(db, 'games', gameCode));
+      if (!gameSnap.exists()) return;
+      const gameData = gameSnap.data();
+      const nextQIndex = (gameData.currentQ ?? 0) + 1;
+
+      if (nextQIndex >= gameData.questions.length) {
+        // Show loading then proceed to final podium
+        await updateDoc(doc(db, 'games', gameCode), {
+          state: 'loading',
+          loadingMessage: 'Calculating Final Standings...'
+        });
+        setTimeout(async () => {
+          await updateDoc(doc(db, 'games', gameCode), { state: 'podium', isFinal: true });
+        }, 2500);
+      } else {
+        // Show loading screen before next question
+        await updateDoc(doc(db, 'games', gameCode), {
+          state: 'loading',
+          loadingMessage: `Get Ready for Round ${nextQIndex + 1} of ${gameData.questions.length}...`
+        });
+
+        // After loading screen, lead to next question
+        setTimeout(async () => {
+          await updateDoc(doc(db, 'games', gameCode), {
+            state: 'question',
+            currentQ: nextQIndex,
+            startedAt: Date.now(),
+            bonusRound: Math.random() < 0.25,
+            firstBloodQ: false
           });
-       }
-    }, 1500);
+        }, 2500);
+      }
+    } catch (err) {
+      console.error('Failed to advance to next question:', err);
+    }
   };
 
   const cancelGame = async () => {
@@ -645,7 +708,8 @@ export const GameProvider = ({ children }) => {
       gameCode, createGame, joinGameWithCode, gameConfig, gameQuestions,
       gameState, currentQ, timeLeft, answered, bonusRound, chosenAnswer,
       flashColor, streakToast,
-      startRace, handleAnswer, isHost, cancelGame, kickPlayer, isSpectator,
+      startRace, nextQuestion, resolveQuestion, handleAnswer, isHost, cancelGame, kickPlayer, isSpectator,
+      hostSettings, setHostSettings,
       ggSession, ggAccessState, ggRouted,
       alertModal, showAlertModal, closeAlertModal
     }}>
