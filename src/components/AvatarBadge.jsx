@@ -1,6 +1,6 @@
 import CarAvatar from './CarAvatar';
 
-export default function AvatarBadge({ src, color, onClick, size = "md", showTapToChange = true }) {
+export default function AvatarBadge({ src, color, onClick, size = "md", showTapToChange = (size === "xl" || size === "lg") }) {
   const sizeClasses = size === "xl"
     ? "w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44"
     : size === "lg" 
