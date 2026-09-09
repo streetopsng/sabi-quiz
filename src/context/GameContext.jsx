@@ -694,7 +694,11 @@ export const GameProvider = ({ children }) => {
       // Only relevant for a room launched through GummyGum — a no-op
       // (early return) for a plain direct-visit game with nothing stored.
       reportGummyGumCancel();
-      navigate('home');
+      if (ggSession) {
+        window.location.href = 'https://gummygum.app';
+      } else {
+        navigate('home');
+      }
     }
   };
 
