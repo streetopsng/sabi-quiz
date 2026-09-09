@@ -2,15 +2,16 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
-import { Menu, X, Trophy, MessageSquare, ArrowLeft } from 'lucide-react';
+import { Menu, X, Trophy, MessageSquare, ArrowLeft, LogOut } from 'lucide-react';
 import HostToolbar from './HostToolbar';
 import SettingsModal from './SettingsModal';
 import AvatarBadge from './AvatarBadge';
 import { useGame } from '../context/GameContext';
 import { playSelect } from '../utils/audio';
+import { closeGummyGumSession, returnToGummyGum } from '../lib/gummygumSession';
 
 export default function Podium() {
-  const { navigate, player, opponents, showAlertModal, gameCode, hostSettings, setHostSettings } = useGame();
+  const { navigate, player, opponents, showAlertModal, gameCode, hostSettings, setHostSettings, isHost, ggSession } = useGame();
 
   const [showStandings, setShowStandings] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -200,12 +201,48 @@ export default function Podium() {
               })}
             </div>
 
-            <button
-              onClick={() => { playSelect(); navigate('home'); }}
-              className="px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 text-white font-semibold text-xs sm:text-sm border border-white/15 transition-all cursor-pointer"
-            >
-              Back to Homepage
-            </button>
+            {ggSession ? (
+              <div className="flex flex-col sm:flex-row items-center gap-3">
+                {isHost ? (
+                  <>
+                    <button
+                      onClick={() => {
+                        playSelect();
+                        closeGummyGumSession();
+                      }}
+                      className="px-6 py-3 rounded-full bg-gradient-to-r from-[#FF8A3D] to-[#F97316] hover:brightness-110 active:scale-95 text-white font-bold text-sm sm:text-base shadow-[0_6px_20px_rgba(255,138,61,0.45)] transition-all cursor-pointer flex items-center gap-2"
+                    >
+                      <LogOut size={18} />
+                      <span>Close Session & Return to GummyGum</span>
+                    </button>
+                    <button
+                      onClick={() => { playSelect(); navigate('home'); }}
+                      className="px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 text-white/80 font-semibold text-xs border border-white/15 transition-all cursor-pointer"
+                    >
+                      Sabi Homepage
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => {
+                      playSelect();
+                      navigate('home');
+                    }}
+                    className="px-6 py-3 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 text-white font-bold text-sm sm:text-base border border-white/20 transition-all cursor-pointer flex items-center gap-2"
+                  >
+                    <LogOut size={18} />
+                    <span>Leave Game</span>
+                  </button>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={() => { playSelect(); navigate('home'); }}
+                className="px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 text-white font-semibold text-xs sm:text-sm border border-white/15 transition-all cursor-pointer"
+              >
+                Back to Homepage
+              </button>
+            )}
           </motion.div>
         )}
 
