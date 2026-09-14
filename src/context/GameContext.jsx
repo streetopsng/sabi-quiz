@@ -124,21 +124,21 @@ export const GameProvider = ({ children }) => {
     // however many people launched through their own link.
     if (gameState !== 'podium' || ggReportedRef.current || !ggSession || !isHost) return;
     ggReportedRef.current = true;
-    const roster = [{ name: player.name, score: player.score, streak: player.streak, isHost: true }, ...opponents.map((o) => ({
+    // The host doesn't play, so the roster is just the real participants —
+    // no synthetic host entry to duplicate or fail to record a score for.
+    const roster = opponents.map((o) => ({
       name: o.name,
       score: o.score,
       streak: o.streak,
       isHost: false,
-    }))].sort((a, b) => b.score - a.score);
+    })).sort((a, b) => b.score - a.score);
     reportGummyGumResult({
       gameCode,
       hostName: player.name,
-      hostScore: player.score,
-      hostStreak: player.streak,
       participantCount: roster.length,
       leaderboard: roster,
     });
-  }, [gameState, ggSession, isHost, player.score, player.streak, player.name, opponents, gameCode]);
+  }, [gameState, ggSession, isHost, player.name, opponents, gameCode]);
 
   // Firebase Realtime Listeners
   useEffect(() => {
@@ -308,14 +308,13 @@ export const GameProvider = ({ children }) => {
     // 1. Instant optimistic state update to allow browser main thread to paint immediately (<5ms INP)
     setGameConfig(config);
     setIsHost(true);
-    if (config.playAsContestant) {
-      setIsSpectator(false);
-      sessionStorage.setItem('sabi_is_spectator', 'false');
-      setPlayer(p => ({ ...p, name: config.hostName || 'HR Admin' }));
-    } else {
-      setIsSpectator(true);
-      sessionStorage.setItem('sabi_is_spectator', 'true');
-    }
+    // The host never plays their own session — presenting only, always a
+    // spectator. Was previously a toggle ("Play as contestant"); letting a
+    // host also be a scored player caused their answers/score to sometimes
+    // go unrecorded and duplicated host rows in reported results.
+    setIsSpectator(true);
+    sessionStorage.setItem('sabi_is_spectator', 'true');
+    setPlayer(p => ({ ...p, name: config.hostName || 'HR Admin' }));
     navigate('lobby');
 
     // 2. Defer question array processing and network batch creation to next event loop frame
@@ -351,18 +350,7 @@ export const GameProvider = ({ children }) => {
           startedAt: null
         });
 
-        if (config.playAsContestant) {
-          batch.set(doc(db, 'games', code, 'players', sessionId), {
-            ...player,
-            name: config.hostName || 'HR Admin',
-            sessionId,
-            score: 0,
-            streak: 0,
-            answered: false,
-            chosenAnswer: -1,
-            connected: true
-          });
-        }
+        // No player doc for the host — they present, never play.
 
         await batch.commit();
       } catch (err) {
@@ -407,24 +395,10 @@ export const GameProvider = ({ children }) => {
 
         await updateDoc(doc(db, 'games', code), { hostSessionId: sessionId });
 
-        if (gameData.config?.playAsContestant) {
-          setIsSpectator(false);
-          sessionStorage.setItem('sabi_is_spectator', 'false');
-          setPlayer((p) => ({ ...p, name }));
-          await setDoc(doc(db, 'games', code, 'players', sessionId), {
-            ...player,
-            name,
-            sessionId,
-            score: 0,
-            streak: 0,
-            answered: false,
-            chosenAnswer: -1,
-            connected: true,
-          });
-        } else {
-          setIsSpectator(true);
-          sessionStorage.setItem('sabi_is_spectator', 'true');
-        }
+        // The host never plays their own session — see createGame() above.
+        setIsSpectator(true);
+        sessionStorage.setItem('sabi_is_spectator', 'true');
+        setPlayer((p) => ({ ...p, name }));
 
         navigate(gameData.state);
       } catch (err) {
