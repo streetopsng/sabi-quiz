@@ -61,14 +61,16 @@ export default function Question() {
           </div>
         </div>
 
-        {/* Orange Menu Button (Figma 865:1318) */}
-        <button
-          onClick={() => setShowSettingsModal(true)}
-          className="w-11 h-11 rounded-2xl bg-[#FF8A3D] hover:bg-[#ff9752] active:scale-95 text-white flex items-center justify-center transition-all shadow-[0_4px_14px_rgba(255,138,61,0.4)] cursor-pointer"
-          title="Settings"
-        >
-          <Menu size={22} />
-        </button>
+        {/* Orange Menu Button (Figma 865:1318) — host-only game settings */}
+        {isHost && (
+          <button
+            onClick={() => setShowSettingsModal(true)}
+            className="w-11 h-11 rounded-2xl bg-[#FF8A3D] hover:bg-[#ff9752] active:scale-95 text-white flex items-center justify-center transition-all shadow-[0_4px_14px_rgba(255,138,61,0.4)] cursor-pointer"
+            title="Settings"
+          >
+            <Menu size={22} />
+          </button>
+        )}
       </header>
 
       {/* MAIN QUESTION & ANSWERS AREA */}

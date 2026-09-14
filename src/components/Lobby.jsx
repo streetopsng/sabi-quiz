@@ -59,14 +59,18 @@ export default function Lobby() {
           <span className="group-hover:scale-105 inline-block transition-transform">sabi</span>
         </div>
 
-        {/* Orange Menu Button (Figma 791:325 & 840:558) */}
-        <button
-          onClick={() => setShowSettingsModal(true)}
-          className="w-11 h-11 rounded-2xl bg-[#FF8A3D] hover:bg-[#ff9752] active:scale-95 text-white flex items-center justify-center transition-all shadow-[0_4px_14px_rgba(255,138,61,0.4)] cursor-pointer"
-          title="Settings"
-        >
-          <Menu size={22} />
-        </button>
+        {/* Orange Menu Button (Figma 791:325 & 840:558) — host-only game settings */}
+        {isHost ? (
+          <button
+            onClick={() => setShowSettingsModal(true)}
+            className="w-11 h-11 rounded-2xl bg-[#FF8A3D] hover:bg-[#ff9752] active:scale-95 text-white flex items-center justify-center transition-all shadow-[0_4px_14px_rgba(255,138,61,0.4)] cursor-pointer"
+            title="Settings"
+          >
+            <Menu size={22} />
+          </button>
+        ) : (
+          <div className="w-11 h-11" />
+        )}
       </header>
 
       {/* MAIN CONTENT AREA */}
@@ -161,8 +165,31 @@ export default function Lobby() {
             <div className="text-2xl font-bold text-white tracking-wide mb-2">
               {player.name || 'Contestant'}
             </div>
-            <div className="text-xs text-white/50">
+            <div className="text-xs text-white/50 mb-6">
               Tap avatar to customize
+            </div>
+
+            {/* WHO ELSE IS HERE — live as other participants join */}
+            <div className="w-full rounded-[24px] sm:rounded-[28px] bg-[#122834]/90 border border-white/10 p-4 sm:p-5 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-md">
+              <div className="text-xs font-semibold text-white/50 uppercase tracking-wide mb-3">
+                {activePlayers}/10 joined
+              </div>
+              {activeOpponents.length === 0 ? (
+                <div className="text-xs sm:text-sm text-white/40 py-3">
+                  You're the first one here
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 justify-items-center max-h-[180px] overflow-y-auto no-scrollbar py-1">
+                  {activeOpponents.map((o, idx) => (
+                    <div key={idx} className="flex flex-col items-center">
+                      <AvatarBadge src={o.vehicle} color={o.color || '#EF4444'} size="sm" />
+                      <span className="text-xs font-semibold text-white truncate max-w-[70px] mt-1">
+                        {o.name || 'Player'}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
