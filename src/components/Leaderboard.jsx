@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Menu, ArrowLeft } from 'lucide-react';
+import { Trophy, Menu, ArrowLeft, X } from 'lucide-react';
 import HostToolbar from './HostToolbar';
 import SettingsModal from './SettingsModal';
 import AvatarBadge from './AvatarBadge';
 import { useGame } from '../context/GameContext';
 import { playSelect } from '../utils/audio';
+import { returnToGummyGum } from '../lib/gummygumSession';
 
 export default function Leaderboard() {
   const {
@@ -19,6 +20,8 @@ export default function Leaderboard() {
     navigate,
     hostSettings,
     setHostSettings,
+    ggSession,
+    cancelGame,
   } = useGame();
 
   const totalQuestions = gameQuestions?.length || 1;
@@ -112,30 +115,53 @@ export default function Leaderboard() {
 
       {/* TOP HEADER */}
       <header className="relative z-20 w-full max-w-[1300px] mx-auto px-6 pt-6 pb-2 flex items-center justify-between shrink-0">
-        <button 
-          onClick={() => { playSelect(); navigate('home'); }}
-          className="w-11 h-11 rounded-full bg-white/10 border border-white/15 text-white flex items-center justify-center transition-all hover:bg-white/20 active:scale-95 cursor-pointer"
-          title="Back to Homepage"
-        >
-          <ArrowLeft size={20} />
-        </button>
+        {isHost ? (
+          <button
+            onClick={() => {
+              playSelect();
+              if (window.confirm('End this session for everyone and return to GummyGum?')) {
+                cancelGame();
+              }
+            }}
+            className="w-11 h-11 rounded-full bg-white/10 border border-white/15 text-white flex items-center justify-center transition-all hover:bg-white/20 active:scale-95 cursor-pointer"
+            title="Back to GummyGum"
+          >
+            <ArrowLeft size={20} />
+          </button>
+        ) : (
+          <button
+            onClick={() => {
+              playSelect();
+              window.close();
+              // Blocked script-close (tab wasn't opened via window.open) — fall
+              // back to a safe return instead of leaving a dead button.
+              setTimeout(() => (ggSession ? returnToGummyGum() : navigate('home')), 400);
+            }}
+            className="w-11 h-11 rounded-full bg-white/10 border border-white/15 text-white flex items-center justify-center transition-all hover:bg-white/20 active:scale-95 cursor-pointer"
+            title="Close"
+          >
+            <X size={20} />
+          </button>
+        )}
 
         {/* Brand Name sabi */}
-        <div 
+        <div
           onClick={() => navigate('home')}
           className="cursor-pointer text-4xl sm:text-5xl font-black text-[#F4D06F] drop-shadow-md tracking-tight group"
         >
           <span className="group-hover:scale-105 inline-block transition-transform">sabi</span>
         </div>
 
-        {/* Orange Menu Button */}
-        <button
-          onClick={() => setShowSettingsModal(true)}
-          className="w-11 h-11 rounded-2xl bg-[#FF8A3D] hover:bg-[#ff9752] active:scale-95 text-white flex items-center justify-center transition-all shadow-[0_4px_14px_rgba(255,138,61,0.4)] cursor-pointer"
-          title="Settings"
-        >
-          <Menu size={22} />
-        </button>
+        {/* Orange Menu Button — host-only game settings */}
+        {isHost && (
+          <button
+            onClick={() => setShowSettingsModal(true)}
+            className="w-11 h-11 rounded-2xl bg-[#FF8A3D] hover:bg-[#ff9752] active:scale-95 text-white flex items-center justify-center transition-all shadow-[0_4px_14px_rgba(255,138,61,0.4)] cursor-pointer"
+            title="Settings"
+          >
+            <Menu size={22} />
+          </button>
+        )}
       </header>
 
       {/* MAIN CONTENT AREA */}
@@ -259,12 +285,14 @@ export default function Leaderboard() {
 
       {/* FOOTER & HOST TOOLBAR */}
       <footer className="relative z-20 w-full max-w-[1300px] mx-auto px-6 py-4 flex items-center justify-between">
-        <HostToolbar
-          onNextRound={handleNext}
-          onOpenSettings={() => setShowSettingsModal(true)}
-          nextRoundLabel={currentQ + 1 >= totalQuestions ? "View Final Standings" : "Next Question"}
-          showNewRound={isHost}
-        />
+        {isHost && (
+          <HostToolbar
+            onNextRound={handleNext}
+            onOpenSettings={() => setShowSettingsModal(true)}
+            nextRoundLabel={currentQ + 1 >= totalQuestions ? "View Final Standings" : "Next Question"}
+            showNewRound={isHost}
+          />
+        )}
 
         {/* GummyGum Watermark */}
         <div className="ml-auto flex items-center gap-2">

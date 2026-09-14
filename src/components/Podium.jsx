@@ -95,30 +95,48 @@ export default function Podium() {
 
       {/* TOP HEADER */}
       <header className="relative z-20 w-full max-w-[1300px] mx-auto px-6 pt-6 pb-2 flex items-center justify-between shrink-0">
-        <button 
-          onClick={() => { playSelect(); navigate('home'); }}
-          className="w-11 h-11 rounded-full bg-white/10 border border-white/15 text-white flex items-center justify-center transition-all hover:bg-white/20 active:scale-95 cursor-pointer"
-          title="Back to Homepage"
-        >
-          <ArrowLeft size={20} />
-        </button>
+        {isHost ? (
+          <button
+            onClick={() => { playSelect(); ggSession ? closeGummyGumSession() : navigate('home'); }}
+            className="w-11 h-11 rounded-full bg-white/10 border border-white/15 text-white flex items-center justify-center transition-all hover:bg-white/20 active:scale-95 cursor-pointer"
+            title={ggSession ? 'Close session & return to GummyGum' : 'Back to Homepage'}
+          >
+            <ArrowLeft size={20} />
+          </button>
+        ) : (
+          <button
+            onClick={() => {
+              playSelect();
+              window.close();
+              // Blocked script-close (tab wasn't opened via window.open) — fall
+              // back to a safe return instead of leaving a dead button.
+              setTimeout(() => (ggSession ? returnToGummyGum() : navigate('home')), 400);
+            }}
+            className="w-11 h-11 rounded-full bg-white/10 border border-white/15 text-white flex items-center justify-center transition-all hover:bg-white/20 active:scale-95 cursor-pointer"
+            title="Close"
+          >
+            <X size={20} />
+          </button>
+        )}
 
         {/* Brand Name sabi */}
-        <div 
+        <div
           onClick={() => navigate('home')}
           className="cursor-pointer text-4xl sm:text-5xl font-black text-[#F4D06F] drop-shadow-md tracking-tight group"
         >
           <span className="group-hover:scale-105 inline-block transition-transform">sabi</span>
         </div>
 
-        {/* Orange Menu Button (Figma 899:1296) */}
-        <button
-          onClick={() => setShowSettingsModal(true)}
-          className="w-11 h-11 rounded-2xl bg-[#FF8A3D] hover:bg-[#ff9752] active:scale-95 text-white flex items-center justify-center transition-all shadow-[0_4px_14px_rgba(255,138,61,0.4)] cursor-pointer"
-          title="Settings"
-        >
-          <Menu size={22} />
-        </button>
+        {/* Orange Menu Button (Figma 899:1296) — host-only game settings */}
+        {isHost && (
+          <button
+            onClick={() => setShowSettingsModal(true)}
+            className="w-11 h-11 rounded-2xl bg-[#FF8A3D] hover:bg-[#ff9752] active:scale-95 text-white flex items-center justify-center transition-all shadow-[0_4px_14px_rgba(255,138,61,0.4)] cursor-pointer"
+            title="Settings"
+          >
+            <Menu size={22} />
+          </button>
+        )}
       </header>
 
       {/* MAIN CONTENT AREA */}
@@ -226,7 +244,10 @@ export default function Podium() {
                   <button
                     onClick={() => {
                       playSelect();
-                      navigate('home');
+                      window.close();
+                      // Blocked script-close (tab wasn't opened via window.open) —
+                      // fall back to a safe return instead of a dead button.
+                      setTimeout(() => returnToGummyGum(), 400);
                     }}
                     className="px-6 py-3 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 text-white font-bold text-sm sm:text-base border border-white/20 transition-all cursor-pointer flex items-center gap-2"
                   >
@@ -250,13 +271,15 @@ export default function Podium() {
 
       {/* FOOTER & HOST TOOLBAR */}
       <footer className="relative z-20 w-full max-w-[1300px] mx-auto px-6 py-4 flex items-center justify-between">
-        {/* Floating Toolbar with Give Feedback button (Figma 899:1296) */}
-        <HostToolbar
-          onNextRound={() => setShowFeedbackModal(true)}
-          onOpenSettings={() => setShowSettingsModal(true)}
-          nextRoundLabel="Give Feedback"
-          showNewRound={true}
-        />
+        {/* Floating Toolbar with Give Feedback button (Figma 899:1296) — host only */}
+        {isHost && (
+          <HostToolbar
+            onNextRound={() => setShowFeedbackModal(true)}
+            onOpenSettings={() => setShowSettingsModal(true)}
+            nextRoundLabel="Give Feedback"
+            showNewRound={true}
+          />
+        )}
 
         {/* GummyGum Watermark */}
         <div className="ml-auto flex items-center gap-2">
