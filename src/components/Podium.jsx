@@ -11,7 +11,7 @@ import { playSelect } from '../utils/audio';
 import { closeGummyGumSession, returnToGummyGum } from '../lib/gummygumSession';
 
 export default function Podium() {
-  const { navigate, player, opponents, showAlertModal, gameCode, hostSettings, setHostSettings, isHost, ggSession } = useGame();
+  const { navigate, player, opponents, showAlertModal, gameCode, hostSettings, setHostSettings, isHost, isSpectator, ggSession } = useGame();
 
   const [showStandings, setShowStandings] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -38,8 +38,9 @@ export default function Podium() {
     }
   };
 
-  // Sort all contestants by score
-  const leaderboard = [player, ...opponents.filter(o => o._joined)].sort((a, b) => b.score - a.score);
+  // Sort all contestants by score — the host presents only, never plays
+  const contestants = isSpectator ? opponents.filter(o => o._joined) : [player, ...opponents.filter(o => o._joined)];
+  const leaderboard = [...contestants].sort((a, b) => b.score - a.score);
 
   return (
     <div className="relative min-h-[100dvh] w-full bg-[#183944] text-white flex flex-col justify-between overflow-x-hidden overflow-y-auto select-none font-poppins pb-16">
