@@ -214,8 +214,8 @@ export default function Leaderboard() {
                       {rank}
                     </span>
                     <AvatarBadge src={p.vehicle} color={p.color} size="sm" showTapToChange={false} />
-                    <div className="flex items-center gap-2 truncate">
-                      <span className="font-bold text-sm sm:text-base text-white truncate max-w-[130px] sm:max-w-[200px]">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="font-bold text-sm sm:text-base text-white truncate min-w-0 max-w-[90px] sm:max-w-[200px]">
                         {p.name || 'Contestant'}
                       </span>
                       {isMe && (
