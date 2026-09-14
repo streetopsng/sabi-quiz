@@ -38,20 +38,17 @@ export default function Podium() {
     }
   };
 
-  // Sort all contestants by score — the host presents only, never plays
   const contestants = isSpectator ? opponents.filter(o => o._joined) : [player, ...opponents.filter(o => o._joined)];
   const leaderboard = [...contestants].sort((a, b) => b.score - a.score);
 
   return (
     <div className="relative min-h-[100dvh] w-full bg-[#183944] text-white flex flex-col justify-between overflow-x-hidden overflow-y-auto select-none font-poppins pb-16">
-      
-      {/* AMBIENT RADIAL LIGHTS */}
+
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-[#224e5d]/35 rounded-full blur-[140px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-[#122b34]/55 rounded-full blur-[140px]" />
       </div>
 
-      {/* CONFETTI SPRINKLES OVERLAY (MATCHING FIGMA 899:1296) */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
         {[
           { color: '#EF4444', left: '10%', top: '20%', rot: '15deg' },
@@ -94,7 +91,6 @@ export default function Podium() {
         ))}
       </div>
 
-      {/* TOP HEADER */}
       <header className="relative z-20 w-full max-w-[1300px] mx-auto px-6 pt-6 pb-2 flex items-center justify-between shrink-0">
         {isHost ? (
           <button
@@ -109,8 +105,7 @@ export default function Podium() {
             onClick={() => {
               playSelect();
               window.close();
-              // Blocked script-close (tab wasn't opened via window.open) — fall
-              // back to a safe return instead of leaving a dead button.
+              // Falls back if the browser blocks the script-close.
               setTimeout(() => (ggSession ? returnToGummyGum() : navigate('home')), 400);
             }}
             className="w-11 h-11 rounded-full bg-white/10 border border-white/15 text-white flex items-center justify-center transition-all hover:bg-white/20 active:scale-95 cursor-pointer"
@@ -120,7 +115,6 @@ export default function Podium() {
           </button>
         )}
 
-        {/* Brand Name sabi */}
         <div
           onClick={() => navigate('home')}
           className="cursor-pointer text-4xl sm:text-5xl font-black text-[#F4D06F] drop-shadow-md tracking-tight group"
@@ -128,7 +122,6 @@ export default function Podium() {
           <span className="group-hover:scale-105 inline-block transition-transform">sabi</span>
         </div>
 
-        {/* Orange Menu Button (Figma 899:1296) — host-only game settings */}
         {isHost && (
           <button
             onClick={() => setShowSettingsModal(true)}
@@ -140,11 +133,9 @@ export default function Podium() {
         )}
       </header>
 
-      {/* MAIN CONTENT AREA */}
       <main className="relative z-10 flex-1 max-w-[900px] w-full mx-auto px-6 py-4 flex flex-col items-center justify-center my-auto text-center">
-        
+
         {!showStandings ? (
-          /* ================= STEP 1: GAME OVER SPLASH (FIGMA 899:1296) ================= */
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -168,7 +159,6 @@ export default function Podium() {
             </motion.button>
           </motion.div>
         ) : (
-          /* ================= STEP 2: PODIUM / STANDINGS ================= */
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -234,9 +224,7 @@ export default function Podium() {
                       <LogOut size={18} />
                       <span>Close Session & Return to GummyGum</span>
                     </button>
-                    {/* "Sabi Homepage" button removed — the host isn't a registered
-                        Sabi user, so there's nowhere useful for it to send them.
-                        Commented out per request rather than deleted.
+                    {/* Sabi Homepage button removed — host has no account to go back to.
                     <button
                       onClick={() => { playSelect(); navigate('home'); }}
                       className="px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 text-white/80 font-semibold text-xs border border-white/15 transition-all cursor-pointer"
@@ -250,8 +238,7 @@ export default function Podium() {
                     onClick={() => {
                       playSelect();
                       window.close();
-                      // Blocked script-close (tab wasn't opened via window.open) —
-                      // fall back to a safe return instead of a dead button.
+                      // Falls back if the browser blocks the script-close.
                       setTimeout(() => returnToGummyGum(), 400);
                     }}
                     className="px-6 py-3 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 text-white font-bold text-sm sm:text-base border border-white/20 transition-all cursor-pointer flex items-center gap-2"
@@ -274,9 +261,7 @@ export default function Podium() {
 
       </main>
 
-      {/* FOOTER & HOST TOOLBAR */}
       <footer className="relative z-20 w-full max-w-[1300px] mx-auto px-6 py-4 flex items-center justify-between">
-        {/* Floating Toolbar with Give Feedback button (Figma 899:1296) — host only */}
         {isHost && (
           <HostToolbar
             onNextRound={() => setShowFeedbackModal(true)}
@@ -286,7 +271,6 @@ export default function Podium() {
           />
         )}
 
-        {/* GummyGum Watermark */}
         <div className="ml-auto flex items-center gap-2">
           <img
             src="/assets/figma/gummygum_footer_badge.png"
@@ -296,7 +280,6 @@ export default function Podium() {
         </div>
       </footer>
 
-      {/* FEEDBACK MODAL */}
       <AnimatePresence>
         {showFeedbackModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-5">
@@ -331,7 +314,6 @@ export default function Podium() {
         )}
       </AnimatePresence>
 
-      {/* SETTINGS MODAL */}
       <SettingsModal
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}

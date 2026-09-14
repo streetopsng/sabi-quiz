@@ -10,7 +10,6 @@ const GameContext = createContext();
 export const useGame = () => useContext(GameContext);
 
 export const GameProvider = ({ children }) => {
-  // Generate or retrieve persistent Session ID
   const [sessionId] = useState(() => {
     let id = sessionStorage.getItem('sabi_session_id');
     if (!id) {
@@ -26,8 +25,7 @@ export const GameProvider = ({ children }) => {
   const [gameQuestions, setGameQuestions] = useState([]);
   const [player, setPlayer] = useState({ ...INITIAL_PLAYER });
   const [opponents, setOpponents] = useState([]);
-  
-  // Gameplay state
+
   const [gameState, setGameState] = useState('lobby');
   const [currentQ, setCurrentQ] = useState(0);
   const [timeLeft, setTimeLeft] = useState(15);
@@ -69,7 +67,6 @@ export const GameProvider = ({ children }) => {
   const [ggRouted, setGgRouted] = useState(false);
   const ggReportedRef = useRef(false);
 
-  // Custom Alert Modal State
   const [alertModal, setAlertModal] = useState(null);
 
   const showAlertModal = (message, title = 'Notice', onConfirm = null, cta = null) => {
@@ -87,7 +84,6 @@ export const GameProvider = ({ children }) => {
     });
   }, []);
 
-  // Auto-rejoin logic
   useEffect(() => {
     const savedCode = sessionStorage.getItem('sabi_game_code');
     if (savedCode) {
@@ -124,8 +120,6 @@ export const GameProvider = ({ children }) => {
     // however many people launched through their own link.
     if (gameState !== 'podium' || ggReportedRef.current || !ggSession || !isHost) return;
     ggReportedRef.current = true;
-    // The host doesn't play, so the roster is just the real participants —
-    // no synthetic host entry to duplicate or fail to record a score for.
     const roster = opponents.map((o) => ({
       name: o.name,
       score: o.score,
@@ -140,11 +134,9 @@ export const GameProvider = ({ children }) => {
     });
   }, [gameState, ggSession, isHost, player.name, opponents, gameCode]);
 
-  // Firebase Realtime Listeners
   useEffect(() => {
     if (!gameCode) return;
 
-    // Listen to Game Document
     const unsubGame = onSnapshot(doc(db, 'games', gameCode), (snapshot) => {
       if (!snapshot.exists()) {
         showAlertModal('The Race Director cancelled the session.', 'Session Cancelled');
@@ -163,7 +155,6 @@ export const GameProvider = ({ children }) => {
       setBonusRound(data.bonusRound);
       setLoadingMessage(data.loadingMessage || '');
       
-      // Handle screen routing based on game state
       if (data.state === 'question') {
         if (currentScreen !== 'question') {
           playStart();
@@ -246,7 +237,6 @@ export const GameProvider = ({ children }) => {
       }
     });
 
-    // Listen to Players Collection
     const unsubPlayers = onSnapshot(collection(db, 'games', gameCode, 'players'), (snapshot) => {
       const playersList = snapshot.docs.map(d => d.data());
       
@@ -254,7 +244,6 @@ export const GameProvider = ({ children }) => {
       if (me) {
         setPlayer(prev => ({ ...prev, name: me.name, score: me.score, streak: me.streak, roundPoints: me.roundPoints || 0, banter: me.banter || prev.banter, vehicle: me.vehicle || prev.vehicle, color: me.color || prev.color }));
         
-        // Handle result flashing
         if (gameRef.current && gameRef.current.state === 'result' && chosenAnswer !== -1) {
            const wasCorrect = me.chosenAnswer === gameRef.current.questions[gameRef.current.currentQ].answer;
            setFlashColor(wasCorrect ? 'green' : 'red');
@@ -308,10 +297,7 @@ export const GameProvider = ({ children }) => {
     // 1. Instant optimistic state update to allow browser main thread to paint immediately (<5ms INP)
     setGameConfig(config);
     setIsHost(true);
-    // The host never plays their own session — presenting only, always a
-    // spectator. Was previously a toggle ("Play as contestant"); letting a
-    // host also be a scored player caused their answers/score to sometimes
-    // go unrecorded and duplicated host rows in reported results.
+    // Host never plays — always a spectator.
     setIsSpectator(true);
     sessionStorage.setItem('sabi_is_spectator', 'true');
     setPlayer(p => ({ ...p, name: config.hostName || 'HR Admin' }));
@@ -509,7 +495,6 @@ export const GameProvider = ({ children }) => {
     }, 0);
   };
 
-  // Sync player cosmetics
   useEffect(() => {
     if (gameCode) {
       updateDoc(doc(db, 'games', gameCode, 'players', sessionId), {
@@ -523,14 +508,12 @@ export const GameProvider = ({ children }) => {
   const startRace = () => {
     if (!isHost) return;
     setTimeout(async () => {
-      // Reset all players
       const playersSnap = await getDocs(collection(db, 'games', gameCode, 'players'));
-      const batchPromises = playersSnap.docs.map(d => 
+      const batchPromises = playersSnap.docs.map(d =>
         updateDoc(d.ref, { answered: false, chosenAnswer: -1 })
       );
       await Promise.all(batchPromises);
 
-      // Show loading screen before Round 1
       const totalQ = gameQuestions.length || 12;
       await updateDoc(doc(db, 'games', gameCode), {
         state: 'loading',
@@ -604,8 +587,7 @@ export const GameProvider = ({ children }) => {
 
     setTimeout(async () => {
        resolvingRef.current = false;
-       // The leaderboard shows after every question has been answered
-       await updateDoc(doc(db, 'games', code), { 
+       await updateDoc(doc(db, 'games', code), {
           state: 'leaderboard',
           leaderboardStartedAt: Date.now(),
           isFinalRound: game.currentQ + 1 >= game.questions.length
@@ -627,7 +609,6 @@ export const GameProvider = ({ children }) => {
       const nextQIndex = (gameData.currentQ ?? 0) + 1;
 
       if (nextQIndex >= gameData.questions.length) {
-        // Show loading then proceed to final podium
         await updateDoc(doc(db, 'games', gameCode), {
           state: 'loading',
           loadingMessage: 'Preparing Final Standings...'
@@ -636,14 +617,12 @@ export const GameProvider = ({ children }) => {
           await updateDoc(doc(db, 'games', gameCode), { state: 'podium', isFinal: true });
         }, 2500);
       } else {
-        // Show loading screen before next question
         await updateDoc(doc(db, 'games', gameCode), {
           state: 'loading',
           currentQ: nextQIndex,
           loadingMessage: `Preparing for Round ${nextQIndex + 1} of ${gameData.questions.length}...`
         });
 
-        // After loading screen, lead to next question
         setTimeout(async () => {
           await updateDoc(doc(db, 'games', gameCode), {
             state: 'question',

@@ -34,25 +34,20 @@ export default function LoadingScreen({ message }) {
 
   return (
     <div className="relative min-h-[100dvh] w-full bg-[#183944] text-white flex flex-col items-center justify-between p-6 overflow-hidden select-none font-poppins">
-      {/* Radial Ambient Lights */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-[#7C3AED]/20 rounded-full blur-[140px]" />
         <div className="absolute bottom-1/4 left-1/2 -translate-x-1/2 w-[450px] h-[450px] bg-[#FF8A3D]/15 rounded-full blur-[160px]" />
       </div>
 
-      {/* Top Header with sabi Brand Logo */}
       <header className="relative z-10 pt-4 flex flex-col items-center">
         <span className="text-3xl sm:text-4xl font-extrabold tracking-tight bg-gradient-to-tr from-[#FFD166] via-white to-white bg-clip-text text-transparent drop-shadow-md">
           sabi
         </span>
       </header>
 
-      {/* Center Spinner & Message */}
       <main className="relative z-10 flex flex-col items-center justify-center my-auto text-center px-4 max-w-lg">
-        {/* Animated Dual-tone Ring Spinner */}
         <Spinner size="lg" variant="circle" />
-        
-        {/* Main Loading Message */}
+
         <motion.h2
           key={displayMessage}
           initial={{ opacity: 0, y: 10 }}
@@ -63,7 +58,6 @@ export default function LoadingScreen({ message }) {
           {displayMessage}
         </motion.h2>
 
-        {/* Dynamic Trivia Tip Pill */}
         <motion.div
           key={tipIndex}
           initial={{ opacity: 0, y: 5 }}
@@ -75,13 +69,11 @@ export default function LoadingScreen({ message }) {
           {TRIVIA_TIPS[tipIndex]}
         </motion.div>
 
-        {/* Bouncing Dots */}
         <div className="mt-6">
           <Spinner variant="dots" />
         </div>
       </main>
 
-      {/* Footer GummyGum Badge */}
       <footer className="relative z-10 pb-4 text-center">
         <img
           src="/assets/figma/gummygum_footer_badge.png"

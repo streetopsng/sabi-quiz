@@ -8,7 +8,6 @@ import {
 export default function VectorDecor({ showConfetti = false, variant = 'teal' }) {
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden z-0 select-none">
-      {/* Background Teal Gradient or Navy Gradient */}
       {variant === 'teal' ? (
         <>
           <div className="absolute inset-0 bg-gradient-to-br from-[#1b5e65] via-[#16444c] to-[#0e202b]" />
@@ -23,8 +22,7 @@ export default function VectorDecor({ showConfetti = false, variant = 'teal' }) 
         </>
       ) : null}
 
-      {/* 1. Realistic 3D Target Arrow Icon Top Left - Faded & Seamlessly Matched */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 0.22, scale: 1 }}
         transition={{ duration: 1 }}
@@ -41,8 +39,7 @@ export default function VectorDecor({ showConfetti = false, variant = 'teal' }) 
         />
       </motion.div>
 
-      {/* 2. Leather Briefcase Top Right */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 0.18, scale: 1 }}
         transition={{ duration: 1, delay: 0.1 }}
@@ -51,8 +48,7 @@ export default function VectorDecor({ showConfetti = false, variant = 'teal' }) 
         <BriefcaseVector className="w-20 h-16 md:w-32 md:h-24" />
       </motion.div>
 
-      {/* 3. Thinking Emoji with Glasses Mid Left */}
-      <motion.div 
+      <motion.div
         animate={{ y: [0, -6, 0] }}
         transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
         className="absolute top-1/3 left-4 md:left-10 opacity-20 pointer-events-none"
@@ -60,8 +56,7 @@ export default function VectorDecor({ showConfetti = false, variant = 'teal' }) 
         <ThinkingEmojiVector className="w-16 h-16 md:w-22 md:h-22" />
       </motion.div>
 
-      {/* 4. Checklist Clipboard Mid Right */}
-      <motion.div 
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 0.18 }}
         transition={{ duration: 1 }}
@@ -70,8 +65,7 @@ export default function VectorDecor({ showConfetti = false, variant = 'teal' }) 
         <ClipboardVector className="w-16 h-22 md:w-22 md:h-30" />
       </motion.div>
 
-      {/* 5. Realistic 3D Light Bulb Bottom Left - Reduced size */}
-      <motion.div 
+      <motion.div
         animate={{ scale: [1, 1.03, 1], y: [0, -4, 0], opacity: [0.18, 0.25, 0.18] }}
         transition={{ repeat: Infinity, duration: 3.5, ease: "easeInOut" }}
         className="absolute bottom-4 left-4 md:bottom-8 md:left-8 z-0 pointer-events-none"
@@ -87,8 +81,7 @@ export default function VectorDecor({ showConfetti = false, variant = 'teal' }) 
         />
       </motion.div>
 
-      {/* 6. Mascot with Magnifying Glass & Book Bottom Center */}
-      <motion.div 
+      <motion.div
         animate={{ y: [0, -8, 0] }}
         transition={{ repeat: Infinity, duration: 3, ease: "easeInOut" }}
         className="absolute bottom-2 left-1/2 -translate-x-1/2 opacity-20 pointer-events-none"
@@ -96,8 +89,7 @@ export default function VectorDecor({ showConfetti = false, variant = 'teal' }) 
         <MascotBookVector className="w-20 h-20" />
       </motion.div>
 
-      {/* 7. Realistic 3D Hand Holding Trophy Bottom Right - Reduced size */}
-      <motion.div 
+      <motion.div
         animate={{ y: [0, -6, 0], opacity: [0.2, 0.28, 0.2] }}
         transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }}
         className="absolute bottom-4 right-4 md:bottom-6 md:right-6 z-0 pointer-events-none"
@@ -113,7 +105,6 @@ export default function VectorDecor({ showConfetti = false, variant = 'teal' }) 
         />
       </motion.div>
 
-      {/* 8. Extra Extracted Vectors */}
       <div className="absolute top-1/4 right-1/4 opacity-15 pointer-events-none">
         <FilmStripVector className="w-8 h-12" />
       </div>
@@ -124,7 +115,6 @@ export default function VectorDecor({ showConfetti = false, variant = 'teal' }) 
         <GoldStarVector className="w-8 h-8" />
       </div>
 
-      {/* Confetti Rain Layer */}
       {showConfetti && (
         <div className="absolute inset-0 pointer-events-none">
           {[...Array(30)].map((_, i) => (

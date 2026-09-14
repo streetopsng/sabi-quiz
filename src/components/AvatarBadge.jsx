@@ -22,12 +22,10 @@ export default function AvatarBadge({ src, color, onClick, size = "md", showTapT
       onClick={onClick}
       className={`relative ${sizeClasses} rounded-full bg-[#DF1919] border-4 border-white/40 shadow-2xl overflow-hidden cursor-pointer group flex flex-col items-center justify-center transition-transform hover:scale-105 active:scale-95 select-none shrink-0`}
     >
-      {/* Centered Avatar Graphic */}
       <div className={`${imgSizeClasses} ${showTapToChange ? '-mt-4 md:-mt-5' : ''} flex items-center justify-center`}>
         <CarAvatar src={src} color={color} className="w-full h-full" />
       </div>
 
-      {/* Bottom Translucent Footer Bar for Tap to Change */}
       {showTapToChange && (
         <div className="absolute bottom-0 inset-x-0 bg-black/40 border-t border-white/15 py-1.5 md:py-2.5 text-center flex items-center justify-center">
           <span className="text-[10px] md:text-[12px] font-black text-white uppercase tracking-wider leading-none drop-shadow-md">
