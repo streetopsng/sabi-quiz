@@ -234,12 +234,16 @@ export default function Podium() {
                       <LogOut size={18} />
                       <span>Close Session & Return to GummyGum</span>
                     </button>
+                    {/* "Sabi Homepage" button removed — the host isn't a registered
+                        Sabi user, so there's nowhere useful for it to send them.
+                        Commented out per request rather than deleted.
                     <button
                       onClick={() => { playSelect(); navigate('home'); }}
                       className="px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 text-white/80 font-semibold text-xs border border-white/15 transition-all cursor-pointer"
                     >
                       Sabi Homepage
                     </button>
+                    */}
                   </>
                 ) : (
                   <button
