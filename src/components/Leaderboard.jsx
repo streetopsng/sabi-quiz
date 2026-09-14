@@ -133,8 +133,7 @@ export default function Leaderboard() {
             onClick={() => {
               playSelect();
               window.close();
-              // Blocked script-close (tab wasn't opened via window.open) — fall
-              // back to a safe return instead of leaving a dead button.
+              // Falls back if the browser blocks the script-close.
               setTimeout(() => (ggSession ? returnToGummyGum() : navigate('home')), 400);
             }}
             className="w-11 h-11 rounded-full bg-white/10 border border-white/15 text-white flex items-center justify-center transition-all hover:bg-white/20 active:scale-95 cursor-pointer"

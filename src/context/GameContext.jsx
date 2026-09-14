@@ -124,8 +124,6 @@ export const GameProvider = ({ children }) => {
     // however many people launched through their own link.
     if (gameState !== 'podium' || ggReportedRef.current || !ggSession || !isHost) return;
     ggReportedRef.current = true;
-    // The host doesn't play, so the roster is just the real participants —
-    // no synthetic host entry to duplicate or fail to record a score for.
     const roster = opponents.map((o) => ({
       name: o.name,
       score: o.score,
@@ -308,10 +306,7 @@ export const GameProvider = ({ children }) => {
     // 1. Instant optimistic state update to allow browser main thread to paint immediately (<5ms INP)
     setGameConfig(config);
     setIsHost(true);
-    // The host never plays their own session — presenting only, always a
-    // spectator. Was previously a toggle ("Play as contestant"); letting a
-    // host also be a scored player caused their answers/score to sometimes
-    // go unrecorded and duplicated host rows in reported results.
+    // Host never plays — always a spectator.
     setIsSpectator(true);
     sessionStorage.setItem('sabi_is_spectator', 'true');
     setPlayer(p => ({ ...p, name: config.hostName || 'HR Admin' }));

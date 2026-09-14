@@ -38,7 +38,6 @@ export default function Podium() {
     }
   };
 
-  // Sort all contestants by score — the host presents only, never plays
   const contestants = isSpectator ? opponents.filter(o => o._joined) : [player, ...opponents.filter(o => o._joined)];
   const leaderboard = [...contestants].sort((a, b) => b.score - a.score);
 
@@ -109,8 +108,7 @@ export default function Podium() {
             onClick={() => {
               playSelect();
               window.close();
-              // Blocked script-close (tab wasn't opened via window.open) — fall
-              // back to a safe return instead of leaving a dead button.
+              // Falls back if the browser blocks the script-close.
               setTimeout(() => (ggSession ? returnToGummyGum() : navigate('home')), 400);
             }}
             className="w-11 h-11 rounded-full bg-white/10 border border-white/15 text-white flex items-center justify-center transition-all hover:bg-white/20 active:scale-95 cursor-pointer"
@@ -234,9 +232,7 @@ export default function Podium() {
                       <LogOut size={18} />
                       <span>Close Session & Return to GummyGum</span>
                     </button>
-                    {/* "Sabi Homepage" button removed — the host isn't a registered
-                        Sabi user, so there's nowhere useful for it to send them.
-                        Commented out per request rather than deleted.
+                    {/* Sabi Homepage button removed — host has no account to go back to.
                     <button
                       onClick={() => { playSelect(); navigate('home'); }}
                       className="px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 text-white/80 font-semibold text-xs border border-white/15 transition-all cursor-pointer"
@@ -250,8 +246,7 @@ export default function Podium() {
                     onClick={() => {
                       playSelect();
                       window.close();
-                      // Blocked script-close (tab wasn't opened via window.open) —
-                      // fall back to a safe return instead of a dead button.
+                      // Falls back if the browser blocks the script-close.
                       setTimeout(() => returnToGummyGum(), 400);
                     }}
                     className="px-6 py-3 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 text-white font-bold text-sm sm:text-base border border-white/20 transition-all cursor-pointer flex items-center gap-2"
