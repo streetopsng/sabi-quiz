@@ -30,7 +30,6 @@ export default function Question() {
     );
   }
 
-  // 4 Option Colors matching Figma 865:1318 & 886:491
   const optionStyles = [
     { bg: 'bg-[#F59E0B]', border: 'border-[#F59E0B]/50' }, // Gold / Yellow
     { bg: 'bg-[#284E5E]', border: 'border-[#284E5E]/50' }, // Deep Teal / Slate
@@ -43,14 +42,12 @@ export default function Question() {
 
   return (
     <div className="relative min-h-[100dvh] w-full bg-[#183944] text-white flex flex-col justify-between overflow-x-hidden overflow-y-auto select-none font-poppins pb-16">
-      
-      {/* AMBIENT RADIAL LIGHTS */}
+
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-[#224e5d]/35 rounded-full blur-[140px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-[#122b34]/55 rounded-full blur-[140px]" />
       </div>
 
-      {/* TOP BAR (MATCHING FIGMA 865:1318) */}
       <header className="relative z-20 w-full max-w-[1300px] mx-auto px-6 pt-6 pb-2 flex items-center justify-between shrink-0">
         <div>
           <div className="text-xs sm:text-sm font-semibold text-white/70 tracking-wide">
@@ -61,7 +58,6 @@ export default function Question() {
           </div>
         </div>
 
-        {/* Orange Menu Button (Figma 865:1318) — host-only game settings */}
         {isHost && (
           <button
             onClick={() => setShowSettingsModal(true)}
@@ -73,10 +69,8 @@ export default function Question() {
         )}
       </header>
 
-      {/* MAIN QUESTION & ANSWERS AREA */}
       <main className="relative z-10 flex-1 max-w-[1200px] w-full mx-auto px-6 py-4 flex flex-col items-center justify-center my-auto">
-        
-        {/* Question Headline */}
+
         <motion.h1
           key={q.q}
           initial={{ opacity: 0, y: 15 }}
@@ -86,11 +80,8 @@ export default function Question() {
           {q.q}
         </motion.h1>
 
-        {/* LAYOUT: SPLIT (PICTURE QUESTION) OR CENTERED (TEXT QUESTION) */}
         {hasImage ? (
-          /* PICTURE QUESTION LAYOUT (MATCHING FIGMA 886:491 & 894:1237) */
           <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 items-center mb-4 sm:mb-6">
-            {/* Left Picture Card */}
             <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-black/30 border border-white/10 shadow-xl max-h-[180px] sm:max-h-[220px] aspect-[4/3] mx-auto flex items-center justify-center">
               <img
                 src={q.image || '/assets/figma/image3.png'}
@@ -99,21 +90,17 @@ export default function Question() {
               />
             </div>
 
-            {/* Right 2x2 Option Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               {q.opts.map((opt, i) => renderOptionButton(opt, i))}
             </div>
           </div>
         ) : (
-          /* STANDARD TEXT QUESTION LAYOUT (MATCHING FIGMA 865:1318 & 886:426) */
           <div className="w-full max-w-3xl grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
             {q.opts.map((opt, i) => renderOptionButton(opt, i))}
           </div>
         )}
 
-        {/* CENTERED TIMER PROGRESS LINE WITH CIRCULAR BADGE (MATCHING FIGMA) */}
         <div className="relative w-full max-w-md flex items-center justify-center mt-1 px-4">
-          {/* Progress Line */}
           <div className="w-full h-1.5 bg-white/20 rounded-full overflow-hidden">
             <motion.div 
               className="h-full bg-white rounded-full"
@@ -123,7 +110,6 @@ export default function Question() {
             />
           </div>
 
-          {/* Centered Circular Timer Badge */}
           <div className="absolute w-10 h-10 sm:w-11 sm:h-11 rounded-full border-2 border-white bg-[#183944] text-white font-black text-base sm:text-lg flex items-center justify-center shadow-lg">
             {timeLeft.toString().padStart(2, '0')}
           </div>
@@ -131,9 +117,7 @@ export default function Question() {
 
       </main>
 
-      {/* FOOTER & HOST CONTROLS */}
       <footer className="relative z-20 w-full max-w-[1300px] mx-auto px-6 py-4 flex items-center justify-between">
-        {/* Floating Host Toolbar on Bottom Left */}
         {isHost && (
           <HostToolbar
             onNextRound={() => { playSelect(); resolveQuestion(gameCode); }}
@@ -145,7 +129,6 @@ export default function Question() {
           />
         )}
 
-        {/* GummyGum Watermark Badge on Bottom Right */}
         <div className="ml-auto flex items-center gap-2">
           <img
             src="/assets/figma/gummygum_footer_badge.png"
@@ -155,7 +138,6 @@ export default function Question() {
         </div>
       </footer>
 
-      {/* SETTINGS MODAL */}
       <SettingsModal
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
@@ -172,7 +154,6 @@ export default function Question() {
     const isWrong = showResult && isSelected && i !== q.answer;
     const style = optionStyles[i % 4];
 
-    // Card styling matching Figma 865:1318 & 886:426
     let cardClass = `${style.bg} text-white shadow-xl`;
 
     if (answered) {
@@ -185,7 +166,6 @@ export default function Question() {
 
     if (showResult) {
       if (isCorrect) {
-        // Glowing orange-purple gradient border matching Figma 886:426
         cardClass += ' p-[3px] bg-gradient-to-r from-[#FF8A3D] via-[#A855F7] to-[#7C3AED] shadow-[0_0_30px_rgba(255,138,61,0.5)] scale-[1.03] z-10';
       } else {
         cardClass += ' opacity-40 grayscale-[20%]';

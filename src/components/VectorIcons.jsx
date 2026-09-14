@@ -1,6 +1,5 @@
 import React from 'react';
 
-// 1. Target with Arrow Vector
 export function TargetVector({ className = "w-12 h-12" }) {
   return (
     <svg viewBox="0 0 100 100" fill="none" className={className}>
@@ -14,7 +13,6 @@ export function TargetVector({ className = "w-12 h-12" }) {
   );
 }
 
-// 2. Leather Briefcase Vector
 export function BriefcaseVector({ className = "w-12 h-12" }) {
   return (
     <div className={`relative bg-[#3a2212] border-2 border-[#6b4224] rounded-xl shadow-2xl flex items-center justify-center ${className}`}>
@@ -26,7 +24,6 @@ export function BriefcaseVector({ className = "w-12 h-12" }) {
   );
 }
 
-// 3. Thinking Emoji Vector
 export function ThinkingEmojiVector({ className = "w-12 h-12" }) {
   return (
     <div className={`rounded-full bg-gradient-to-br from-amber-300 to-amber-500 border-2 border-amber-600 flex flex-col items-center justify-center relative shadow-2xl ${className}`}>
@@ -44,7 +41,6 @@ export function ThinkingEmojiVector({ className = "w-12 h-12" }) {
   );
 }
 
-// 4. Checklist Clipboard Vector
 export function ClipboardVector({ className = "w-12 h-16" }) {
   return (
     <div className={`bg-[#fef3c7] border-2 border-[#854d0e] rounded-xl p-1.5 shadow-2xl relative flex flex-col justify-around ${className}`}>
@@ -58,7 +54,6 @@ export function ClipboardVector({ className = "w-12 h-16" }) {
   );
 }
 
-// 5. Brain Mascot with Light Bulb Vector
 export function BrainMascotVector({ className = "w-12 h-12" }) {
   return (
     <div className={`flex flex-col items-center justify-center ${className}`}>
@@ -68,7 +63,6 @@ export function BrainMascotVector({ className = "w-12 h-12" }) {
   );
 }
 
-// 6. Book Mascot with Magnifying Glass Vector
 export function MascotBookVector({ className = "w-12 h-12" }) {
   return (
     <div className={`flex items-center justify-center text-3xl drop-shadow-md ${className}`}>
@@ -77,7 +71,6 @@ export function MascotBookVector({ className = "w-12 h-12" }) {
   );
 }
 
-// 7. Glowing Light Bulb Vector
 export function LightBulbVector({ className = "w-12 h-12" }) {
   return (
     <svg viewBox="0 0 100 100" fill="none" className={className}>
@@ -88,7 +81,6 @@ export function LightBulbVector({ className = "w-12 h-12" }) {
   );
 }
 
-// 8. Hand Holding Golden Trophy Vector
 export function TrophyHandVector({ className = "w-16 h-20" }) {
   return (
     <div className={`flex flex-col items-center justify-center relative ${className}`}>
@@ -98,7 +90,6 @@ export function TrophyHandVector({ className = "w-16 h-20" }) {
   );
 }
 
-// 9. 3D Victory Podium Vector (1st, 2nd, 3rd)
 export function PodiumVector({ className = "w-24 h-16" }) {
   return (
     <div className={`flex items-end justify-center gap-1 ${className}`}>
@@ -109,7 +100,6 @@ export function PodiumVector({ className = "w-24 h-16" }) {
   );
 }
 
-// 10. Gold Medal Ribbon Vector
 export function GoldMedalVector({ className = "w-10 h-10" }) {
   return (
     <div className={`relative flex flex-col items-center justify-center ${className}`}>
@@ -124,7 +114,6 @@ export function GoldMedalVector({ className = "w-10 h-10" }) {
   );
 }
 
-// 11. Gold Star Vector
 export function GoldStarVector({ className = "w-8 h-8" }) {
   return (
     <svg viewBox="0 0 100 100" fill="none" className={className}>
@@ -133,7 +122,6 @@ export function GoldStarVector({ className = "w-8 h-8" }) {
   );
 }
 
-// 12. Confetti Popper Vector
 export function ConfettiPopperVector({ className = "w-10 h-10" }) {
   return (
     <div className={`text-3xl flex items-center justify-center ${className}`}>
@@ -142,7 +130,6 @@ export function ConfettiPopperVector({ className = "w-10 h-10" }) {
   );
 }
 
-// 13. 3D Brain Vector
 export function Brain3DVector({ className = "w-12 h-12" }) {
   return (
     <div className={`text-4xl flex items-center justify-center ${className}`}>
@@ -151,7 +138,6 @@ export function Brain3DVector({ className = "w-12 h-12" }) {
   );
 }
 
-// 14. Film Strip Vector
 export function FilmStripVector({ className = "w-8 h-12" }) {
   return (
     <div className={`bg-black/80 border border-white/30 rounded-md p-1 flex flex-col justify-between ${className}`}>
@@ -162,7 +148,6 @@ export function FilmStripVector({ className = "w-8 h-12" }) {
   );
 }
 
-// 15. Clapboard Vector
 export function ClapboardVector({ className = "w-10 h-10" }) {
   return (
     <div className={`text-3xl flex items-center justify-center ${className}`}>
@@ -171,7 +156,6 @@ export function ClapboardVector({ className = "w-10 h-10" }) {
   );
 }
 
-// 16. Memoji Girl Avatar Vector
 export function MemojiGirlVector({ className = "w-12 h-12" }) {
   return (
     <div className={`rounded-full bg-red-600 border-2 border-white flex items-center justify-center text-2xl shadow-lg ${className}`}>

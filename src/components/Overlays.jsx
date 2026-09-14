@@ -33,7 +33,6 @@ export default function Overlays() {
         )}
       </AnimatePresence>
 
-      {/* GLOBAL CONFIRMATION / ALERT MODAL */}
       <AnimatePresence>
         {alertModal && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">

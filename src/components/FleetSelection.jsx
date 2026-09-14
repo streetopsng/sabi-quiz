@@ -7,8 +7,7 @@ import { VEHICLES, COLORS } from '../constants';
 
 export default function FleetSelection() {
   const { navigate, player, setPlayer } = useGame();
-  
-  // Local state for the selection process
+
   const [selectedV, setSelectedV] = useState(VEHICLES.findIndex(v => v.icon === player.vehicle));
   const [selectedC, setSelectedC] = useState(COLORS.findIndex(c => c === player.color));
 
@@ -29,10 +28,8 @@ export default function FleetSelection() {
       exit={{ opacity: 0, y: '100%' }}
       transition={{ type: 'spring', damping: 25, stiffness: 200 }}
     >
-      {/* Background Glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] blur-[120px] rounded-full pointer-events-none opacity-20" style={{ backgroundColor: COLORS[selectedC] }} />
 
-      {/* LEFT COLUMN (Desktop) / TOP (Mobile) */}
       <div className="flex flex-col md:w-[350px] shrink-0 z-10">
         <div className="pt-8 md:pt-0 px-5.5 flex items-center gap-3.5 mb-8">
           <button 
@@ -63,7 +60,6 @@ export default function FleetSelection() {
           </AnimatePresence>
         </div>
 
-        {/* Desktop Only: Lock In Button */}
         <div className="hidden md:block pt-10 px-4">
           <motion.button 
             whileTap={{ scale: 0.96 }}
@@ -75,13 +71,11 @@ export default function FleetSelection() {
         </div>
       </div>
 
-      {/* RIGHT COLUMN (Desktop) / BOTTOM (Mobile) */}
       <div className="flex-1 flex flex-col overflow-y-auto no-scrollbar z-10 w-full h-full pt-8 pb-[100px] md:pb-8">
         
         <div className="px-5.5 md:px-0">
           <div className="text-[12px] text-muted tracking-[1px] uppercase mb-4">Vehicle Model</div>
           
-          {/* Mobile: Horizontal scroll, Desktop: Grid */}
           <div className="flex md:grid md:grid-cols-4 gap-3 overflow-x-auto md:overflow-visible pb-4 no-scrollbar -mx-5.5 px-5.5 md:mx-0 md:px-0">
             {VEHICLES.map((v, i) => (
               <motion.div 
@@ -118,7 +112,6 @@ export default function FleetSelection() {
         </div>
       </div>
 
-      {/* Mobile Only: Fixed Lock In Button */}
       <div className="md:hidden fixed bottom-0 left-0 w-full p-5 pt-10 bg-gradient-to-t from-[#16213E] via-[#16213E]/90 to-transparent z-30 pointer-events-none">
         <div className="pointer-events-auto">
           <motion.button 

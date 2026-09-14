@@ -49,14 +49,12 @@ export default function CreateGame() {
 
   return (
     <div className="relative min-h-[100dvh] w-full bg-[#183944] text-white flex flex-col justify-between overflow-x-hidden overflow-y-auto select-none font-poppins pb-10">
-      
-      {/* AMBIENT RADIAL LIGHTS */}
+
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-[#224e5d]/40 rounded-full blur-[140px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-[#122b34]/60 rounded-full blur-[140px]" />
       </div>
 
-      {/* TOP HEADER */}
       <header className="relative z-20 w-full max-w-[1300px] mx-auto px-6 pt-6 pb-2 flex items-center justify-between shrink-0">
         <button 
           onClick={() => { playSelect(); navigate('home'); }}
@@ -76,7 +74,6 @@ export default function CreateGame() {
         <div className="w-11" />
       </header>
 
-      {/* MAIN CONTENT: FIGMA 854:892 "SETTINGS" CARD */}
       <main className="relative z-10 flex-1 max-w-[640px] w-full mx-auto px-6 py-6 flex flex-col items-center justify-center my-auto">
         
         <motion.div
@@ -85,14 +82,12 @@ export default function CreateGame() {
           transition={{ duration: 0.4 }}
           className="w-full rounded-[28px] sm:rounded-[36px] bg-gradient-to-b from-[#2B6071] via-[#244E5D] to-[#1C3E4A] p-5 sm:p-7 md:p-8 text-white shadow-[0_25px_60px_rgba(0,0,0,0.5)] border border-white/15 backdrop-blur-xl"
         >
-          {/* SECTION: PLAYER & MODE (EXACT MATCH FOR FIGMA 854:892) */}
           <div className="mb-6 sm:mb-7">
             <h2 className="text-xl sm:text-2xl font-extrabold mb-3 sm:mb-4 tracking-tight text-white">
               Player & mode
             </h2>
 
             <div className="space-y-2.5 sm:space-y-3">
-              {/* Team Mode */}
               <div className="flex items-center justify-between py-2 sm:py-2.5 border-b border-white/15">
                 <span className="text-sm sm:text-base font-medium text-white/90">Team Mode</span>
                 <button
@@ -112,7 +107,6 @@ export default function CreateGame() {
                 </button>
               </div>
 
-              {/* Presenter mode */}
               <div className="flex items-center justify-between py-2 sm:py-2.5 border-b border-white/15">
                 <span className="text-sm sm:text-base font-medium text-white/90">
                   Presenter mode (share screen only)
@@ -134,7 +128,6 @@ export default function CreateGame() {
                 </button>
               </div>
 
-              {/* Show Questions on Players devices */}
               <div className="flex items-center justify-between py-2 sm:py-2.5 border-b border-white/15">
                 <span className="text-sm sm:text-base font-medium text-white/90">
                   Show Questions on Players devices
@@ -156,7 +149,6 @@ export default function CreateGame() {
                 </button>
               </div>
 
-              {/* Private Scoring (HR-safe) */}
               <div className="flex items-center justify-between py-2 sm:py-2.5 border-b border-white/15">
                 <span className="text-sm sm:text-base font-medium text-white/90">
                   Private Scoring (HR-safe)
@@ -180,7 +172,6 @@ export default function CreateGame() {
             </div>
           </div>
 
-          {/* SECTION: DIFFICULTY & FINAL ROUND (EXACT MATCH FOR FIGMA 854:892) */}
           <div className="mb-6 sm:mb-7">
             <h2 className="text-xl sm:text-2xl font-extrabold mb-2.5 tracking-tight text-white">
               Difficulty & Final round
@@ -189,7 +180,6 @@ export default function CreateGame() {
               Difficulty
             </div>
 
-            {/* Pill Selector: Easy | Mixed | Hard */}
             <div className="inline-flex p-1.5 rounded-2xl bg-black/25 border border-white/10 gap-1.5">
               {['Easy', 'Mixed', 'Hard'].map((lvl) => {
                 const isSelected = (settings.difficulty || 'Mixed').toLowerCase() === lvl.toLowerCase();
@@ -211,7 +201,6 @@ export default function CreateGame() {
             </div>
           </div>
 
-          {/* LAUNCH TO LOBBY BUTTON */}
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.97 }}
@@ -227,7 +216,6 @@ export default function CreateGame() {
 
       </main>
 
-      {/* FOOTER WATERMARK */}
       <footer className="relative z-20 w-full max-w-[1300px] mx-auto px-6 py-4 flex items-center justify-end">
         <img
           src="/assets/figma/gummygum_footer_badge.png"

@@ -78,16 +78,13 @@ export default function JoinGame() {
 
   return (
     <div className="relative min-h-[100dvh] w-full bg-[#091521] text-white flex flex-col justify-between overflow-x-hidden overflow-y-auto select-none font-poppins pb-10">
-      {/* BACKGROUND AMBIENT RADIAL LIGHTS */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-10%] left-[20%] w-[600px] h-[600px] bg-[#7C3AED]/12 rounded-full blur-[140px]" />
         <div className="absolute bottom-[-10%] right-[15%] w-[650px] h-[650px] bg-[#FF8A3D]/10 rounded-full blur-[160px]" />
         <div className="absolute top-[40%] left-[-5%] w-[450px] h-[450px] bg-[#224552]/30 rounded-full blur-[120px]" />
       </div>
 
-      {/* FLOATING 3D GRAPHICS (MATCHING FIGMA 829:337 & 829:397) */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-        {/* Left Light Bulb */}
         <motion.img
           src="/assets/figma/briefcase.png"
           alt="3D Light Bulb"
@@ -101,7 +98,6 @@ export default function JoinGame() {
           className="hidden sm:block absolute left-[20px] lg:left-[55px] bottom-[25px] lg:bottom-[45px] w-[85px] sm:w-[105px] lg:w-[125px] drop-shadow-[0_15px_30px_rgba(0,0,0,0.5)]"
         />
 
-        {/* Right Floating Element */}
         <motion.img
           src="/assets/figma/floating_right.png"
           alt=""
@@ -115,7 +111,6 @@ export default function JoinGame() {
           className="hidden sm:block absolute right-[15px] lg:right-[50px] bottom-[30px] lg:bottom-[50px] w-[130px] sm:w-[155px] lg:w-[185px] drop-shadow-[0_20px_40px_rgba(0,0,0,0.5)]"
         />
 
-        {/* Upper Right Thinking Emoji */}
         <motion.img
           src="/assets/figma/thinking_emoji.png"
           alt=""
@@ -130,7 +125,6 @@ export default function JoinGame() {
         />
       </div>
 
-      {/* TOP HEADER */}
       <header className="relative z-30 w-full max-w-[1240px] mx-auto px-6 pt-6 pb-2 flex items-center justify-between shrink-0">
         <button 
           onClick={handleBack}
@@ -148,11 +142,9 @@ export default function JoinGame() {
         <div className="w-11" />
       </header>
 
-      {/* MAIN CONTENT AREA */}
       <main className="relative z-10 flex-1 min-h-0 overflow-y-auto no-scrollbar px-4 py-6 max-w-4xl mx-auto w-full flex flex-col items-center justify-center my-auto">
         <AnimatePresence mode="wait">
-          
-          {/* STEP 1: PIN ENTRY (FIGMA 829:337 & 858:1222) */}
+
           {joinStep === 1 && (
             <motion.div
               key="joinStep1"
@@ -162,7 +154,6 @@ export default function JoinGame() {
               transition={{ duration: 0.3 }}
               className="flex flex-col items-center justify-center w-full text-center py-2 sm:py-4"
             >
-              {/* 5 Digit Boxes */}
               <div className="flex gap-2 sm:gap-3 md:gap-4 justify-center mb-5 sm:mb-7">
                 {code.map((v, i) => (
                   <input
@@ -179,9 +170,7 @@ export default function JoinGame() {
                 ))}
               </div>
 
-              {/* Action Buttons */}
               <div className="flex flex-col gap-3 sm:gap-3.5 w-full max-w-[340px] sm:max-w-[380px]">
-                {/* Join Button */}
                 <motion.button
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.96 }}
@@ -191,7 +180,6 @@ export default function JoinGame() {
                   <span>Join</span>
                 </motion.button>
 
-                {/* Scan QR Code Button */}
                 <motion.button
                   whileHover={{ scale: 1.01 }}
                   whileTap={{ scale: 0.96 }}
@@ -205,7 +193,6 @@ export default function JoinGame() {
             </motion.div>
           )}
 
-          {/* STEP 2: ENTER NAME & AVATAR (FIGMA 829:397 & 840:467) */}
           {joinStep === 2 && (
             <motion.div
               key="joinStep2"
@@ -215,7 +202,6 @@ export default function JoinGame() {
               transition={{ duration: 0.3 }}
               className="flex flex-col items-center justify-center w-full text-center py-2 sm:py-4"
             >
-              {/* Circular Avatar Badge */}
               <div className="mb-6 sm:mb-8 flex justify-center">
                 <AvatarBadge
                   src={player.vehicle}
@@ -225,7 +211,6 @@ export default function JoinGame() {
                 />
               </div>
 
-              {/* Underline Input for Name */}
               <div className="w-full max-w-[340px] sm:max-w-[400px] mb-8 sm:mb-10">
                 <input
                   type="text"
@@ -237,7 +222,6 @@ export default function JoinGame() {
                 />
               </div>
 
-              {/* Continue Button */}
               <motion.button
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.96 }}
@@ -252,12 +236,10 @@ export default function JoinGame() {
         </AnimatePresence>
       </main>
 
-      {/* FOOTER */}
       <footer className="relative z-10 py-4 px-6 text-center text-white/40 text-xs font-normal">
         © Sabi Trivia Engine
       </footer>
 
-      {/* AVATAR PICKER MODAL (MATCHING FIGMA 865:1288) */}
       <AnimatePresence>
         {showAvatarPicker && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -277,7 +259,6 @@ export default function JoinGame() {
               <h3 className="text-2xl font-bold text-white mb-2">Choose Your Avatar</h3>
               <p className="text-sm text-white/60 mb-6">Select your racing vehicle for the scoreboard</p>
               
-              {/* Vehicles Grid */}
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-3.5 max-h-72 overflow-y-auto p-1.5 no-scrollbar mb-6">
                 {VEHICLES.map((v, i) => {
                   const isSelected = player.vehicle === v.icon;

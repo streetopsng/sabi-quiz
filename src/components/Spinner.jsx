@@ -35,7 +35,6 @@ export default function Spinner({ size = 'md', variant = 'circle', className = '
     );
   }
 
-  // Figma Variant 1: Dual-tone Gradient Ring Spinner
   return (
     <div className={`relative flex items-center justify-center ${className}`}>
       <motion.svg
@@ -57,8 +56,7 @@ export default function Spinner({ size = 'md', variant = 'circle', className = '
             <stop offset="100%" stopColor="#7C3AED" />
           </linearGradient>
         </defs>
-        
-        {/* Background Track */}
+
         <circle
           cx="50"
           cy="50"
@@ -68,7 +66,6 @@ export default function Spinner({ size = 'md', variant = 'circle', className = '
           strokeWidth={stroke * 1.5}
         />
 
-        {/* Animated Gradient Arc */}
         <circle
           cx="50"
           cy="50"

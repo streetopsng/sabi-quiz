@@ -7,16 +7,13 @@ export default function Home() {
 
   return (
     <div className="relative min-h-[100dvh] w-full bg-[#091521] text-white flex flex-col justify-between overflow-x-hidden overflow-y-auto select-none font-poppins pb-8">
-      {/* BACKGROUND AMBIENT RADIAL LIGHTS */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-10%] left-[20%] w-[600px] h-[600px] bg-[#7C3AED]/15 rounded-full blur-[140px]" />
         <div className="absolute bottom-[-10%] right-[15%] w-[650px] h-[650px] bg-[#FF8A3D]/12 rounded-full blur-[160px]" />
         <div className="absolute top-[40%] left-[-5%] w-[450px] h-[450px] bg-[#224552]/40 rounded-full blur-[120px]" />
       </div>
 
-      {/* FLOATING 3D GRAPHICS (CRISP, UNBLURRED & PROPORTIONATELY SIZED) */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
-        {/* Glowing Light Bulb with Confetti (Left Mid Position, Balanced Size) */}
         <motion.img
           src="/assets/figma/floating_left.png"
           alt="Glowing Light Bulb"
@@ -31,7 +28,6 @@ export default function Home() {
           className="block absolute left-[-10px] sm:left-2 lg:left-8 top-[38%] -translate-y-1/2 w-[85px] sm:w-[110px] lg:w-[135px] drop-shadow-[0_15px_35px_rgba(0,0,0,0.5)]"
         />
 
-        {/* Hand Holding Golden Trophy Cup with Confetti (Right Bottom Position, Balanced Size) */}
         <motion.img
           src="/assets/figma/floating_right.png"
           alt="Golden Trophy Cup"
@@ -46,7 +42,6 @@ export default function Home() {
           className="block absolute right-[-10px] sm:right-4 lg:right-10 bottom-6 sm:bottom-10 lg:bottom-12 w-[130px] sm:w-[165px] lg:w-[200px] drop-shadow-[0_15px_35px_rgba(0,0,0,0.5)]"
         />
 
-        {/* Upper Right Thinking Emoji */}
         <motion.img
           src="/assets/figma/thinking_emoji.png"
           alt="Thinking Emoji"
@@ -62,7 +57,6 @@ export default function Home() {
         />
       </div>
 
-      {/* TOP NAVIGATION BAR - ONLY "SABI" BRAND NAME */}
       <header className="relative z-30 w-full max-w-[1240px] mx-auto px-6 pt-4 sm:pt-6 pb-2 flex items-center justify-between">
         <div
           onClick={() => { playSelect(); navigate('home'); }}
@@ -74,9 +68,7 @@ export default function Home() {
         </div>
       </header>
 
-      {/* MAIN HERO SECTION */}
       <main className="relative z-10 flex-1 flex flex-col items-center justify-center text-center px-4 sm:px-6 max-w-[950px] mx-auto py-3 sm:py-6 my-auto">
-        {/* Eyebrow Header */}
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
@@ -86,7 +78,6 @@ export default function Home() {
           WORKPLACE TRIVIA. REAL CONNECTIONS
         </motion.div>
 
-        {/* Main Title with Gradient Emphasis */}
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -100,7 +91,6 @@ export default function Home() {
           </span>
         </motion.h1>
 
-        {/* Subtitle */}
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -110,14 +100,12 @@ export default function Home() {
           Sabi is a fun, interactive way to bring your team together, boost knowledge and build a stronger workplace culture
         </motion.p>
 
-        {/* Action Buttons */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.3 }}
           className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-5 w-full max-w-sm sm:max-w-none"
         >
-          {/* Join Game Button */}
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.96 }}
@@ -127,7 +115,6 @@ export default function Home() {
             <span>Join Game</span>
           </motion.button>
 
-          {/* Host a Game Button */}
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.96 }}
@@ -139,7 +126,6 @@ export default function Home() {
         </motion.div>
       </main>
 
-      {/* FOOTER */}
       <footer className="relative z-10 py-3 px-6 text-center text-white/40 text-xs font-normal">
         © Sabi Trivia Engine · Workplace Trivia & Real Connections
       </footer>

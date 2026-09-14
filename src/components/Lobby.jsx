@@ -25,13 +25,11 @@ export default function Lobby() {
   return (
     <div className="relative min-h-[100dvh] w-full bg-[#183944] text-white flex flex-col justify-between overflow-x-hidden overflow-y-auto select-none font-poppins pb-12">
 
-      {/* AMBIENT RADIAL LIGHTS */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-[#224e5d]/40 rounded-full blur-[140px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-[#122b34]/60 rounded-full blur-[140px]" />
       </div>
 
-      {/* TOP HEADER */}
       <header className="relative z-20 w-full max-w-[1300px] mx-auto px-6 pt-6 pb-2 flex items-center justify-between shrink-0">
         {isHost ? (
           <button
@@ -51,7 +49,6 @@ export default function Lobby() {
           </button>
         )}
 
-        {/* Brand Name sabi */}
         <div
           onClick={() => navigate('home')}
           className="cursor-pointer text-4xl sm:text-5xl font-black text-[#F4D06F] drop-shadow-md tracking-tight group"
@@ -59,7 +56,6 @@ export default function Lobby() {
           <span className="group-hover:scale-105 inline-block transition-transform">sabi</span>
         </div>
 
-        {/* Orange Menu Button (Figma 791:325 & 840:558) — host-only game settings */}
         {isHost ? (
           <button
             onClick={() => setShowSettingsModal(true)}
@@ -73,19 +69,15 @@ export default function Lobby() {
         )}
       </header>
 
-      {/* MAIN CONTENT AREA */}
       <main className="relative z-10 flex-1 max-w-[1100px] w-full mx-auto px-6 py-4 flex flex-col items-center justify-center my-auto">
 
-        {/* ================= HOST VIEW (FIGMA 791:325 & 840:558) ================= */}
         {isHost ? (
           <div className="w-full flex flex-col items-center gap-5 sm:gap-6">
 
-            {/* TWO CARDS ROW */}
             <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 items-stretch">
 
-              {/* LEFT CARD: INVITE STATUS — invites already went out by email
-                  the moment this session was created, so there's nothing to
-                  scan or copy here. */}
+              {/* Invites already went out by email the moment this session
+                  was created, so there's nothing to scan or copy here. */}
               <div className="rounded-[28px] sm:rounded-[32px] bg-[#122834]/90 border border-white/10 p-4 sm:p-6 flex items-center gap-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-md">
                 <div className="w-12 h-12 rounded-2xl bg-[#FF8A3D]/15 border border-[#FF8A3D]/30 text-[#FF8A3D] flex items-center justify-center shrink-0">
                   <MailCheck size={22} />
@@ -96,7 +88,6 @@ export default function Lobby() {
                 </div>
               </div>
 
-              {/* RIGHT CARD: ACTIVE PLAYERS */}
               <div className="rounded-[28px] sm:rounded-[32px] bg-[#122834]/90 border border-white/10 p-4 sm:p-6 flex flex-col items-center justify-center text-center shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-md min-h-[200px] sm:min-h-[220px]">
                 <div className="text-base sm:text-lg font-bold text-white mb-1">
                   {activePlayers}/10 Players
@@ -134,7 +125,6 @@ export default function Lobby() {
               </div>
             </div>
 
-            {/* START BUTTON (FIGMA 791:325 & 840:558) */}
             <div className="w-full max-w-[380px]">
               <motion.button
                 whileHover={{ scale: 1.02 }}
@@ -148,7 +138,6 @@ export default function Lobby() {
 
           </div>
         ) : (
-          /* ================= PLAYER WAITING VIEW ================= */
           <div className="flex flex-col items-center justify-center w-full text-center max-w-md my-auto">
             <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-8 tracking-tight">
               The game will begin shortly!
@@ -169,7 +158,6 @@ export default function Lobby() {
               Tap avatar to customize
             </div>
 
-            {/* WHO ELSE IS HERE — live as other participants join */}
             <div className="w-full rounded-[24px] sm:rounded-[28px] bg-[#122834]/90 border border-white/10 p-4 sm:p-5 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-md">
               <div className="text-xs font-semibold text-white/50 uppercase tracking-wide mb-3">
                 {activePlayers}/10 joined
@@ -196,9 +184,7 @@ export default function Lobby() {
 
       </main>
 
-      {/* FOOTER & BRANDING */}
       <footer className="relative z-20 w-full max-w-[1300px] mx-auto px-6 py-4 flex items-center justify-between">
-        {/* Collapsible Host Toolbar on bottom left */}
         {isHost && (
           <HostToolbar
             onNextRound={() => { playSelect(); startRace(); }}
@@ -216,7 +202,6 @@ export default function Lobby() {
         </div>
       </footer>
 
-      {/* SETTINGS MODAL */}
       <SettingsModal
         isOpen={showSettingsModal}
         onClose={() => setShowSettingsModal(false)}
@@ -224,7 +209,6 @@ export default function Lobby() {
         onUpdateSettings={setHostSettings}
       />
 
-      {/* AVATAR PICKER MODAL (FOR PLAYERS) */}
       <AnimatePresence>
         {showAvatarPicker && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-5">
@@ -250,7 +234,6 @@ export default function Lobby() {
         )}
       </AnimatePresence>
 
-      {/* CANCEL / END SESSION MODAL (HOST) */}
       <AnimatePresence>
         {showCancelModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-5">

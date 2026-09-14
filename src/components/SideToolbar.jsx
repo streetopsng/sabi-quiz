@@ -21,8 +21,7 @@ export default function SideToolbar({ onNewRound, onGiveFeedback }) {
 
   return (
     <>
-      {/* Top Right Hamburger Menu Button [≡] */}
-      <motion.button 
+      <motion.button
         whileTap={{ scale: 0.9 }}
         onClick={() => { playSelect(); setIsOpen(!isOpen); }}
         className="fixed top-5 right-5 z-50 w-11 h-11 rounded-xl bg-[#ff6f3c] text-white flex items-center justify-center shadow-lg hover:bg-[#e65c2b] transition-all"
@@ -30,7 +29,6 @@ export default function SideToolbar({ onNewRound, onGiveFeedback }) {
         {isOpen ? <X size={22} strokeWidth={2.5} /> : <Menu size={22} strokeWidth={2.5} />}
       </motion.button>
 
-      {/* Floating Side Toolbar Drawer */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -49,8 +47,7 @@ export default function SideToolbar({ onNewRound, onGiveFeedback }) {
 
             <div className="w-8 h-[1px] bg-white/10 my-0.5" />
 
-            {/* Mute Button */}
-            <button 
+            <button
               onClick={() => { setIsMuted(!isMuted); }}
               className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${isMuted ? 'bg-red-500/20 text-red-400' : 'bg-white/5 text-white hover:bg-white/15'}`}
               title="Toggle Audio"
@@ -58,8 +55,7 @@ export default function SideToolbar({ onNewRound, onGiveFeedback }) {
               {isMuted ? <VolumeX size={18} /> : <Volume2 size={18} />}
             </button>
 
-            {/* Fullscreen Button */}
-            <button 
+            <button
               onClick={toggleFullscreen}
               className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${isFullscreen ? 'bg-amber-500/20 text-amber-400' : 'bg-white/5 text-white hover:bg-white/15'}`}
               title="Toggle Fullscreen"
@@ -67,8 +63,7 @@ export default function SideToolbar({ onNewRound, onGiveFeedback }) {
               <Maximize size={18} />
             </button>
 
-            {/* Presenter Mode Switch */}
-            <button 
+            <button
               onClick={() => setPresenterMode(!presenterMode)}
               className={`w-9 h-9 rounded-xl flex items-center justify-center transition-all ${presenterMode ? 'bg-[#ff6f3c] text-white shadow-md' : 'bg-white/5 text-white/50 hover:bg-white/15'}`}
               title="Presenter Mode"
@@ -76,7 +71,6 @@ export default function SideToolbar({ onNewRound, onGiveFeedback }) {
               <MousePointer size={18} />
             </button>
 
-            {/* Optional New Round trigger */}
             {onNewRound && (
               <button 
                 onClick={() => { setIsOpen(false); onNewRound(); }}
@@ -87,7 +81,6 @@ export default function SideToolbar({ onNewRound, onGiveFeedback }) {
               </button>
             )}
 
-            {/* Optional Give Feedback trigger */}
             {onGiveFeedback && (
               <button 
                 onClick={() => { setIsOpen(false); onGiveFeedback(); }}
