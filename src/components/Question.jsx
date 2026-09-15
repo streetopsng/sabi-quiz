@@ -50,9 +50,6 @@ export default function Question() {
 
       <header className="relative z-20 w-full max-w-[1300px] mx-auto px-6 pt-6 pb-2 flex items-center justify-between shrink-0">
         <div>
-          <div className="text-xs sm:text-sm font-semibold text-white/70 tracking-wide">
-            GummyGum.app {gameCode || '32679'}
-          </div>
           <div className="text-base sm:text-lg font-bold text-white mt-0.5">
             Round {currentQ + 1} of {totalQuestions}
           </div>
