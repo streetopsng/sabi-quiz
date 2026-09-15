@@ -10,6 +10,7 @@ import Leaderboard from './components/Leaderboard';
 import LoadingScreen from './components/LoadingScreen';
 import Podium from './components/Podium';
 import Overlays from './components/Overlays';
+import GgAvatarSetup from './components/GgAvatarSetup';
 
 const GummyGumLockedScreen = () => (
   <div className="h-[100dvh] w-full bg-[#091521] text-white flex items-center justify-center px-6">
@@ -49,6 +50,7 @@ function ScreenManager() {
         {currentScreen === 'home' && <Home key="home" />}
         {currentScreen === 'create' && <CreateGame key="create" />}
         {currentScreen === 'join' && <JoinGame key="join" />}
+        {currentScreen === 'gg-avatar' && <GgAvatarSetup key="gg-avatar" />}
         {currentScreen === 'lobby' && <Lobby key="lobby" />}
         {currentScreen === 'fleet' && <FleetSelection key="fleet" />}
         {currentScreen === 'question' && <Question key="question" />}
