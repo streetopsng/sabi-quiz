@@ -95,7 +95,11 @@ export const GameProvider = ({ children }) => {
   useEffect(() => {
     if (!ggSession || !ggSession.roomCode) return;
     if (!ggSession.isHost) {
-      joinGameWithCode(ggSession.roomCode, ggSession.player?.name, () => setGgRouted(true), ggSession.player?.email);
+      // Let them pick a name/avatar first — the GgAvatarSetup screen calls
+      // joinGameWithCode itself once they confirm and hit Continue.
+      setPlayer((p) => ({ ...p, name: ggSession.player?.name || p.name }));
+      navigate('gg-avatar');
+      setGgRouted(true);
       return;
     }
     getDoc(doc(db, 'games', ggSession.roomCode)).then((existing) => {
