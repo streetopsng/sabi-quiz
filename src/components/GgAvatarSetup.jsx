@@ -4,7 +4,7 @@ import { Check } from 'lucide-react';
 import { useGame } from '../context/GameContext';
 import { playJoin, playSelect } from '../utils/audio';
 import AvatarBadge from './AvatarBadge';
-import { VEHICLES } from '../constants';
+import { GUMMY_AVATARS } from '../constants';
 
 // Shown to a GummyGum-invited participant right after their name/room code
 // resolve, before they land in the waiting room — mirrors JoinGame's manual
@@ -35,7 +35,6 @@ export default function GgAvatarSetup() {
         <div className="mb-6 sm:mb-8 flex justify-center">
           <AvatarBadge
             src={player.vehicle}
-            color={player.color}
             size="xl"
             onClick={() => setShowAvatarPicker(true)}
           />
@@ -79,30 +78,27 @@ export default function GgAvatarSetup() {
               className="relative bg-[#0d1e2b] border-2 border-white/20 p-6 sm:p-8 rounded-3xl shadow-2xl max-w-lg w-full text-center z-10"
             >
               <h3 className="text-2xl font-bold text-white mb-2">Choose Your Avatar</h3>
-              <p className="text-sm text-white/60 mb-6">Select your racing vehicle for the scoreboard</p>
+              <p className="text-sm text-white/60 mb-6">Pick who represents you on the scoreboard</p>
 
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-3.5 max-h-72 overflow-y-auto p-1.5 no-scrollbar mb-6">
-                {VEHICLES.map((v, i) => {
-                  const isSelected = player.vehicle === v.icon;
+                {GUMMY_AVATARS.map((a) => {
+                  const isSelected = player.vehicle === a.url;
                   return (
                     <motion.div
-                      key={i}
+                      key={a.id}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={() => {
                         playSelect();
-                        setPlayer((p) => ({ ...p, vehicle: v.icon }));
+                        setPlayer((p) => ({ ...p, vehicle: a.url }));
                       }}
-                      className={`relative p-3 rounded-2xl border-2 cursor-pointer flex flex-col items-center justify-center transition-all ${
+                      className={`relative p-2 rounded-2xl border-2 cursor-pointer flex items-center justify-center transition-all ${
                         isSelected
                           ? 'border-[#FF7F36] bg-[#FF7F36]/15 shadow-[0_0_15px_rgba(255,127,54,0.4)]'
                           : 'border-white/10 bg-white/5 hover:border-white/30'
                       }`}
                     >
-                      <img src={v.icon} alt={v.name} className="w-12 h-12 sm:w-14 sm:h-14 object-contain" />
-                      <span className="text-[11px] font-semibold text-white/80 mt-1 truncate max-w-full">
-                        {v.name}
-                      </span>
+                      <img src={a.url} alt="" className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover" />
                       {isSelected && (
                         <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-[#FF7F36] text-white flex items-center justify-center">
                           <Check size={12} strokeWidth={3} />

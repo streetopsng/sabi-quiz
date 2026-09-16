@@ -1,27 +1,11 @@
-export const VEHICLES = [
-  { name: 'Toyota', icon: '/cars/toyota.png' },
-  { name: 'Lexus', icon: '/cars/lexus.png' },
-  { name: 'Bugatti', icon: '/cars/bugatti.png' },
-  { name: 'Porsche', icon: '/cars/porsche.png' },
-  { name: 'Mustang', icon: '/cars/mustang.png' },
-  { name: 'Hilux', icon: '/cars/hilux.png' },
-  { name: 'RR Phantom', icon: '/cars/rr_phantom.png' },
-  { name: 'Wrangler', icon: '/cars/wrangler.png' },
-  { name: 'Rover Defender', icon: '/cars/rover_defender.png' },
-  { name: 'Landcruiser', icon: '/cars/landcruiser.png' },
-  { name: 'C300', icon: '/cars/c300.png' },
-  { name: 'Huracan', icon: '/cars/huracan.png' },
-  { name: 'McLaren', icon: '/cars/mclaren.png' },
-  { name: 'Brabus', icon: '/cars/brabus.png' },
-  { name: 'Dodge Charger', icon: '/cars/dodge_charger.png' },
-];
-
-export const COLORS = [
-  '#FF355E', '#0070F3', '#10B981', '#FF6B35',
-  '#F59E0B', '#00D2FF', '#E11D48', '#84CC16',
-  '#06B6D4', '#F43F5E', '#FFB800', '#10B981',
-  '#3B82F6', '#EF4444', '#14B8A6', '#F97316',
-];
+// Shared GummyGum avatar library, hosted on the hub so every experience
+// draws from the same illustrated set instead of maintaining its own.
+export const GUMMYGUM_AVATAR_COUNT = 26;
+export const GUMMYGUM_AVATAR_BASE_URL = 'https://gummygum.app/avatars';
+export const GUMMY_AVATARS = Array.from({ length: GUMMYGUM_AVATAR_COUNT }, (_, i) => ({
+  id: `av-${i + 1}`,
+  url: `${GUMMYGUM_AVATAR_BASE_URL}/av-${i + 1}.svg`,
+}));
 
 export const QUESTIONS = [
   { q: "Which vitamin is primarily produced by the human body when exposed to sunlight?", type: 'mc', opts: ["Vitamin C","Vitamin D","Vitamin B12","Vitamin A"], answer: 1 },
@@ -279,16 +263,15 @@ export const QUESTIONS = [
 export const LETTERS = ['A', 'B', 'C', 'D'];
 
 export const INITIAL_OPPONENTS = [
-  { name: 'Phantom', vehicle: '/cars/bugatti.png', color: '#8B5CF6', banter: 'Quietly dangerous.', score: 0, streak: 0 },
-  { name: 'Wrangler', vehicle: '/cars/lexus.png', color: '#22C55E', banter: 'May the best driver win.', score: 0, streak: 0 },
-  { name: 'Mustang', vehicle: '/cars/mustang.png', color: '#EF4444', banter: 'I came here to win.', score: 0, streak: 0 },
-  { name: 'Hilux', vehicle: '/cars/hilux.png', color: '#3B82F6', banter: 'Underestimate me — please.', score: 0, streak: 0 },
+  { name: 'Phantom', vehicle: GUMMY_AVATARS[1].url, banter: 'Quietly dangerous.', score: 0, streak: 0 },
+  { name: 'Wrangler', vehicle: GUMMY_AVATARS[2].url, banter: 'May the best driver win.', score: 0, streak: 0 },
+  { name: 'Mustang', vehicle: GUMMY_AVATARS[3].url, banter: 'I came here to win.', score: 0, streak: 0 },
+  { name: 'Hilux', vehicle: GUMMY_AVATARS[4].url, banter: 'Underestimate me — please.', score: 0, streak: 0 },
 ];
 
 export const INITIAL_PLAYER = {
   name: 'You',
-  vehicle: '/cars/porsche.png',
-  color: '#F59E0B',
+  vehicle: GUMMY_AVATARS[0].url,
   banter: '',
   score: 0,
   streak: 0
