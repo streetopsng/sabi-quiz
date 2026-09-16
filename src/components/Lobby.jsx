@@ -6,7 +6,7 @@ import HostToolbar from './HostToolbar';
 import SettingsModal from './SettingsModal';
 import { useGame } from '../context/GameContext';
 import { playSelect } from '../utils/audio';
-import { VEHICLES } from '../constants';
+import { GUMMY_AVATARS } from '../constants';
 
 export default function Lobby() {
   const {
@@ -111,7 +111,6 @@ export default function Lobby() {
                           </button>
                           <AvatarBadge
                             src={o.vehicle}
-                            color={o.color || '#EF4444'}
                             size="sm"
                           />
                           <span className="text-xs font-semibold text-white truncate max-w-[85px] mt-1">
@@ -146,7 +145,6 @@ export default function Lobby() {
             <div className="mb-6 flex justify-center cursor-pointer" onClick={() => setShowAvatarPicker(true)}>
               <AvatarBadge
                 src={player.vehicle}
-                color={player.color}
                 size="lg"
               />
             </div>
@@ -170,7 +168,7 @@ export default function Lobby() {
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 justify-items-center max-h-[180px] overflow-y-auto no-scrollbar py-1">
                   {activeOpponents.map((o, idx) => (
                     <div key={idx} className="flex flex-col items-center">
-                      <AvatarBadge src={o.vehicle} color={o.color || '#EF4444'} size="sm" />
+                      <AvatarBadge src={o.vehicle} size="sm" />
                       <span className="text-xs font-semibold text-white truncate max-w-[70px] mt-1">
                         {o.name || 'Player'}
                       </span>
@@ -216,13 +214,13 @@ export default function Lobby() {
             <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="relative bg-[#152e3c] border border-white/10 p-6 rounded-3xl shadow-2xl max-w-md w-full text-center z-10">
               <h3 className="text-xl font-bold text-white mb-4">Choose Your Avatar</h3>
               <div className="grid grid-cols-4 gap-3 max-h-60 overflow-y-auto p-2">
-                {VEHICLES.map((v, i) => (
+                {GUMMY_AVATARS.map((a) => (
                   <div
-                    key={i}
-                    onClick={() => { setPlayer(p => ({ ...p, vehicle: v.icon })); setShowAvatarPicker(false); }}
-                    className={`p-2 rounded-2xl border cursor-pointer flex flex-col items-center hover:bg-white/10 ${player.vehicle === v.icon ? 'border-amber-400 bg-white/10' : 'border-white/10'}`}
+                    key={a.id}
+                    onClick={() => { setPlayer(p => ({ ...p, vehicle: a.url })); setShowAvatarPicker(false); }}
+                    className={`p-2 rounded-2xl border cursor-pointer flex flex-col items-center hover:bg-white/10 ${player.vehicle === a.url ? 'border-amber-400 bg-white/10' : 'border-white/10'}`}
                   >
-                    <img src={v.icon} alt={v.name} className="w-12 h-12 object-contain" />
+                    <img src={a.url} alt="" className="w-12 h-12 rounded-full object-cover" />
                   </div>
                 ))}
               </div>
