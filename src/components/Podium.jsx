@@ -8,16 +8,29 @@ import SettingsModal from './SettingsModal';
 import AvatarBadge from './AvatarBadge';
 import { useGame } from '../context/GameContext';
 import { playSelect } from '../utils/audio';
-import { closeGummyGumSession, returnToGummyGum } from '../lib/gummygumSession';
+import { closeGummyGumSession, returnToGummyGum, startNextRoundGummyGum } from '../lib/gummygumSession';
 
 export default function Podium() {
-  const { navigate, player, opponents, showAlertModal, gameCode, hostSettings, setHostSettings, isHost, isSpectator, ggSession } = useGame();
+  const { navigate, player, opponents, showAlertModal, gameCode, gameConfig, createGame, hostSettings, setHostSettings, isHost, isSpectator, ggSession } = useGame();
 
-  const [showStandings, setShowStandings] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [feedbackText, setFeedbackText] = useState('');
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
+  const [startingNewSession, setStartingNewSession] = useState(false);
+
+  const handleStartNewSession = async () => {
+    if (startingNewSession) return;
+    setStartingNewSession(true);
+    playSelect();
+    try {
+      await startNextRoundGummyGum();
+      createGame(gameConfig);
+    } catch (err) {
+      showAlertModal('Failed to start a new session: ' + err.message, 'Start Session Error');
+      setStartingNewSession(false);
+    }
+  };
 
   const submitFeedback = async () => {
     if (!feedbackText.trim() || submittingFeedback) return;
@@ -135,35 +148,15 @@ export default function Podium() {
 
       <main className="relative z-10 flex-1 max-w-[900px] w-full mx-auto px-6 py-4 flex flex-col items-center justify-center my-auto text-center">
 
-        {!showStandings ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center justify-center my-auto py-4"
-          >
-            <h1 className="text-4xl sm:text-6xl md:text-7xl font-black text-white tracking-tight drop-shadow-[0_15px_35px_rgba(0,0,0,0.6)] mb-3 sm:mb-4">
-              Game Over
-            </h1>
-
-            <p className="text-white/70 text-sm sm:text-lg font-medium mb-6">
-              Great game everyone! Ready to see the winners?
-            </p>
-
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => { playSelect(); setShowStandings(true); }}
-              className="px-7 py-3 sm:py-3.5 rounded-full bg-gradient-to-r from-[#FF8A3D] to-[#F97316] text-white font-bold text-base sm:text-lg shadow-[0_8px_25px_rgba(255,138,61,0.45)] cursor-pointer"
-            >
-              View Final Standings
-            </motion.button>
-          </motion.div>
-        ) : (
+        {(
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="w-full max-w-xl flex flex-col items-center py-2"
           >
+            <div className="text-xs sm:text-sm font-black uppercase tracking-widest text-white/50 mb-1">
+              Game Over
+            </div>
             <div className="flex items-center gap-2 mb-1.5">
               <Trophy size={28} className="text-[#FFD166]" />
               <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
@@ -215,6 +208,13 @@ export default function Podium() {
                 {isHost ? (
                   <>
                     <button
+                      onClick={handleStartNewSession}
+                      disabled={startingNewSession}
+                      className="px-6 py-3 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 disabled:opacity-50 text-white font-bold text-sm sm:text-base border border-white/20 transition-all cursor-pointer flex items-center gap-2"
+                    >
+                      <span>{startingNewSession ? 'Starting…' : 'Start New Session'}</span>
+                    </button>
+                    <button
                       onClick={() => {
                         playSelect();
                         closeGummyGumSession();
@@ -224,14 +224,6 @@ export default function Podium() {
                       <LogOut size={18} />
                       <span>Close Session & Return to GummyGum</span>
                     </button>
-                    {/* Sabi Homepage button removed — host has no account to go back to.
-                    <button
-                      onClick={() => { playSelect(); navigate('home'); }}
-                      className="px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 text-white/80 font-semibold text-xs border border-white/15 transition-all cursor-pointer"
-                    >
-                      Sabi Homepage
-                    </button>
-                    */}
                   </>
                 ) : (
                   <button
