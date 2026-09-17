@@ -12,7 +12,7 @@ export default function Question() {
     gameState, currentQ, player,
     timeLeft, answered, chosenAnswer,
     handleAnswer, gameQuestions, gameConfig, isSpectator, nextQuestion, resolveQuestion, isHost,
-    hostSettings, setHostSettings, gameCode
+    hostSettings, setHostSettings, gameCode, ggSession
   } = useGame();
 
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -55,7 +55,7 @@ export default function Question() {
           </div>
         </div>
 
-        {isHost && (
+        {isHost && !ggSession && (
           <button
             onClick={() => setShowSettingsModal(true)}
             className="w-11 h-11 rounded-2xl bg-[#FF8A3D] hover:bg-[#ff9752] active:scale-95 text-white flex items-center justify-center transition-all shadow-[0_4px_14px_rgba(255,138,61,0.4)] cursor-pointer"
@@ -118,7 +118,7 @@ export default function Question() {
         {isHost && (
           <HostToolbar
             onNextRound={() => { playSelect(); resolveQuestion(gameCode); }}
-            onOpenSettings={() => setShowSettingsModal(true)}
+            onOpenSettings={ggSession ? undefined : () => setShowSettingsModal(true)}
             onTogglePictureMode={() => setIsPictureMode(!isPictureMode)}
             isPictureMode={isPictureMode}
             nextRoundLabel={currentQ + 1 >= totalQuestions ? "End & Scores" : "End & Scores"}

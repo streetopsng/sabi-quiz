@@ -92,13 +92,15 @@ export default function HostToolbar({
             {isFullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
           </button>
 
-          <button
-            onClick={onOpenSettings}
-            className="w-10 h-10 rounded-2xl bg-[#FF8A3D] hover:bg-[#ff9752] active:scale-95 flex items-center justify-center transition-all cursor-pointer text-white shadow-sm"
-            title="Settings & Presenter Mode"
-          >
-            <Sliders size={18} />
-          </button>
+          {onOpenSettings && (
+            <button
+              onClick={onOpenSettings}
+              className="w-10 h-10 rounded-2xl bg-[#FF8A3D] hover:bg-[#ff9752] active:scale-95 flex items-center justify-center transition-all cursor-pointer text-white shadow-sm"
+              title="Settings & Presenter Mode"
+            >
+              <Sliders size={18} />
+            </button>
+          )}
 
           <button
             onClick={onTogglePictureMode}
@@ -153,13 +155,15 @@ export default function HostToolbar({
             {isFullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
           </button>
 
-          <button
-            onClick={onOpenSettings}
-            className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-[#FF8A3D] hover:bg-[#ff9752] active:scale-95 flex items-center justify-center transition-all cursor-pointer text-white shadow-[0_4px_12px_rgba(255,138,61,0.35)]"
-            title="Settings"
-          >
-            <Sliders size={18} />
-          </button>
+          {onOpenSettings && (
+            <button
+              onClick={onOpenSettings}
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-[#FF8A3D] hover:bg-[#ff9752] active:scale-95 flex items-center justify-center transition-all cursor-pointer text-white shadow-[0_4px_12px_rgba(255,138,61,0.35)]"
+              title="Settings"
+            >
+              <Sliders size={18} />
+            </button>
+          )}
 
           <button
             onClick={onTogglePictureMode}

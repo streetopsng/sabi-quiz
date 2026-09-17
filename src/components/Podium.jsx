@@ -135,7 +135,7 @@ export default function Podium() {
           <span className="group-hover:scale-105 inline-block transition-transform">sabi</span>
         </div>
 
-        {isHost && (
+        {isHost && !ggSession && (
           <button
             onClick={() => setShowSettingsModal(true)}
             className="w-11 h-11 rounded-2xl bg-[#FF8A3D] hover:bg-[#ff9752] active:scale-95 text-white flex items-center justify-center transition-all shadow-[0_4px_14px_rgba(255,138,61,0.4)] cursor-pointer"
@@ -257,7 +257,7 @@ export default function Podium() {
         {isHost && (
           <HostToolbar
             onNextRound={() => setShowFeedbackModal(true)}
-            onOpenSettings={() => setShowSettingsModal(true)}
+            onOpenSettings={ggSession ? undefined : () => setShowSettingsModal(true)}
             nextRoundLabel="Give Feedback"
             showNewRound={true}
           />
