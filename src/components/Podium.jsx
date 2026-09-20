@@ -8,7 +8,7 @@ import SettingsModal from './SettingsModal';
 import AvatarBadge from './AvatarBadge';
 import { useGame } from '../context/GameContext';
 import { playSelect } from '../utils/audio';
-import { closeGummyGumSession, returnToGummyGum, startNextRoundGummyGum } from '../lib/gummygumSession';
+import { closeGummyGumSession, startNextRoundGummyGum } from '../lib/gummygumSession';
 
 export default function Podium() {
   const { navigate, player, opponents, showAlertModal, gameCode, gameConfig, createGame, hostSettings, setHostSettings, isHost, isSpectator, ggSession } = useGame();
@@ -18,6 +18,16 @@ export default function Podium() {
   const [feedbackText, setFeedbackText] = useState('');
   const [submittingFeedback, setSubmittingFeedback] = useState(false);
   const [startingNewSession, setStartingNewSession] = useState(false);
+  const [showThanksModal, setShowThanksModal] = useState(false);
+
+  const handleParticipantClose = () => {
+    playSelect();
+    window.close();
+    // If the tab is still open after a beat, the browser blocked the
+    // script-close (e.g. tab wasn't opened via a link) — show a friendly
+    // message instead of routing to the native landing screen or hub.
+    setTimeout(() => setShowThanksModal(true), 400);
+  };
 
   const handleStartNewSession = async () => {
     if (startingNewSession) return;
@@ -116,10 +126,12 @@ export default function Podium() {
         ) : (
           <button
             onClick={() => {
+              if (ggSession) {
+                handleParticipantClose();
+                return;
+              }
               playSelect();
-              window.close();
-              // Falls back if the browser blocks the script-close.
-              setTimeout(() => (ggSession ? returnToGummyGum() : navigate('home')), 400);
+              navigate('home');
             }}
             className="w-11 h-11 rounded-full bg-white/10 border border-white/15 text-white flex items-center justify-center transition-all hover:bg-white/20 active:scale-95 cursor-pointer"
             title="Close"
@@ -227,12 +239,7 @@ export default function Podium() {
                   </>
                 ) : (
                   <button
-                    onClick={() => {
-                      playSelect();
-                      window.close();
-                      // Falls back if the browser blocks the script-close.
-                      setTimeout(() => returnToGummyGum(), 400);
-                    }}
+                    onClick={handleParticipantClose}
                     className="px-6 py-3 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 text-white font-bold text-sm sm:text-base border border-white/20 transition-all cursor-pointer flex items-center gap-2"
                   >
                     <LogOut size={18} />
@@ -312,6 +319,18 @@ export default function Podium() {
         settings={hostSettings}
         onUpdateSettings={setHostSettings}
       />
+
+      <AnimatePresence>
+        {showThanksModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-5">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="relative bg-[#163440] border border-white/15 p-7 rounded-[32px] shadow-2xl max-w-sm w-full text-center z-10 text-white">
+              <h3 className="text-2xl font-bold mb-2">Thanks for playing!</h3>
+              <p className="text-sm text-white/70">You can close this tab now.</p>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );
