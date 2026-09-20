@@ -3,7 +3,7 @@ import { db } from '../firebase';
 import { doc, collection, setDoc, getDoc, updateDoc, onSnapshot, getDocs, deleteDoc, writeBatch } from 'firebase/firestore';
 import { INITIAL_PLAYER, QUESTIONS } from '../constants';
 import { playJoin, playStart, playTick, playCorrect, playWrong, playWin, playSelect } from '../utils/audio';
-import { resolveGummyGumLaunch, reportGummyGumResult, reportGummyGumCancel } from '../lib/gummygumSession';
+import { resolveGummyGumLaunch, reportGummyGumResult, reportGummyGumCancel, returnToGummyGum } from '../lib/gummygumSession';
 
 const GameContext = createContext();
 
@@ -143,11 +143,26 @@ export const GameProvider = ({ children }) => {
 
     const unsubGame = onSnapshot(doc(db, 'games', gameCode), (snapshot) => {
       if (!snapshot.exists()) {
-        showAlertModal('The Race Director cancelled the session.', 'Session Cancelled');
         sessionStorage.removeItem('sabi_game_code');
         sessionStorage.removeItem('sabi_is_host');
         setGameCode('');
-        navigate('home');
+
+        if (ggSession?.isHost) {
+          // GummyGum is the source of this cancellation (or already knows
+          // about it) — just send the host back to the hub, no need to
+          // re-hit the close endpoint via closeGummyGumSession().
+          returnToGummyGum();
+        } else if (ggSession) {
+          // Participant: mirror the leaderboard/podium close-tab pattern
+          // instead of routing to the native landing screen.
+          window.close();
+          setTimeout(() => {
+            showAlertModal('This session was cancelled by the host. You can close this tab now.', 'Session Cancelled');
+          }, 400);
+        } else {
+          showAlertModal('The Race Director cancelled the session.', 'Session Cancelled');
+          navigate('home');
+        }
         return;
       }
 
@@ -277,7 +292,7 @@ export const GameProvider = ({ children }) => {
       unsubPlayers();
       clearInterval(window.currentTimer);
     };
-  }, [gameCode, isHost, currentScreen, chosenAnswer]);
+  }, [gameCode, isHost, currentScreen, chosenAnswer, ggSession]);
 
   const navigate = (screen) => setCurrentScreen(screen);
 
