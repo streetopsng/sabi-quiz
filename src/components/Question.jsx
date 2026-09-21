@@ -38,7 +38,7 @@ export default function Question() {
   ];
 
   const hasImage = q.image || isPictureMode;
-  const showResult = gameState === 'result' || timeLeft === 0;
+  const showResult = gameState === 'result';
 
   return (
     <div className="relative min-h-[100dvh] w-full bg-[#183944] text-white flex flex-col justify-between overflow-x-hidden overflow-y-auto select-none font-poppins pb-16">
@@ -172,11 +172,11 @@ export default function Question() {
     return (
       <motion.button
         key={i}
-        whileHover={!answered && !isSpectator ? { scale: 1.02 } : {}}
-        whileTap={!answered && !isSpectator ? { scale: 0.98 } : {}}
-        disabled={answered || isSpectator}
+        whileHover={!answered && !isSpectator && timeLeft > 0 && gameState !== 'result' ? { scale: 1.02 } : {}}
+        whileTap={!answered && !isSpectator && timeLeft > 0 && gameState !== 'result' ? { scale: 0.98 } : {}}
+        disabled={answered || isSpectator || timeLeft === 0 || gameState === 'result'}
         onClick={() => {
-          if (!answered && !isSpectator) playSelect();
+          if (!answered && !isSpectator && timeLeft > 0 && gameState !== 'result') playSelect();
           handleAnswer(i);
         }}
         className={`relative min-h-[52px] sm:min-h-[64px] md:min-h-[72px] rounded-2xl sm:rounded-[22px] p-3 sm:p-4 font-bold text-base sm:text-lg text-center transition-all cursor-pointer flex items-center justify-center shadow-md ${cardClass}`}

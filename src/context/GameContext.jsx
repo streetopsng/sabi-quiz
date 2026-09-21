@@ -87,10 +87,25 @@ export const GameProvider = ({ children }) => {
   // Routing back through Create would overwrite an already-created game doc.
   // When a participant refreshes, don't force them back to avatar setup if they already joined this room.
   useEffect(() => {
+    // If still resolving GummyGum launch, wait until resolved to avoid checking stale sessions prematurely
+    if (ggAccessState === 'checking') return;
+
     if (!ggSession || !ggSession.roomCode) {
       const savedCode = sessionStorage.getItem('sabi_game_code');
       if (savedCode) {
-        joinGameWithCode(savedCode);
+        // Silently verify if saved game room still exists before attempting to join
+        getDoc(doc(db, 'games', savedCode)).then((existing) => {
+          if (existing.exists()) {
+            joinGameWithCode(savedCode);
+          } else {
+            sessionStorage.removeItem('sabi_game_code');
+            sessionStorage.removeItem('sabi_joined_room');
+            sessionStorage.removeItem('sabi_is_host');
+            sessionStorage.removeItem('sabi_is_spectator');
+          }
+        }).catch(() => {
+          sessionStorage.removeItem('sabi_game_code');
+        });
       }
       return;
     }
@@ -104,7 +119,7 @@ export const GameProvider = ({ children }) => {
         return;
       }
       // First-time participant entrance: let them pick a name/avatar first
-      setPlayer((p) => ({ ...p, name: ggSession.player?.name || p.name }));
+      setPlayer((p) => ({ ...p, name: ggSession.player?.name || p.name || '' }));
       navigate('gg-avatar');
       setGgRouted(true);
       return;
@@ -117,7 +132,7 @@ export const GameProvider = ({ children }) => {
         setGgRouted(true);
       }
     });
-  }, [ggSession]);
+  }, [ggSession, ggAccessState]);
 
   // Report the result back to GummyGum once the race ends. The host is
   // usually running this for their whole team, so this reports the full
@@ -187,27 +202,40 @@ export const GameProvider = ({ children }) => {
           navigate('question');
         }
         
-        // Setup local timer based on server timestamp
+        // Setup local timer based on server timestamp with grace buffer
         if (data.startedAt) {
-          const elapsed = Math.floor((Date.now() - data.startedAt) / 1000);
-          const tLeft = Math.max(0, data.config.timerMode - elapsed);
-          setTimeLeft(tLeft);
-          
+          const timerDuration = data.config?.timerMode || 15;
+          const totalMs = timerDuration * 1000;
+          const hostBufferMs = 1500; // 1.5s grace buffer so participant countdown reaches 0 before result reveals
+
+          const computeRemaining = () => {
+            const now = Date.now();
+            const elapsed = now - data.startedAt;
+            const remaining = Math.max(0, Math.ceil((totalMs - elapsed) / 1000));
+            return { remaining, elapsed };
+          };
+
+          const initial = computeRemaining();
+          setTimeLeft(initial.remaining);
+
           clearInterval(window.currentTimer);
-          if (tLeft > 0) {
-            window.currentTimer = setInterval(() => {
-              setTimeLeft(prev => {
-                if (prev <= 1) {
-                  clearInterval(window.currentTimer);
-                  if (isHost) resolveQuestion(gameCode);
-                  return 0;
-                }
-                if (prev <= 6) playTick();
-                return prev - 1;
-              });
-            }, 1000);
-          } else if (isHost) {
+
+          if (isHost && initial.elapsed >= totalMs + hostBufferMs) {
             resolveQuestion(gameCode);
+          } else {
+            window.currentTimer = setInterval(() => {
+              const { remaining, elapsed } = computeRemaining();
+              setTimeLeft(remaining);
+
+              if (remaining <= 6 && remaining > 0) {
+                playTick();
+              }
+
+              if (isHost && elapsed >= totalMs + hostBufferMs) {
+                clearInterval(window.currentTimer);
+                resolveQuestion(gameCode);
+              }
+            }, 500);
           }
         }
 
@@ -242,6 +270,7 @@ export const GameProvider = ({ children }) => {
         }
       } else if (data.state === 'result') {
         clearInterval(window.currentTimer);
+        setTimeLeft(0);
         setAnswered(true); // Ensure players who didn't click still see the result
       } else if (data.state === 'leaderboard') {
         clearInterval(window.currentTimer);
@@ -263,12 +292,62 @@ export const GameProvider = ({ children }) => {
       }
     });
 
+    // Catch tab visibility changes (e.g. host switches to WhatsApp and back)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && gameRef.current && gameRef.current.state === 'question') {
+        const startedAt = gameRef.current.startedAt;
+        const timerDuration = gameRef.current.config?.timerMode || 15;
+        if (startedAt) {
+          const elapsed = Date.now() - startedAt;
+          const totalMs = timerDuration * 1000;
+          const remaining = Math.max(0, Math.ceil((totalMs - elapsed) / 1000));
+          setTimeLeft(remaining);
+          if (isHost && elapsed >= totalMs + 1500) {
+            clearInterval(window.currentTimer);
+            resolveQuestion(gameCode);
+          }
+        }
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     const unsubPlayers = onSnapshot(collection(db, 'games', gameCode, 'players'), (snapshot) => {
-      const playersList = snapshot.docs.map(d => d.data());
-      
-      const me = playersList.find(p => p.sessionId === sessionId);
+      const rawPlayers = snapshot.docs.map(d => ({ ...d.data(), docId: d.id }));
+
+      // Deduplicate player documents by normalized email or case-insensitive name
+      const playerMap = new Map();
+      for (const p of rawPlayers) {
+        const rawName = (p.name || '').trim();
+        const rawEmail = (p.ggEmail || '').trim().toLowerCase();
+        // Discard phantom blank/You docs if a named doc exists
+        const key = rawEmail ? `email:${rawEmail}` : `name:${rawName.toLowerCase()}`;
+        
+        if (!playerMap.has(key)) {
+          playerMap.set(key, p);
+        } else {
+          const existing = playerMap.get(key);
+          const preferNew = (p.sessionId === sessionId) || 
+                            (p.connected && !existing.connected) || 
+                            ((p.score || 0) > (existing.score || 0));
+          if (preferNew) {
+            playerMap.set(key, p);
+          }
+        }
+      }
+      const playersList = Array.from(playerMap.values());
+
+      const me = playersList.find(p => p.sessionId === sessionId || (player.name && (p.name || '').trim().toLowerCase() === player.name.trim().toLowerCase()));
       if (me) {
-        setPlayer(prev => ({ ...prev, name: me.name, score: me.score, streak: me.streak, roundPoints: me.roundPoints || 0, banter: me.banter || prev.banter, vehicle: me.vehicle || prev.vehicle, color: me.color || prev.color }));
+        setPlayer(prev => ({ 
+          ...prev, 
+          name: me.name || prev.name, 
+          score: me.score ?? prev.score, 
+          streak: me.streak ?? prev.streak, 
+          roundPoints: me.roundPoints || 0, 
+          banter: me.banter || prev.banter, 
+          vehicle: me.vehicle || prev.vehicle, 
+          color: me.color || prev.color 
+        }));
         
         if (gameRef.current && gameRef.current.state === 'result' && chosenAnswer !== -1) {
            const wasCorrect = me.chosenAnswer === gameRef.current.questions[gameRef.current.currentQ].answer;
@@ -278,9 +357,20 @@ export const GameProvider = ({ children }) => {
            if (wasCorrect) showStreakToast(me.streak);
         }
       }
-      
+
+      // Opponents MUST strictly exclude the local player by sessionId, matching name, and matching email
+      const myName = (player.name || me?.name || '').trim().toLowerCase();
+      const myEmail = (ggSession?.player?.email || me?.ggEmail || '').trim().toLowerCase();
+
       const others = playersList
-        .filter(p => p.sessionId !== sessionId)
+        .filter(p => {
+          if (p.sessionId === sessionId) return false;
+          const pName = (p.name || '').trim().toLowerCase();
+          const pEmail = (p.ggEmail || '').trim().toLowerCase();
+          if (myName && pName && pName === myName) return false;
+          if (myEmail && pEmail && pEmail === myEmail) return false;
+          return true;
+        })
         .map(o => ({ ...o, _joined: o.connected !== false }));
       setOpponents(others);
 
@@ -297,6 +387,7 @@ export const GameProvider = ({ children }) => {
     return () => {
       unsubGame();
       unsubPlayers();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearInterval(window.currentTimer);
     };
   }, [gameCode, isHost, currentScreen, chosenAnswer, ggSession]);
@@ -442,16 +533,19 @@ export const GameProvider = ({ children }) => {
 
         const pSnap = await getDocs(collection(db, 'games', code, 'players'));
 
-        // Reconnect via a stale ggEmail match instead of name, so a closed-tab rejoin reclaims rather than collides.
+        // Reconnect via a stale ggEmail match or name match, so a closed-tab or reloaded rejoin reclaims rather than collides.
         let staleDoc = null;
         if (normalizedGgEmail) {
-          staleDoc = pSnap.docs.find(d => (d.data().ggEmail || '').toLowerCase() === normalizedGgEmail && d.id !== sessionId) || null;
+          staleDoc = pSnap.docs.find(d => (d.data().ggEmail || '').toLowerCase().trim() === normalizedGgEmail && d.id !== sessionId) || null;
+        }
+        if (!staleDoc && requestedName && requestedName.trim()) {
+          staleDoc = pSnap.docs.find(d => (d.data().name || '').toLowerCase().trim() === requestedName.toLowerCase().trim() && d.id !== sessionId) || null;
         }
 
-        if (!staleDoc) {
+        if (!staleDoc && requestedName && requestedName.trim()) {
           const nameExists = pSnap.docs.some(d => {
              const p = d.data();
-             return p.name.toLowerCase() === requestedName.toLowerCase() && p.sessionId !== sessionId;
+             return p.name.toLowerCase().trim() === requestedName.toLowerCase().trim() && p.sessionId !== sessionId && p.connected !== false;
           });
 
           if (nameExists) {
@@ -480,23 +574,23 @@ export const GameProvider = ({ children }) => {
           await deleteDoc(doc(db, 'games', code, 'players', staleDoc.id)).catch(() => undefined);
           await setDoc(playerRef, {
             ...player,
-            name: customName || player.name,
+            name: requestedName || player.name,
             sessionId,
-            ggEmail: normalizedGgEmail,
-            score: prior.score || 0,
-            streak: prior.streak || 0,
-            answered: prior.answered || false,
+            ...(normalizedGgEmail && { ggEmail: normalizedGgEmail }),
+            score: prior.score ?? player.score ?? 0,
+            streak: prior.streak ?? player.streak ?? 0,
+            answered: prior.answered ?? false,
             chosenAnswer: prior.chosenAnswer ?? -1,
             connected: true
           });
         } else if (!pDoc.exists()) {
           await setDoc(playerRef, {
             ...player,
-            name: customName || player.name,
+            name: requestedName || player.name,
             sessionId,
             ...(normalizedGgEmail && { ggEmail: normalizedGgEmail }),
-            score: 0,
-            streak: 0,
+            score: player.score ?? 0,
+            streak: player.streak ?? 0,
             answered: false,
             chosenAnswer: -1,
             connected: true
@@ -504,7 +598,7 @@ export const GameProvider = ({ children }) => {
         } else {
           await updateDoc(playerRef, {
             connected: true,
-            ...(customName && { name: customName }),
+            ...(requestedName && { name: requestedName }),
             ...(normalizedGgEmail && { ggEmail: normalizedGgEmail })
           });
         }

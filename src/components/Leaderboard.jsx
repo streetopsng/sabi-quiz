@@ -37,26 +37,49 @@ export default function Leaderboard() {
   };
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setCountdown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          if (isHost && !advancingRef.current) {
-            advancingRef.current = true;
-            nextQuestion();
-          }
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+    const totalSec = 5;
+    const startTime = Date.now();
 
-    return () => clearInterval(timer);
+    const updateCountdown = () => {
+      const elapsed = (Date.now() - startTime) / 1000;
+      const rem = Math.max(0, Math.ceil(totalSec - elapsed));
+      setCountdown(rem);
+
+      if (rem <= 0) {
+        clearInterval(timer);
+        if (isHost && !advancingRef.current) {
+          advancingRef.current = true;
+          nextQuestion();
+        }
+      }
+    };
+
+    const timer = setInterval(updateCountdown, 500);
+
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        updateCountdown();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, [isHost, nextQuestion]);
 
+  const myName = (player.name || '').trim().toLowerCase();
+  const filteredOpponents = opponents.filter((o, idx, arr) => {
+    if (!o._joined) return false;
+    const oName = (o.name || '').trim().toLowerCase();
+    if (!isSpectator && myName && oName && oName === myName) return false;
+    return arr.findIndex((other) => (other.name || '').trim().toLowerCase() === oName) === idx;
+  });
+
   const contestants = isSpectator
-    ? opponents.filter((o) => o._joined)
-    : [player, ...opponents.filter((o) => o._joined)];
+    ? filteredOpponents
+    : [player, ...filteredOpponents];
 
   const leaderboard = [...contestants].sort((a, b) => (b.score || 0) - (a.score || 0));
 
@@ -182,7 +205,7 @@ export default function Leaderboard() {
             {leaderboard.map((p, idx) => {
               const rank = idx + 1;
               const isWinner = rank === 1;
-              const isMe = !isSpectator && (p.sessionId === player.sessionId || p.name === player.name);
+              const isMe = !isSpectator && (p.sessionId === player.sessionId || (myName && (p.name || '').trim().toLowerCase() === myName));
 
               return (
                 <div

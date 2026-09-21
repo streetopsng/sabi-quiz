@@ -270,7 +270,7 @@ export const INITIAL_OPPONENTS = [
 ];
 
 export const INITIAL_PLAYER = {
-  name: 'You',
+  name: '',
   vehicle: GUMMY_AVATARS[0].url,
   banter: '',
   score: 0,

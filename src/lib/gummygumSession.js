@@ -39,6 +39,12 @@ export async function resolveGummyGumLaunch() {
     return getGummyGumSession();
   }
 
+  // Fresh launch from GummyGum: clear any stale room codes or host flags from past sessions
+  sessionStorage.removeItem('sabi_game_code');
+  sessionStorage.removeItem('sabi_joined_room');
+  sessionStorage.removeItem('sabi_is_host');
+  sessionStorage.removeItem('sabi_is_spectator');
+
   let body = await verifyLaunchTokenOnce(ggt);
   if (!body) {
     await new Promise((resolve) => setTimeout(resolve, 1500));
