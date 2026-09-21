@@ -96,7 +96,7 @@ export default function Lobby() {
 
               <div className="rounded-[28px] sm:rounded-[32px] bg-[#122834]/90 border border-white/10 p-4 sm:p-6 flex flex-col items-center justify-center text-center shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-md min-h-[200px] sm:min-h-[220px]">
                 <div className="text-base sm:text-lg font-bold text-white mb-1">
-                  {activePlayers}/10 Players
+                  {activePlayers} {activePlayers === 1 ? 'Player' : 'Players'} Joined
                 </div>
 
                 {activePlayers === 0 ? (
@@ -164,7 +164,7 @@ export default function Lobby() {
 
             <div className="w-full rounded-[24px] sm:rounded-[28px] bg-[#122834]/90 border border-white/10 p-4 sm:p-5 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-md">
               <div className="text-xs font-semibold text-white/50 uppercase tracking-wide mb-3">
-                {activePlayers}/10 joined
+                {activePlayers} {activePlayers === 1 ? 'player' : 'players'} joined
               </div>
               {activeOpponents.length === 0 ? (
                 <div className="text-xs sm:text-sm text-white/40 py-3">
