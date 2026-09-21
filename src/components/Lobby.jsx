@@ -19,7 +19,13 @@ export default function Lobby() {
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
-  const activeOpponents = opponents.filter(o => o._joined);
+  const myName = (player.name || '').trim().toLowerCase();
+  const activeOpponents = opponents.filter((o, idx, arr) => {
+    if (!o._joined) return false;
+    const oName = (o.name || '').trim().toLowerCase();
+    if (!isHost && myName && oName && oName === myName) return false;
+    return arr.findIndex(other => (other.name || '').trim().toLowerCase() === oName) === idx;
+  });
   const activePlayers = activeOpponents.length + (isHost ? 0 : 1);
 
   return (

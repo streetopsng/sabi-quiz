@@ -61,7 +61,15 @@ export default function Podium() {
     }
   };
 
-  const contestants = isSpectator ? opponents.filter(o => o._joined) : [player, ...opponents.filter(o => o._joined)];
+  const myName = (player.name || '').trim().toLowerCase();
+  const filteredOpponents = opponents.filter((o, idx, arr) => {
+    if (!o._joined) return false;
+    const oName = (o.name || '').trim().toLowerCase();
+    if (!isSpectator && myName && oName && oName === myName) return false;
+    return arr.findIndex((other) => (other.name || '').trim().toLowerCase() === oName) === idx;
+  });
+
+  const contestants = isSpectator ? filteredOpponents : [player, ...filteredOpponents];
   const leaderboard = [...contestants].sort((a, b) => b.score - a.score);
 
   return (
