@@ -18,6 +18,8 @@ export default function Leaderboard() {
     isSpectator,
     nextQuestion,
     navigate,
+    gameState,
+    leaderboardStartedAt,
     hostSettings,
     setHostSettings,
     ggSession,
@@ -25,9 +27,12 @@ export default function Leaderboard() {
   } = useGame();
 
   const totalQuestions = gameQuestions?.length || 1;
-  const [countdown, setCountdown] = useState(6);
+  const [countdown, setCountdown] = useState(5);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const advancingRef = useRef(false);
+  const initialMountTimeRef = useRef(Date.now());
+  const nextQuestionRef = useRef(nextQuestion);
+  nextQuestionRef.current = nextQuestion;
 
   const handleNext = () => {
     if (advancingRef.current) return;
@@ -36,12 +41,24 @@ export default function Leaderboard() {
     nextQuestion();
   };
 
+  // Immediate exit if game already moved to loading, question, or podium
+  useEffect(() => {
+    if (gameState === 'loading') {
+      navigate('loading');
+    } else if (gameState === 'question') {
+      navigate('question');
+    } else if (gameState === 'podium') {
+      navigate('podium');
+    }
+  }, [gameState, navigate]);
+
   useEffect(() => {
     const totalSec = 5;
-    const startTime = Date.now();
+    // Anchor to server timestamp if available, otherwise fixed mount time (NEVER resets)
+    const effectiveStart = leaderboardStartedAt || initialMountTimeRef.current;
 
     const updateCountdown = () => {
-      const elapsed = (Date.now() - startTime) / 1000;
+      const elapsed = (Date.now() - effectiveStart) / 1000;
       const rem = Math.max(0, Math.ceil(totalSec - elapsed));
       setCountdown(rem);
 
@@ -49,12 +66,13 @@ export default function Leaderboard() {
         clearInterval(timer);
         if (isHost && !advancingRef.current) {
           advancingRef.current = true;
-          nextQuestion();
+          nextQuestionRef.current();
         }
       }
     };
 
-    const timer = setInterval(updateCountdown, 500);
+    updateCountdown();
+    const timer = setInterval(updateCountdown, 250);
 
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
@@ -67,7 +85,7 @@ export default function Leaderboard() {
       clearInterval(timer);
       document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [isHost, nextQuestion]);
+  }, [isHost, leaderboardStartedAt]);
 
   const myName = (player.name || '').trim().toLowerCase();
   const filteredOpponents = opponents.filter((o, idx, arr) => {
@@ -274,21 +292,28 @@ export default function Leaderboard() {
                 <span className="text-white/80 text-xs sm:text-sm font-semibold">({countdown}s)</span>
                 <span>→</span>
               </motion.button>
-              <p className="text-xs text-white/50">Auto-advancing in {countdown}s...</p>
+              <p className="text-xs text-white/50">{countdown > 0 ? `Auto-advancing in ${countdown}s...` : 'Advancing...'}</p>
             </div>
           ) : (
             <div className="w-full max-w-md flex flex-col items-center gap-3">
               <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden border border-white/10">
                 <motion.div
                   className="h-full bg-[#ff6f3c] rounded-full"
-                  initial={{ width: '100%' }}
-                  animate={{ width: `${(countdown / 6) * 100}%` }}
-                  transition={{ duration: 1, ease: 'linear' }}
+                  style={{ width: `${Math.min(100, Math.max(0, (countdown / 5) * 100))}%` }}
+                  transition={{ duration: 0.25, ease: 'linear' }}
                 />
               </div>
               <p className="text-sm font-bold text-white/70">
-                {currentQ + 1 >= totalQuestions ? "Final standings starting in " : "Next question starting in "}
-                <span className="text-[#ff6f3c] font-black">{countdown}s</span>...
+                {countdown > 0 ? (
+                  <>
+                    {currentQ + 1 >= totalQuestions ? "Final standings starting in " : "Next question starting in "}
+                    <span className="text-[#ff6f3c] font-black">{countdown}s</span>...
+                  </>
+                ) : (
+                  <span className="text-[#ff6f3c] font-bold animate-pulse">
+                    {currentQ + 1 >= totalQuestions ? "Loading final standings..." : "Loading next question..."}
+                  </span>
+                )}
               </p>
             </div>
           )}
