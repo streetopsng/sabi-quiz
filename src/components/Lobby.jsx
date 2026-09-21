@@ -12,7 +12,7 @@ export default function Lobby() {
   const {
     navigate, player, setPlayer, opponents, startRace,
     isHost, cancelGame, kickPlayer,
-    hostSettings, setHostSettings, ggSession
+    hostSettings, setHostSettings, ggSession, invitedCount
   } = useGame();
 
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -27,6 +27,14 @@ export default function Lobby() {
     return arr.findIndex(other => (other.name || '').trim().toLowerCase() === oName) === idx;
   });
   const activePlayers = activeOpponents.length + (isHost ? 0 : 1);
+
+  const targetTotal = invitedCount || ggSession?.invitedCount || null;
+  const playerCounterText = targetTotal
+    ? `${activePlayers}/${targetTotal} Players`
+    : `${activePlayers} ${activePlayers === 1 ? 'Player' : 'Players'} Joined`;
+  const participantCounterText = targetTotal
+    ? `${activePlayers}/${targetTotal} joined`
+    : `${activePlayers} ${activePlayers === 1 ? 'player' : 'players'} joined`;
 
   return (
     <div className="relative min-h-[100dvh] w-full bg-[#183944] text-white flex flex-col justify-between overflow-x-hidden overflow-y-auto select-none font-poppins pb-12">
@@ -96,7 +104,7 @@ export default function Lobby() {
 
               <div className="rounded-[28px] sm:rounded-[32px] bg-[#122834]/90 border border-white/10 p-4 sm:p-6 flex flex-col items-center justify-center text-center shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-md min-h-[200px] sm:min-h-[220px]">
                 <div className="text-base sm:text-lg font-bold text-white mb-1">
-                  {activePlayers} {activePlayers === 1 ? 'Player' : 'Players'} Joined
+                  {playerCounterText}
                 </div>
 
                 {activePlayers === 0 ? (
@@ -164,7 +172,7 @@ export default function Lobby() {
 
             <div className="w-full rounded-[24px] sm:rounded-[28px] bg-[#122834]/90 border border-white/10 p-4 sm:p-5 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-md">
               <div className="text-xs font-semibold text-white/50 uppercase tracking-wide mb-3">
-                {activePlayers} {activePlayers === 1 ? 'player' : 'players'} joined
+                {participantCounterText}
               </div>
               {activeOpponents.length === 0 ? (
                 <div className="text-xs sm:text-sm text-white/40 py-3">
