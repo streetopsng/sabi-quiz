@@ -20,6 +20,12 @@ export const GameProvider = ({ children }) => {
   });
 
   const [currentScreen, setCurrentScreen] = useState('home');
+  const currentScreenRef = useRef(currentScreen);
+  useEffect(() => {
+    currentScreenRef.current = currentScreen;
+  }, [currentScreen]);
+
+  const [leaderboardStartedAt, setLeaderboardStartedAt] = useState(null);
   const [gameCode, setGameCode] = useState('');
   const [gameConfig, setGameConfig] = useState(null);
   const [gameQuestions, setGameQuestions] = useState([]);
@@ -198,6 +204,7 @@ export const GameProvider = ({ children }) => {
       gameRef.current = data;
       if (data.invitedCount) setInvitedCount(data.invitedCount);
       else if (data.config?.invitedCount) setInvitedCount(data.config.invitedCount);
+      if (data.leaderboardStartedAt) setLeaderboardStartedAt(data.leaderboardStartedAt);
       
       setGameState(data.state);
       setCurrentQ(data.currentQ);
@@ -205,7 +212,7 @@ export const GameProvider = ({ children }) => {
       setLoadingMessage(data.loadingMessage || '');
       
       if (data.state === 'question') {
-        if (currentScreen !== 'question') {
+        if (currentScreenRef.current !== 'question') {
           playStart();
           navigate('question');
         }
@@ -282,16 +289,16 @@ export const GameProvider = ({ children }) => {
         setAnswered(true); // Ensure players who didn't click still see the result
       } else if (data.state === 'leaderboard') {
         clearInterval(window.currentTimer);
-        if (currentScreen !== 'leaderboard') {
+        if (currentScreenRef.current !== 'leaderboard') {
           playSelect();
           navigate('leaderboard');
         }
       } else if (data.state === 'loading') {
         clearInterval(window.currentTimer);
-        if (currentScreen !== 'loading') {
+        if (currentScreenRef.current !== 'loading') {
           navigate('loading');
         }
-      } else if (data.state === 'podium' && currentScreen !== 'podium') {
+      } else if (data.state === 'podium' && currentScreenRef.current !== 'podium') {
         playWin();
         navigate('podium');
         sessionStorage.removeItem('sabi_game_code');
@@ -398,7 +405,7 @@ export const GameProvider = ({ children }) => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearInterval(window.currentTimer);
     };
-  }, [gameCode, isHost, currentScreen, chosenAnswer, ggSession]);
+  }, [gameCode, isHost, ggSession]);
 
   const navigate = (screen) => setCurrentScreen(screen);
 
@@ -799,7 +806,7 @@ export const GameProvider = ({ children }) => {
       opponents,
       gameCode, createGame, joinGameWithCode, gameConfig, gameQuestions,
       gameState, currentQ, timeLeft, answered, bonusRound, chosenAnswer,
-      flashColor, streakToast, loadingMessage,
+      flashColor, streakToast, loadingMessage, leaderboardStartedAt,
       startRace, nextQuestion, resolveQuestion, handleAnswer, isHost, cancelGame, kickPlayer, isSpectator,
       hostSettings, setHostSettings,
       ggSession, ggAccessState, ggRouted, invitedCount,
