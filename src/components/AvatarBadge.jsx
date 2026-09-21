@@ -17,7 +17,7 @@ export default function AvatarBadge({ src, color, onClick, size = "md", showTapT
       <CarAvatar src={src} color={color} className="w-full h-full rounded-full" />
 
       {showTapToChange && (
-        <div className="absolute bottom-0 inset-x-0 bg-black/40 border-t border-white/15 py-1.5 md:py-2.5 text-center flex items-center justify-center">
+        <div className="absolute bottom-0 inset-x-0 z-20 bg-black/40 border-t border-white/15 py-1.5 md:py-2.5 text-center flex items-center justify-center">
           <span className="text-[10px] md:text-[12px] font-black text-white uppercase tracking-wider leading-none drop-shadow-md">
             Tap to Change
           </span>
