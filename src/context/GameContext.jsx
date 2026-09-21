@@ -51,6 +51,12 @@ export const GameProvider = ({ children }) => {
     difficulty: 'Mixed'
   });
 
+  const [invitedCount, setInvitedCount] = useState(() => {
+    const p = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const ic = p?.get('invitedCount');
+    return ic ? parseInt(ic, 10) : null;
+  });
+
   // GummyGum hub identity handoff (who launched this session, if anyone).
   // This experience is only playable when arriving via a hub launch link, so
   // we also track access separately from the session payload itself:
@@ -190,6 +196,8 @@ export const GameProvider = ({ children }) => {
 
       const data = snapshot.data();
       gameRef.current = data;
+      if (data.invitedCount) setInvitedCount(data.invitedCount);
+      else if (data.config?.invitedCount) setInvitedCount(data.config.invitedCount);
       
       setGameState(data.state);
       setCurrentQ(data.currentQ);
@@ -486,6 +494,8 @@ export const GameProvider = ({ children }) => {
         setGameCode(code);
         setGameConfig(gameData.config);
         setGameQuestions(gameData.questions);
+        if (gameData.invitedCount) setInvitedCount(gameData.invitedCount);
+        else if (gameData.config?.invitedCount) setInvitedCount(gameData.config.invitedCount);
         setIsHost(true);
         sessionStorage.setItem('sabi_game_code', code);
         sessionStorage.setItem('sabi_is_host', 'true');
@@ -792,7 +802,7 @@ export const GameProvider = ({ children }) => {
       flashColor, streakToast, loadingMessage,
       startRace, nextQuestion, resolveQuestion, handleAnswer, isHost, cancelGame, kickPlayer, isSpectator,
       hostSettings, setHostSettings,
-      ggSession, ggAccessState, ggRouted,
+      ggSession, ggAccessState, ggRouted, invitedCount,
       alertModal, showAlertModal, closeAlertModal
     }}>
       {children}
