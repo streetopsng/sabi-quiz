@@ -84,19 +84,26 @@ export const GameProvider = ({ children }) => {
     });
   }, []);
 
-  useEffect(() => {
-    const savedCode = sessionStorage.getItem('sabi_game_code');
-    if (savedCode) {
-      joinGameWithCode(savedCode);
-    }
-  }, []);
-
   // Routing back through Create would overwrite an already-created game doc.
+  // When a participant refreshes, don't force them back to avatar setup if they already joined this room.
   useEffect(() => {
-    if (!ggSession || !ggSession.roomCode) return;
+    if (!ggSession || !ggSession.roomCode) {
+      const savedCode = sessionStorage.getItem('sabi_game_code');
+      if (savedCode) {
+        joinGameWithCode(savedCode);
+      }
+      return;
+    }
     if (!ggSession.isHost) {
-      // Let them pick a name/avatar first — the GgAvatarSetup screen calls
-      // joinGameWithCode itself once they confirm and hit Continue.
+      const savedCode = sessionStorage.getItem('sabi_game_code');
+      const savedJoined = sessionStorage.getItem('sabi_joined_room');
+      if (savedCode === ggSession.roomCode || savedJoined === ggSession.roomCode) {
+        // Participant already joined this room before reloading — resume directly into the room
+        setGgRouted(true);
+        joinGameWithCode(ggSession.roomCode, player.name || ggSession.player?.name, () => setGgRouted(true), ggSession.player?.email);
+        return;
+      }
+      // First-time participant entrance: let them pick a name/avatar first
       setPlayer((p) => ({ ...p, name: ggSession.player?.name || p.name }));
       navigate('gg-avatar');
       setGgRouted(true);
@@ -460,6 +467,7 @@ export const GameProvider = ({ children }) => {
         const isSavedHost = sessionStorage.getItem('sabi_is_host') === 'true' && gameData.hostSessionId === sessionId;
         setIsHost(isSavedHost);
         sessionStorage.setItem('sabi_game_code', code);
+        sessionStorage.setItem('sabi_joined_room', code);
         if (!isSavedHost) sessionStorage.setItem('sabi_is_host', 'false');
 
         setIsSpectator(false);
