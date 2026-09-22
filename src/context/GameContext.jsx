@@ -122,18 +122,64 @@ export const GameProvider = ({ children }) => {
       return;
     }
     if (!ggSession.isHost) {
+      const email = (ggSession.player?.email || '').toLowerCase().trim();
+      const roomCode = ggSession.roomCode;
       const savedCode = sessionStorage.getItem('sabi_game_code');
       const savedJoined = sessionStorage.getItem('sabi_joined_room');
-      if (savedCode === ggSession.roomCode || savedJoined === ggSession.roomCode) {
-        // Participant already joined this room before reloading — resume directly into the room
+      const localJoined = email ? localStorage.getItem(`sabi_joined_${roomCode}_${email}`) === 'true' : false;
+
+      // 1. Fast local check (sessionStorage or localStorage for this room)
+      if (savedCode === roomCode || savedJoined === roomCode || localJoined) {
+        const savedAvatar = (email && localStorage.getItem(`sabi_avatar_${email}`)) || player.vehicle;
+        const savedName = (email && localStorage.getItem(`sabi_name_${email}`)) || ggSession.player?.name || player.name;
+        if (savedAvatar) setPlayer((p) => ({ ...p, vehicle: savedAvatar, name: savedName }));
         setGgRouted(true);
-        joinGameWithCode(ggSession.roomCode, player.name || ggSession.player?.name, () => setGgRouted(true), ggSession.player?.email);
+        joinGameWithCode(roomCode, savedName, () => setGgRouted(true), email);
         return;
       }
-      // First-time participant entrance: let them pick a name/avatar first
-      setPlayer((p) => ({ ...p, name: ggSession.player?.name || p.name || '' }));
-      navigate('gg-avatar');
-      setGgRouted(true);
+
+      // 2. Query Firestore to check if this participant already joined this room (e.g. fresh tab via email link)
+      getDocs(collection(db, 'games', roomCode, 'players')).then((pSnap) => {
+        const existingPlayer = pSnap.docs.find((d) => {
+          const data = d.data();
+          const docEmail = (data.ggEmail || '').toLowerCase().trim();
+          const docName = (data.name || '').toLowerCase().trim();
+          return (email && docEmail === email) || (ggSession.player?.name && docName === ggSession.player.name.toLowerCase().trim());
+        });
+
+        if (existingPlayer) {
+          const priorData = existingPlayer.data();
+          const restoredAvatar = priorData.vehicle || (email && localStorage.getItem(`sabi_avatar_${email}`)) || player.vehicle;
+          const restoredName = priorData.name || (email && localStorage.getItem(`sabi_name_${email}`)) || ggSession.player?.name || player.name;
+
+          if (email) {
+            localStorage.setItem(`sabi_joined_${roomCode}_${email}`, 'true');
+            localStorage.setItem(`sabi_avatar_${email}`, restoredAvatar);
+            localStorage.setItem(`sabi_name_${email}`, restoredName);
+          }
+          sessionStorage.setItem('sabi_game_code', roomCode);
+          sessionStorage.setItem('sabi_joined_room', roomCode);
+
+          setPlayer((p) => ({ ...p, vehicle: restoredAvatar, name: restoredName }));
+          setGgRouted(true);
+          joinGameWithCode(roomCode, restoredName, () => setGgRouted(true), email);
+        } else {
+          // Genuinely first time: pre-fill remembered avatar/name from past sessions if available
+          const rememberedAvatar = email ? localStorage.getItem(`sabi_avatar_${email}`) : null;
+          const initialName = (email && localStorage.getItem(`sabi_name_${email}`)) || ggSession.player?.name || player.name || '';
+          setPlayer((p) => ({
+            ...p,
+            name: initialName,
+            ...(rememberedAvatar && { vehicle: rememberedAvatar }),
+          }));
+          navigate('gg-avatar');
+          setGgRouted(true);
+        }
+      }).catch(() => {
+        setPlayer((p) => ({ ...p, name: ggSession.player?.name || p.name || '' }));
+        navigate('gg-avatar');
+        setGgRouted(true);
+      });
       return;
     }
     getDoc(doc(db, 'games', ggSession.roomCode)).then((existing) => {
@@ -585,13 +631,19 @@ export const GameProvider = ({ children }) => {
         sessionStorage.setItem('sabi_is_spectator', 'false');
 
         const playerRef = doc(db, 'games', code, 'players', sessionId);
-        const pDoc = await getDoc(playerRef);
+        let finalVehicle = player.vehicle;
+        let finalName = requestedName || player.name;
+
         if (staleDoc) {
           const prior = staleDoc.data();
+          finalVehicle = prior.vehicle || player.vehicle;
+          finalName = requestedName || prior.name || player.name;
+          setPlayer((p) => ({ ...p, name: finalName, vehicle: finalVehicle }));
           await deleteDoc(doc(db, 'games', code, 'players', staleDoc.id)).catch(() => undefined);
           await setDoc(playerRef, {
             ...player,
-            name: requestedName || player.name,
+            name: finalName,
+            vehicle: finalVehicle,
             sessionId,
             ...(normalizedGgEmail && { ggEmail: normalizedGgEmail }),
             score: prior.score ?? player.score ?? 0,
@@ -603,7 +655,8 @@ export const GameProvider = ({ children }) => {
         } else if (!pDoc.exists()) {
           await setDoc(playerRef, {
             ...player,
-            name: requestedName || player.name,
+            name: finalName,
+            vehicle: finalVehicle,
             sessionId,
             ...(normalizedGgEmail && { ggEmail: normalizedGgEmail }),
             score: player.score ?? 0,
@@ -618,6 +671,12 @@ export const GameProvider = ({ children }) => {
             ...(requestedName && { name: requestedName }),
             ...(normalizedGgEmail && { ggEmail: normalizedGgEmail })
           });
+        }
+
+        if (normalizedGgEmail) {
+          localStorage.setItem(`sabi_avatar_${normalizedGgEmail}`, finalVehicle);
+          localStorage.setItem(`sabi_name_${normalizedGgEmail}`, finalName);
+          localStorage.setItem(`sabi_joined_${code}_${normalizedGgEmail}`, 'true');
         }
 
         if (gameData.state !== 'lobby') {
@@ -646,28 +705,39 @@ export const GameProvider = ({ children }) => {
   const startRace = () => {
     if (!isHost) return;
     setTimeout(async () => {
-      const playersSnap = await getDocs(collection(db, 'games', gameCode, 'players'));
-      const batchPromises = playersSnap.docs.map(d =>
-        updateDoc(d.ref, { answered: false, chosenAnswer: -1 })
-      );
-      await Promise.all(batchPromises);
+      try {
+        const playersSnap = await getDocs(collection(db, 'games', gameCode, 'players'));
+        if (!playersSnap.empty) {
+          const batch = writeBatch(db);
+          for (const d of playersSnap.docs) {
+            batch.update(d.ref, { answered: false, chosenAnswer: -1 });
+          }
+          await batch.commit();
+        }
 
-      const totalQ = gameQuestions.length || 12;
-      await updateDoc(doc(db, 'games', gameCode), {
-        state: 'loading',
-        loadingMessage: `Preparing for Round 1 of ${totalQ}...`,
-        currentQ: 0
-      });
-
-      setTimeout(async () => {
+        const totalQ = gameQuestions.length || 12;
         await updateDoc(doc(db, 'games', gameCode), {
-          state: 'question',
-          currentQ: 0,
-          startedAt: Date.now(),
-          bonusRound: Math.random() < 0.25,
-          firstBloodQ: false
+          state: 'loading',
+          loadingMessage: `Preparing for Round 1 of ${totalQ}...`,
+          currentQ: 0
         });
-      }, 2500);
+
+        setTimeout(async () => {
+          try {
+            await updateDoc(doc(db, 'games', gameCode), {
+              state: 'question',
+              currentQ: 0,
+              startedAt: Date.now(),
+              bonusRound: Math.random() < 0.25,
+              firstBloodQ: false
+            });
+          } catch (e) {
+            console.error('startRace question transition error:', e);
+          }
+        }, 1800);
+      } catch (err) {
+        console.error('startRace error:', err);
+      }
     }, 0);
   };
 
@@ -677,11 +747,15 @@ export const GameProvider = ({ children }) => {
     setChosenAnswer(idx);
     
     setTimeout(async () => {
-      await updateDoc(doc(db, 'games', gameCode, 'players', sessionId), {
-        answered: true,
-        chosenAnswer: optionMapRef.current[idx],
-        answeredAt: Date.now()
-      });
+      try {
+        await updateDoc(doc(db, 'games', gameCode, 'players', sessionId), {
+          answered: true,
+          chosenAnswer: optionMapRef.current[idx],
+          answeredAt: Date.now()
+        });
+      } catch (e) {
+        console.warn('Answer update failed:', e);
+      }
     }, 0);
   };
 
@@ -689,48 +763,66 @@ export const GameProvider = ({ children }) => {
     if (resolvingRef.current) return;
     resolvingRef.current = true;
     clearInterval(window.currentTimer);
-    
-    await updateDoc(doc(db, 'games', code), { state: 'result' });
-    
-    const gameSnap = await getDoc(doc(db, 'games', code));
-    const game = gameSnap.data();
-    const correctIndex = game.questions[game.currentQ].answer;
-    
-    const pSnap = await getDocs(collection(db, 'games', code, 'players'));
-    let firstBloodUsed = false;
-    
-    const updatePromises = pSnap.docs.map(async (d) => {
-       const p = d.data();
-       if (p.answered && p.chosenAnswer === correctIndex) {
-          let pts = 100;
-          const timeTaken = p.answeredAt ? (p.answeredAt - game.startedAt) / 1000 : 15;
-          const tLeft = Math.max(0, game.config.timerMode - timeTaken);
-          
-          if (tLeft >= 11) pts += 50;
-          else if (tLeft >= 6) pts += 25;
-          
-          if (!firstBloodUsed) { pts += 20; firstBloodUsed = true; }
-          if (game.bonusRound) pts *= 2;
-          
-          let streakMult = p.streak >= 7 ? 2.5 : p.streak >= 5 ? 2.0 : p.streak >= 3 ? 1.5 : p.streak >= 2 ? 1.2 : 1.0;
-          pts = Math.round(pts * streakMult);
-          
-          return updateDoc(d.ref, { score: (p.score || 0) + pts, streak: (p.streak || 0) + 1, roundPoints: pts });
-       } else {
-          return updateDoc(d.ref, { streak: 0, roundPoints: 0 });
-       }
-    });
-    
-    await Promise.all(updatePromises);
 
-    setTimeout(async () => {
-       resolvingRef.current = false;
-       await updateDoc(doc(db, 'games', code), {
-          state: 'leaderboard',
-          leaderboardStartedAt: Date.now(),
-          isFinalRound: game.currentQ + 1 >= game.questions.length
-       });
-    }, 2200);
+    try {
+      await updateDoc(doc(db, 'games', code), { state: 'result' });
+
+      const gameSnap = await getDoc(doc(db, 'games', code));
+      if (!gameSnap.exists()) {
+        resolvingRef.current = false;
+        return;
+      }
+      const game = gameSnap.data();
+      const currentQData = game.questions?.[game.currentQ];
+      const correctIndex = currentQData?.answer ?? 0;
+
+      const pSnap = await getDocs(collection(db, 'games', code, 'players'));
+      let firstBloodUsed = false;
+
+      // Commit ALL player score updates in ONE atomic batch to avoid 50+ individual HTTP writes
+      if (!pSnap.empty) {
+        const batch = writeBatch(db);
+        for (const d of pSnap.docs) {
+          const p = d.data();
+          if (p.answered && p.chosenAnswer === correctIndex) {
+            let pts = 100;
+            const timeTaken = p.answeredAt ? (p.answeredAt - game.startedAt) / 1000 : 15;
+            const tLeft = Math.max(0, (game.config?.timerMode || 15) - timeTaken);
+
+            if (tLeft >= 11) pts += 50;
+            else if (tLeft >= 6) pts += 25;
+
+            if (!firstBloodUsed) { pts += 20; firstBloodUsed = true; }
+            if (game.bonusRound) pts *= 2;
+
+            let streakMult = p.streak >= 7 ? 2.5 : p.streak >= 5 ? 2.0 : p.streak >= 3 ? 1.5 : p.streak >= 2 ? 1.2 : 1.0;
+            pts = Math.round(pts * streakMult);
+
+            batch.update(d.ref, { score: (p.score || 0) + pts, streak: (p.streak || 0) + 1, roundPoints: pts });
+          } else {
+            batch.update(d.ref, { streak: 0, roundPoints: 0 });
+          }
+        }
+        await batch.commit();
+      }
+
+      setTimeout(async () => {
+        try {
+          await updateDoc(doc(db, 'games', code), {
+            state: 'leaderboard',
+            leaderboardStartedAt: Date.now(),
+            isFinalRound: (game.currentQ ?? 0) + 1 >= (game.questions?.length || 1)
+          });
+        } catch (e) {
+          console.error('Leaderboard transition error:', e);
+        } finally {
+          resolvingRef.current = false;
+        }
+      }, 1800);
+    } catch (err) {
+      console.error('resolveQuestion error:', err);
+      resolvingRef.current = false;
+    }
   };
 
   const nextQuestion = async () => {
@@ -738,38 +830,52 @@ export const GameProvider = ({ children }) => {
     clearInterval(window.currentTimer);
     try {
       const snap = await getDocs(collection(db, 'games', gameCode, 'players'));
-      const rPromises = snap.docs.map(d => updateDoc(d.ref, { answered: false, chosenAnswer: -1, roundPoints: 0 }));
-      await Promise.all(rPromises);
+      if (!snap.empty) {
+        const batch = writeBatch(db);
+        for (const d of snap.docs) {
+          batch.update(d.ref, { answered: false, chosenAnswer: -1, roundPoints: 0 });
+        }
+        await batch.commit();
+      }
 
       const gameSnap = await getDoc(doc(db, 'games', gameCode));
       if (!gameSnap.exists()) return;
       const gameData = gameSnap.data();
       const nextQIndex = (gameData.currentQ ?? 0) + 1;
+      const totalQCount = gameData.questions?.length || 1;
 
-      if (nextQIndex >= gameData.questions.length) {
+      if (nextQIndex >= totalQCount) {
         await updateDoc(doc(db, 'games', gameCode), {
           state: 'loading',
           loadingMessage: 'Preparing Final Standings...'
         });
         setTimeout(async () => {
-          await updateDoc(doc(db, 'games', gameCode), { state: 'podium', isFinal: true });
-        }, 2500);
+          try {
+            await updateDoc(doc(db, 'games', gameCode), { state: 'podium', isFinal: true });
+          } catch (e) {
+            console.error('Podium transition error:', e);
+          }
+        }, 1800);
       } else {
         await updateDoc(doc(db, 'games', gameCode), {
           state: 'loading',
           currentQ: nextQIndex,
-          loadingMessage: `Preparing for Round ${nextQIndex + 1} of ${gameData.questions.length}...`
+          loadingMessage: `Preparing for Round ${nextQIndex + 1} of ${totalQCount}...`
         });
 
         setTimeout(async () => {
-          await updateDoc(doc(db, 'games', gameCode), {
-            state: 'question',
-            currentQ: nextQIndex,
-            startedAt: Date.now(),
-            bonusRound: Math.random() < 0.25,
-            firstBloodQ: false
-          });
-        }, 2500);
+          try {
+            await updateDoc(doc(db, 'games', gameCode), {
+              state: 'question',
+              currentQ: nextQIndex,
+              startedAt: Date.now(),
+              bonusRound: Math.random() < 0.25,
+              firstBloodQ: false
+            });
+          } catch (e) {
+            console.error('Next question transition error:', e);
+          }
+        }, 1600);
       }
     } catch (err) {
       console.error('Failed to advance to next question:', err);

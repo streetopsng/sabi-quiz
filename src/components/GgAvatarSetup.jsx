@@ -18,6 +18,14 @@ export default function GgAvatarSetup() {
     if (joining) return;
     setJoining(true);
     playJoin();
+    const email = (ggSession?.player?.email || '').toLowerCase().trim();
+    if (email) {
+      localStorage.setItem(`sabi_avatar_${email}`, player.vehicle);
+      localStorage.setItem(`sabi_name_${email}`, player.name);
+      if (ggSession?.roomCode) {
+        localStorage.setItem(`sabi_joined_${ggSession.roomCode}_${email}`, 'true');
+      }
+    }
     joinGameWithCode(ggSession.roomCode, player.name, () => setJoining(false), ggSession.player?.email);
   };
 
