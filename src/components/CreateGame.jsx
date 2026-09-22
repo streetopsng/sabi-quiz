@@ -174,6 +174,39 @@ export default function CreateGame() {
 
           <div className="mb-6 sm:mb-7">
             <h2 className="text-xl sm:text-2xl font-extrabold mb-2.5 tracking-tight text-white">
+              Category & Topic
+            </h2>
+            <div className="text-sm sm:text-base font-medium text-white/80 mb-3">
+              Topic Pack
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {['General Knowledge', 'Tech', 'African Business & Culture', 'Company Values', 'Sports & Entertainment'].map((topic) => {
+                const isSelected = (settings.topicPack || 'General Knowledge').toLowerCase() === topic.toLowerCase();
+                return (
+                  <button
+                    key={topic}
+                    type="button"
+                    onClick={() => {
+                      playSelect();
+                      const updated = { ...settings, topicPack: topic };
+                      setSettings(updated);
+                      if (setHostSettings) setHostSettings(updated);
+                    }}
+                    className={`px-3.5 py-1.5 rounded-xl font-semibold text-xs sm:text-sm transition-all cursor-pointer border ${
+                      isSelected
+                        ? 'bg-[#FF8A3D] text-white border-[#FF8A3D] shadow-md font-bold'
+                        : 'bg-black/20 text-white/70 border-white/10 hover:text-white hover:bg-white/10'
+                    }`}
+                  >
+                    {topic}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="mb-6 sm:mb-7">
+            <h2 className="text-xl sm:text-2xl font-extrabold mb-2.5 tracking-tight text-white">
               Difficulty & Final round
             </h2>
             <div className="text-sm sm:text-base font-medium text-white/80 mb-3">

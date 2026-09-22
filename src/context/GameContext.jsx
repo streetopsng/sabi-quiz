@@ -490,12 +490,26 @@ export const GameProvider = ({ children }) => {
           for(let i=0; i<6; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
         }
         
-        let pool = [...QUESTIONS].sort(() => Math.random() - 0.5);
-        let generatedQuestions = [];
-        while (generatedQuestions.length < config.qCount) {
-          generatedQuestions = [...generatedQuestions, ...pool];
+        const selectedTopic = (config.topicPack || 'General Knowledge').toLowerCase().trim();
+        let filteredPool = QUESTIONS.filter((q) => {
+          const cat = (q.category || '').toLowerCase().trim();
+          if (selectedTopic === 'tech' || selectedTopic === 'tech & innovation') {
+            return cat === 'tech' || cat === 'tech & innovation';
+          }
+          return cat === selectedTopic;
+        });
+        if (filteredPool.length === 0) {
+          filteredPool = [...QUESTIONS];
         }
-        generatedQuestions = generatedQuestions.slice(0, config.qCount);
+
+        let pool = [...filteredPool].sort(() => Math.random() - 0.5);
+        let generatedQuestions = [];
+        while (generatedQuestions.length < (config.qCount || 12)) {
+          const target = config.qCount || 12;
+          const remaining = target - generatedQuestions.length;
+          generatedQuestions = [...generatedQuestions, ...pool.slice(0, remaining)];
+          pool = [...filteredPool].sort(() => Math.random() - 0.5);
+        }
 
         setGameCode(code);
         setGameQuestions(generatedQuestions);
