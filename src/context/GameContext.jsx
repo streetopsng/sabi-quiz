@@ -705,28 +705,39 @@ export const GameProvider = ({ children }) => {
   const startRace = () => {
     if (!isHost) return;
     setTimeout(async () => {
-      const playersSnap = await getDocs(collection(db, 'games', gameCode, 'players'));
-      const batchPromises = playersSnap.docs.map(d =>
-        updateDoc(d.ref, { answered: false, chosenAnswer: -1 })
-      );
-      await Promise.all(batchPromises);
+      try {
+        const playersSnap = await getDocs(collection(db, 'games', gameCode, 'players'));
+        if (!playersSnap.empty) {
+          const batch = writeBatch(db);
+          for (const d of playersSnap.docs) {
+            batch.update(d.ref, { answered: false, chosenAnswer: -1 });
+          }
+          await batch.commit();
+        }
 
-      const totalQ = gameQuestions.length || 12;
-      await updateDoc(doc(db, 'games', gameCode), {
-        state: 'loading',
-        loadingMessage: `Preparing for Round 1 of ${totalQ}...`,
-        currentQ: 0
-      });
-
-      setTimeout(async () => {
+        const totalQ = gameQuestions.length || 12;
         await updateDoc(doc(db, 'games', gameCode), {
-          state: 'question',
-          currentQ: 0,
-          startedAt: Date.now(),
-          bonusRound: Math.random() < 0.25,
-          firstBloodQ: false
+          state: 'loading',
+          loadingMessage: `Preparing for Round 1 of ${totalQ}...`,
+          currentQ: 0
         });
-      }, 2500);
+
+        setTimeout(async () => {
+          try {
+            await updateDoc(doc(db, 'games', gameCode), {
+              state: 'question',
+              currentQ: 0,
+              startedAt: Date.now(),
+              bonusRound: Math.random() < 0.25,
+              firstBloodQ: false
+            });
+          } catch (e) {
+            console.error('startRace question transition error:', e);
+          }
+        }, 1800);
+      } catch (err) {
+        console.error('startRace error:', err);
+      }
     }, 0);
   };
 
@@ -736,11 +747,15 @@ export const GameProvider = ({ children }) => {
     setChosenAnswer(idx);
     
     setTimeout(async () => {
-      await updateDoc(doc(db, 'games', gameCode, 'players', sessionId), {
-        answered: true,
-        chosenAnswer: optionMapRef.current[idx],
-        answeredAt: Date.now()
-      });
+      try {
+        await updateDoc(doc(db, 'games', gameCode, 'players', sessionId), {
+          answered: true,
+          chosenAnswer: optionMapRef.current[idx],
+          answeredAt: Date.now()
+        });
+      } catch (e) {
+        console.warn('Answer update failed:', e);
+      }
     }, 0);
   };
 
@@ -748,48 +763,66 @@ export const GameProvider = ({ children }) => {
     if (resolvingRef.current) return;
     resolvingRef.current = true;
     clearInterval(window.currentTimer);
-    
-    await updateDoc(doc(db, 'games', code), { state: 'result' });
-    
-    const gameSnap = await getDoc(doc(db, 'games', code));
-    const game = gameSnap.data();
-    const correctIndex = game.questions[game.currentQ].answer;
-    
-    const pSnap = await getDocs(collection(db, 'games', code, 'players'));
-    let firstBloodUsed = false;
-    
-    const updatePromises = pSnap.docs.map(async (d) => {
-       const p = d.data();
-       if (p.answered && p.chosenAnswer === correctIndex) {
-          let pts = 100;
-          const timeTaken = p.answeredAt ? (p.answeredAt - game.startedAt) / 1000 : 15;
-          const tLeft = Math.max(0, game.config.timerMode - timeTaken);
-          
-          if (tLeft >= 11) pts += 50;
-          else if (tLeft >= 6) pts += 25;
-          
-          if (!firstBloodUsed) { pts += 20; firstBloodUsed = true; }
-          if (game.bonusRound) pts *= 2;
-          
-          let streakMult = p.streak >= 7 ? 2.5 : p.streak >= 5 ? 2.0 : p.streak >= 3 ? 1.5 : p.streak >= 2 ? 1.2 : 1.0;
-          pts = Math.round(pts * streakMult);
-          
-          return updateDoc(d.ref, { score: (p.score || 0) + pts, streak: (p.streak || 0) + 1, roundPoints: pts });
-       } else {
-          return updateDoc(d.ref, { streak: 0, roundPoints: 0 });
-       }
-    });
-    
-    await Promise.all(updatePromises);
 
-    setTimeout(async () => {
-       resolvingRef.current = false;
-       await updateDoc(doc(db, 'games', code), {
-          state: 'leaderboard',
-          leaderboardStartedAt: Date.now(),
-          isFinalRound: game.currentQ + 1 >= game.questions.length
-       });
-    }, 2200);
+    try {
+      await updateDoc(doc(db, 'games', code), { state: 'result' });
+
+      const gameSnap = await getDoc(doc(db, 'games', code));
+      if (!gameSnap.exists()) {
+        resolvingRef.current = false;
+        return;
+      }
+      const game = gameSnap.data();
+      const currentQData = game.questions?.[game.currentQ];
+      const correctIndex = currentQData?.answer ?? 0;
+
+      const pSnap = await getDocs(collection(db, 'games', code, 'players'));
+      let firstBloodUsed = false;
+
+      // Commit ALL player score updates in ONE atomic batch to avoid 50+ individual HTTP writes
+      if (!pSnap.empty) {
+        const batch = writeBatch(db);
+        for (const d of pSnap.docs) {
+          const p = d.data();
+          if (p.answered && p.chosenAnswer === correctIndex) {
+            let pts = 100;
+            const timeTaken = p.answeredAt ? (p.answeredAt - game.startedAt) / 1000 : 15;
+            const tLeft = Math.max(0, (game.config?.timerMode || 15) - timeTaken);
+
+            if (tLeft >= 11) pts += 50;
+            else if (tLeft >= 6) pts += 25;
+
+            if (!firstBloodUsed) { pts += 20; firstBloodUsed = true; }
+            if (game.bonusRound) pts *= 2;
+
+            let streakMult = p.streak >= 7 ? 2.5 : p.streak >= 5 ? 2.0 : p.streak >= 3 ? 1.5 : p.streak >= 2 ? 1.2 : 1.0;
+            pts = Math.round(pts * streakMult);
+
+            batch.update(d.ref, { score: (p.score || 0) + pts, streak: (p.streak || 0) + 1, roundPoints: pts });
+          } else {
+            batch.update(d.ref, { streak: 0, roundPoints: 0 });
+          }
+        }
+        await batch.commit();
+      }
+
+      setTimeout(async () => {
+        try {
+          await updateDoc(doc(db, 'games', code), {
+            state: 'leaderboard',
+            leaderboardStartedAt: Date.now(),
+            isFinalRound: (game.currentQ ?? 0) + 1 >= (game.questions?.length || 1)
+          });
+        } catch (e) {
+          console.error('Leaderboard transition error:', e);
+        } finally {
+          resolvingRef.current = false;
+        }
+      }, 1800);
+    } catch (err) {
+      console.error('resolveQuestion error:', err);
+      resolvingRef.current = false;
+    }
   };
 
   const nextQuestion = async () => {
@@ -797,38 +830,52 @@ export const GameProvider = ({ children }) => {
     clearInterval(window.currentTimer);
     try {
       const snap = await getDocs(collection(db, 'games', gameCode, 'players'));
-      const rPromises = snap.docs.map(d => updateDoc(d.ref, { answered: false, chosenAnswer: -1, roundPoints: 0 }));
-      await Promise.all(rPromises);
+      if (!snap.empty) {
+        const batch = writeBatch(db);
+        for (const d of snap.docs) {
+          batch.update(d.ref, { answered: false, chosenAnswer: -1, roundPoints: 0 });
+        }
+        await batch.commit();
+      }
 
       const gameSnap = await getDoc(doc(db, 'games', gameCode));
       if (!gameSnap.exists()) return;
       const gameData = gameSnap.data();
       const nextQIndex = (gameData.currentQ ?? 0) + 1;
+      const totalQCount = gameData.questions?.length || 1;
 
-      if (nextQIndex >= gameData.questions.length) {
+      if (nextQIndex >= totalQCount) {
         await updateDoc(doc(db, 'games', gameCode), {
           state: 'loading',
           loadingMessage: 'Preparing Final Standings...'
         });
         setTimeout(async () => {
-          await updateDoc(doc(db, 'games', gameCode), { state: 'podium', isFinal: true });
-        }, 2500);
+          try {
+            await updateDoc(doc(db, 'games', gameCode), { state: 'podium', isFinal: true });
+          } catch (e) {
+            console.error('Podium transition error:', e);
+          }
+        }, 1800);
       } else {
         await updateDoc(doc(db, 'games', gameCode), {
           state: 'loading',
           currentQ: nextQIndex,
-          loadingMessage: `Preparing for Round ${nextQIndex + 1} of ${gameData.questions.length}...`
+          loadingMessage: `Preparing for Round ${nextQIndex + 1} of ${totalQCount}...`
         });
 
         setTimeout(async () => {
-          await updateDoc(doc(db, 'games', gameCode), {
-            state: 'question',
-            currentQ: nextQIndex,
-            startedAt: Date.now(),
-            bonusRound: Math.random() < 0.25,
-            firstBloodQ: false
-          });
-        }, 2500);
+          try {
+            await updateDoc(doc(db, 'games', gameCode), {
+              state: 'question',
+              currentQ: nextQIndex,
+              startedAt: Date.now(),
+              bonusRound: Math.random() < 0.25,
+              firstBloodQ: false
+            });
+          } catch (e) {
+            console.error('Next question transition error:', e);
+          }
+        }, 1600);
       }
     } catch (err) {
       console.error('Failed to advance to next question:', err);

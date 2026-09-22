@@ -41,6 +41,11 @@ export default function Leaderboard() {
     nextQuestion();
   };
 
+  // Reset advancingRef whenever round advances or state changes
+  useEffect(() => {
+    advancingRef.current = false;
+  }, [gameState, currentQ]);
+
   // Immediate exit if game already moved to loading, question, or podium
   useEffect(() => {
     if (gameState === 'loading') {
@@ -51,6 +56,23 @@ export default function Leaderboard() {
       navigate('podium');
     }
   }, [gameState, navigate]);
+
+  // Host watchdog: If countdown hits 0 but room stays on leaderboard for 4s (e.g. throttled background tab), force advance
+  useEffect(() => {
+    if (!isHost || gameState !== 'leaderboard') return;
+    let watchdogTimer = null;
+    if (countdown <= 0) {
+      watchdogTimer = setTimeout(() => {
+        if (gameState === 'leaderboard') {
+          advancingRef.current = false;
+          nextQuestionRef.current();
+        }
+      }, 4000);
+    }
+    return () => {
+      if (watchdogTimer) clearTimeout(watchdogTimer);
+    };
+  }, [isHost, countdown, gameState]);
 
   useEffect(() => {
     const totalSec = 5;
