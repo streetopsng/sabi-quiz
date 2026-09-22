@@ -122,18 +122,64 @@ export const GameProvider = ({ children }) => {
       return;
     }
     if (!ggSession.isHost) {
+      const email = (ggSession.player?.email || '').toLowerCase().trim();
+      const roomCode = ggSession.roomCode;
       const savedCode = sessionStorage.getItem('sabi_game_code');
       const savedJoined = sessionStorage.getItem('sabi_joined_room');
-      if (savedCode === ggSession.roomCode || savedJoined === ggSession.roomCode) {
-        // Participant already joined this room before reloading — resume directly into the room
+      const localJoined = email ? localStorage.getItem(`sabi_joined_${roomCode}_${email}`) === 'true' : false;
+
+      // 1. Fast local check (sessionStorage or localStorage for this room)
+      if (savedCode === roomCode || savedJoined === roomCode || localJoined) {
+        const savedAvatar = (email && localStorage.getItem(`sabi_avatar_${email}`)) || player.vehicle;
+        const savedName = (email && localStorage.getItem(`sabi_name_${email}`)) || ggSession.player?.name || player.name;
+        if (savedAvatar) setPlayer((p) => ({ ...p, vehicle: savedAvatar, name: savedName }));
         setGgRouted(true);
-        joinGameWithCode(ggSession.roomCode, player.name || ggSession.player?.name, () => setGgRouted(true), ggSession.player?.email);
+        joinGameWithCode(roomCode, savedName, () => setGgRouted(true), email);
         return;
       }
-      // First-time participant entrance: let them pick a name/avatar first
-      setPlayer((p) => ({ ...p, name: ggSession.player?.name || p.name || '' }));
-      navigate('gg-avatar');
-      setGgRouted(true);
+
+      // 2. Query Firestore to check if this participant already joined this room (e.g. fresh tab via email link)
+      getDocs(collection(db, 'games', roomCode, 'players')).then((pSnap) => {
+        const existingPlayer = pSnap.docs.find((d) => {
+          const data = d.data();
+          const docEmail = (data.ggEmail || '').toLowerCase().trim();
+          const docName = (data.name || '').toLowerCase().trim();
+          return (email && docEmail === email) || (ggSession.player?.name && docName === ggSession.player.name.toLowerCase().trim());
+        });
+
+        if (existingPlayer) {
+          const priorData = existingPlayer.data();
+          const restoredAvatar = priorData.vehicle || (email && localStorage.getItem(`sabi_avatar_${email}`)) || player.vehicle;
+          const restoredName = priorData.name || (email && localStorage.getItem(`sabi_name_${email}`)) || ggSession.player?.name || player.name;
+
+          if (email) {
+            localStorage.setItem(`sabi_joined_${roomCode}_${email}`, 'true');
+            localStorage.setItem(`sabi_avatar_${email}`, restoredAvatar);
+            localStorage.setItem(`sabi_name_${email}`, restoredName);
+          }
+          sessionStorage.setItem('sabi_game_code', roomCode);
+          sessionStorage.setItem('sabi_joined_room', roomCode);
+
+          setPlayer((p) => ({ ...p, vehicle: restoredAvatar, name: restoredName }));
+          setGgRouted(true);
+          joinGameWithCode(roomCode, restoredName, () => setGgRouted(true), email);
+        } else {
+          // Genuinely first time: pre-fill remembered avatar/name from past sessions if available
+          const rememberedAvatar = email ? localStorage.getItem(`sabi_avatar_${email}`) : null;
+          const initialName = (email && localStorage.getItem(`sabi_name_${email}`)) || ggSession.player?.name || player.name || '';
+          setPlayer((p) => ({
+            ...p,
+            name: initialName,
+            ...(rememberedAvatar && { vehicle: rememberedAvatar }),
+          }));
+          navigate('gg-avatar');
+          setGgRouted(true);
+        }
+      }).catch(() => {
+        setPlayer((p) => ({ ...p, name: ggSession.player?.name || p.name || '' }));
+        navigate('gg-avatar');
+        setGgRouted(true);
+      });
       return;
     }
     getDoc(doc(db, 'games', ggSession.roomCode)).then((existing) => {
@@ -585,13 +631,19 @@ export const GameProvider = ({ children }) => {
         sessionStorage.setItem('sabi_is_spectator', 'false');
 
         const playerRef = doc(db, 'games', code, 'players', sessionId);
-        const pDoc = await getDoc(playerRef);
+        let finalVehicle = player.vehicle;
+        let finalName = requestedName || player.name;
+
         if (staleDoc) {
           const prior = staleDoc.data();
+          finalVehicle = prior.vehicle || player.vehicle;
+          finalName = requestedName || prior.name || player.name;
+          setPlayer((p) => ({ ...p, name: finalName, vehicle: finalVehicle }));
           await deleteDoc(doc(db, 'games', code, 'players', staleDoc.id)).catch(() => undefined);
           await setDoc(playerRef, {
             ...player,
-            name: requestedName || player.name,
+            name: finalName,
+            vehicle: finalVehicle,
             sessionId,
             ...(normalizedGgEmail && { ggEmail: normalizedGgEmail }),
             score: prior.score ?? player.score ?? 0,
@@ -603,7 +655,8 @@ export const GameProvider = ({ children }) => {
         } else if (!pDoc.exists()) {
           await setDoc(playerRef, {
             ...player,
-            name: requestedName || player.name,
+            name: finalName,
+            vehicle: finalVehicle,
             sessionId,
             ...(normalizedGgEmail && { ggEmail: normalizedGgEmail }),
             score: player.score ?? 0,
@@ -618,6 +671,12 @@ export const GameProvider = ({ children }) => {
             ...(requestedName && { name: requestedName }),
             ...(normalizedGgEmail && { ggEmail: normalizedGgEmail })
           });
+        }
+
+        if (normalizedGgEmail) {
+          localStorage.setItem(`sabi_avatar_${normalizedGgEmail}`, finalVehicle);
+          localStorage.setItem(`sabi_name_${normalizedGgEmail}`, finalName);
+          localStorage.setItem(`sabi_joined_${code}_${normalizedGgEmail}`, 'true');
         }
 
         if (gameData.state !== 'lobby') {
