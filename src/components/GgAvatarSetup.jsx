@@ -5,6 +5,7 @@ import { useGame } from '../context/GameContext';
 import { playJoin, playSelect } from '../utils/audio';
 import AvatarBadge from './AvatarBadge';
 import { GUMMY_AVATARS } from '../constants';
+import GameRulesModal from './GameRulesModal';
 
 // Shown to a GummyGum-invited participant right after their name/room code
 // resolve, before they land in the waiting room — mirrors JoinGame's manual
@@ -12,6 +13,7 @@ import { GUMMY_AVATARS } from '../constants';
 export default function GgAvatarSetup() {
   const { player, setPlayer, ggSession, joinGameWithCode } = useGame();
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [showRulesModal, setShowRulesModal] = useState(false);
   const [joining, setJoining] = useState(false);
 
   const handleContinue = () => {
@@ -62,12 +64,22 @@ export default function GgAvatarSetup() {
           whileHover={{ scale: 1.01 }}
           whileTap={{ scale: 0.96 }}
           disabled={joining || !player.name.trim()}
-          onClick={handleContinue}
+          onClick={() => setShowRulesModal(true)}
           className="w-full max-w-[320px] sm:max-w-[380px] h-[50px] sm:h-[56px] rounded-full bg-[#FF7F36] text-white text-lg sm:text-xl font-semibold border-2 sm:border-[3px] border-white shadow-[0_6px_25px_rgba(255,127,54,0.4)] hover:bg-[#e66f2c] transition-all cursor-pointer flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
         >
           <span>{joining ? 'Joining…' : 'Continue to Waiting Room'}</span>
         </motion.button>
       </div>
+
+      {showRulesModal && (
+        <GameRulesModal
+          name={player.name.trim()}
+          onConfirm={() => {
+            setShowRulesModal(false);
+            handleContinue();
+          }}
+        />
+      )}
 
       <AnimatePresence>
         {showAvatarPicker && (
