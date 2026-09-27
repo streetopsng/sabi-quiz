@@ -7,7 +7,7 @@ const STORAGE_KEY = 'gummygum_launch_session';
 
 export function getGummyGumSession() {
   if (typeof window === 'undefined') return null;
-  const stored = sessionStorage.getItem(STORAGE_KEY);
+  const stored = sessionStorage.getItem(STORAGE_KEY) || localStorage.getItem(STORAGE_KEY);
   try {
     return stored ? JSON.parse(stored) : null;
   } catch {
@@ -39,18 +39,33 @@ export async function resolveGummyGumLaunch() {
     return getGummyGumSession();
   }
 
-  // Fresh launch from GummyGum: clear any stale room codes or host flags from past sessions
-  sessionStorage.removeItem('sabi_game_code');
-  sessionStorage.removeItem('sabi_joined_room');
-  sessionStorage.removeItem('sabi_is_host');
-  sessionStorage.removeItem('sabi_is_spectator');
-
   let body = await verifyLaunchTokenOnce(ggt);
   if (!body) {
     await new Promise((resolve) => setTimeout(resolve, 1500));
     body = await verifyLaunchTokenOnce(ggt);
   }
-  if (!body) return null;
+
+  if (!body) {
+    // If token verification fails (e.g. single-use token already consumed and page refreshed),
+    // fall back to existing active session if available
+    const existing = getGummyGumSession();
+    if (existing) {
+      params.delete('ggt');
+      const query = params.toString();
+      window.history.replaceState({}, '', window.location.pathname + (query ? `?${query}` : ''));
+      return existing;
+    }
+    return null;
+  }
+
+  const existing = getGummyGumSession();
+  // Only clear room state if launching into a different room
+  if (!existing || existing.roomCode !== body.data.roomCode) {
+    sessionStorage.removeItem('sabi_game_code');
+    sessionStorage.removeItem('sabi_joined_room');
+    sessionStorage.removeItem('sabi_is_host');
+    sessionStorage.removeItem('sabi_is_spectator');
+  }
 
   const hubUrl = body.data.hubUrl || (typeof document !== 'undefined' && document.referrer ? new URL(document.referrer).origin : 'https://gummygum.app');
 
@@ -67,6 +82,7 @@ export async function resolveGummyGumLaunch() {
     reported: false,
   };
   sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
 
   // Drop the token from the visible URL/history once it's been used.
   params.delete('ggt');
@@ -90,6 +106,7 @@ export async function reportGummyGumCancel() {
     console.error('GummyGum cancel report failed', err);
   } finally {
     sessionStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(STORAGE_KEY);
   }
 }
 
@@ -105,6 +122,7 @@ export async function reportGummyGumResult(report) {
     });
     session.reported = true;
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(session));
   } catch (err) {
     console.error('GummyGum result report failed', err);
   }
@@ -135,6 +153,7 @@ export async function closeGummyGumSession(finalReport) {
   } finally {
     const hub = session.hubUrl || 'https://gummygum.app';
     sessionStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(STORAGE_KEY);
     window.location.href = hub;
   }
 }
@@ -144,6 +163,7 @@ export function returnToGummyGum() {
   const session = getGummyGumSession();
   const hub = session?.hubUrl || 'https://gummygum.app';
   sessionStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(STORAGE_KEY);
   window.location.href = hub;
 }
 

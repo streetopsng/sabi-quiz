@@ -648,6 +648,8 @@ export const GameProvider = ({ children }) => {
         let finalVehicle = player.vehicle;
         let finalName = requestedName || player.name;
 
+        const existingPlayerDoc = pSnap.docs.find((d) => d.id === sessionId);
+
         if (staleDoc) {
           const prior = staleDoc.data();
           finalVehicle = prior.vehicle || player.vehicle;
@@ -666,7 +668,7 @@ export const GameProvider = ({ children }) => {
             chosenAnswer: prior.chosenAnswer ?? -1,
             connected: true
           });
-        } else if (!pDoc.exists()) {
+        } else if (!existingPlayerDoc) {
           await setDoc(playerRef, {
             ...player,
             name: finalName,
