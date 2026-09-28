@@ -7,7 +7,7 @@ import AvatarBadge from './AvatarBadge';
 import { GUMMY_AVATARS } from '../constants';
 
 export default function JoinGame() {
-  const { navigate, joinGameWithCode, setPlayer, player, showAlertModal } = useGame();
+  const { navigate, joinGameWithCode, setPlayer, player, showAlertModal, ggSession } = useGame();
   
   // Step 1: PIN entry (#829:337 & #858:1222)
   // Step 2: Name & Avatar selection (#829:397 & #840:467)
@@ -180,15 +180,17 @@ export default function JoinGame() {
                   <span>Join</span>
                 </motion.button>
 
-                <motion.button
-                  whileHover={{ scale: 1.01 }}
-                  whileTap={{ scale: 0.96 }}
-                  onClick={() => showAlertModal("Point your device camera at the host screen's QR code to join instantly!", "Scan QR Code")}
-                  className="w-full h-[48px] sm:h-[54px] rounded-full border-2 sm:border-[3px] border-white bg-black/30 hover:bg-white/10 text-white text-base sm:text-lg font-semibold backdrop-blur-sm transition-all cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <QrCode size={18} className="opacity-90" />
-                  <span>Scan QR Code</span>
-                </motion.button>
+                {!ggSession && (
+                  <motion.button
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => showAlertModal("Point your device camera at the host screen's QR code to join instantly!", "Scan QR Code")}
+                    className="w-full h-[48px] sm:h-[54px] rounded-full border-2 sm:border-[3px] border-white bg-black/30 hover:bg-white/10 text-white text-base sm:text-lg font-semibold backdrop-blur-sm transition-all cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <QrCode size={18} className="opacity-90" />
+                    <span>Scan QR Code</span>
+                  </motion.button>
+                )}
               </div>
             </motion.div>
           )}
