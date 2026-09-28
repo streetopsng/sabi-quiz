@@ -904,9 +904,10 @@ export const GameProvider = ({ children }) => {
       sessionStorage.removeItem('sabi_game_code');
       sessionStorage.removeItem('sabi_is_host');
       setGameCode('');
-      // Only relevant for a room launched through GummyGum — a no-op
-      // (early return) for a plain direct-visit game with nothing stored.
-      reportGummyGumCancel();
+      // Awaited so the backend confirms cancellation before we navigate away —
+      // firing this without waiting let the page unload abort the request,
+      // leaving the session "live" in GummyGum's eyes.
+      await reportGummyGumCancel();
       if (ggSession) {
         window.location.href = 'https://gummygum.app';
       } else {
