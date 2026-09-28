@@ -234,12 +234,11 @@ export const GameProvider = ({ children }) => {
           // re-hit the close endpoint via closeGummyGumSession().
           returnToGummyGum();
         } else if (ggSession) {
-          // Participant: mirror the leaderboard/podium close-tab pattern
-          // instead of routing to the native landing screen.
-          window.close();
-          setTimeout(() => {
-            showAlertModal('This session was cancelled by the host. You can close this tab now.', 'Session Cancelled');
-          }, 400);
+          // Participant: route to a dedicated terminal screen rather than
+          // leaving them on a frozen lobby/question/leaderboard screen with
+          // just a modal on top — window.close() silently no-ops for tabs
+          // not opened via script, so it can't be relied on here.
+          navigate('session-ended');
         } else {
           showAlertModal('The Race Director cancelled the session.', 'Session Cancelled');
           navigate('home');

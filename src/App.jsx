@@ -11,6 +11,7 @@ import LoadingScreen from './components/LoadingScreen';
 import Podium from './components/Podium';
 import Overlays from './components/Overlays';
 import GgAvatarSetup from './components/GgAvatarSetup';
+import SessionEnded from './components/SessionEnded';
 
 const GummyGumLockedScreen = () => (
   <div className="h-[100dvh] w-full bg-[#091521] text-white flex items-center justify-center px-6">
@@ -57,6 +58,7 @@ function ScreenManager() {
         {currentScreen === 'leaderboard' && <Leaderboard key="leaderboard" />}
         {currentScreen === 'loading' && <LoadingScreen key="loading" />}
         {currentScreen === 'podium' && <Podium key="podium" />}
+        {currentScreen === 'session-ended' && <SessionEnded key="session-ended" />}
       </AnimatePresence>
     </div>
   );
