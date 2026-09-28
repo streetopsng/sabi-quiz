@@ -1,30 +1,25 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Volume2, 
-  VolumeX, 
-  Maximize, 
-  Minimize, 
-  Sliders, 
-  Camera, 
-  MoreHorizontal, 
-  Plus, 
-  X,
-  Play
+import {
+  Volume2,
+  VolumeX,
+  Maximize,
+  Minimize,
+  Sliders,
+  MoreHorizontal,
+  Plus
 } from 'lucide-react';
 
 export default function HostToolbar({
   onNextRound,
   onOpenSettings,
-  onTogglePictureMode,
-  isPictureMode = false,
   nextRoundLabel = "New Round",
   showNewRound = true
 }) {
   const [isMuted, setIsMuted] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  // viewMode: 'horizontal' | 'collapsed' | 'vertical'
-  const [viewMode, setViewMode] = useState('horizontal');
+  // viewMode: 'collapsed' | 'vertical'
+  const [viewMode, setViewMode] = useState('vertical');
 
   const toggleSound = () => {
     setIsMuted(!isMuted);
@@ -67,16 +62,6 @@ export default function HostToolbar({
           className="fixed left-6 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center gap-3 p-3 rounded-3xl bg-[#142D38]/95 border border-white/15 text-white shadow-[0_20px_50px_rgba(0,0,0,0.6)] backdrop-blur-xl"
         >
           <button
-            onClick={() => setViewMode('horizontal')}
-            className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 active:scale-95 flex items-center justify-center transition-all cursor-pointer text-white/80"
-            title="Switch to Horizontal Bar"
-          >
-            <X size={18} />
-          </button>
-
-          <div className="w-6 h-[1px] bg-white/15 my-0.5" />
-
-          <button
             onClick={toggleSound}
             className="w-10 h-10 rounded-2xl bg-white/5 hover:bg-white/15 active:scale-95 flex items-center justify-center transition-all cursor-pointer text-white"
             title={isMuted ? 'Unmute' : 'Mute'}
@@ -102,16 +87,6 @@ export default function HostToolbar({
             </button>
           )}
 
-          <button
-            onClick={onTogglePictureMode}
-            className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-all cursor-pointer text-white shadow-sm ${
-              isPictureMode ? 'bg-[#FF8A3D]' : 'bg-[#FF8A3D]/80 hover:bg-[#FF8A3D]'
-            }`}
-            title="Picture Question Toggle"
-          >
-            <Camera size={18} />
-          </button>
-
           {showNewRound && (
             <button
               onClick={onNextRound}
@@ -128,70 +103,6 @@ export default function HostToolbar({
             title="Collapse to (+)"
           >
             <MoreHorizontal size={18} />
-          </button>
-        </motion.div>
-      )}
-
-      {viewMode === 'horizontal' && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 20 }}
-          className="fixed left-4 sm:left-8 bottom-4 sm:bottom-6 z-40 flex items-center gap-2 sm:gap-2.5 px-3 py-2 sm:px-4 sm:py-2.5 rounded-full bg-[#163440]/90 border border-white/15 text-white shadow-[0_15px_40px_rgba(0,0,0,0.5)] backdrop-blur-xl"
-        >
-          <button
-            onClick={toggleSound}
-            className="w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:bg-white/10 active:scale-95 flex items-center justify-center transition-all cursor-pointer text-white/90 hover:text-white"
-            title={isMuted ? 'Unmute' : 'Mute'}
-          >
-            {isMuted ? <VolumeX size={19} /> : <Volume2 size={19} />}
-          </button>
-
-          <button
-            onClick={toggleFullscreen}
-            className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-[#FF8A3D] hover:bg-[#ff9752] active:scale-95 flex items-center justify-center transition-all cursor-pointer text-white shadow-[0_4px_12px_rgba(255,138,61,0.35)]"
-            title={isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
-          >
-            {isFullscreen ? <Minimize size={18} /> : <Maximize size={18} />}
-          </button>
-
-          {onOpenSettings && (
-            <button
-              onClick={onOpenSettings}
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-[#FF8A3D] hover:bg-[#ff9752] active:scale-95 flex items-center justify-center transition-all cursor-pointer text-white shadow-[0_4px_12px_rgba(255,138,61,0.35)]"
-              title="Settings"
-            >
-              <Sliders size={18} />
-            </button>
-          )}
-
-          <button
-            onClick={onTogglePictureMode}
-            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-2xl active:scale-95 flex items-center justify-center transition-all cursor-pointer text-white shadow-[0_4px_12px_rgba(255,138,61,0.35)] ${
-              isPictureMode ? 'bg-[#7C3AED]' : 'bg-[#FF8A3D] hover:bg-[#ff9752]'
-            }`}
-            title="Toggle Picture Question Mode"
-          >
-            <Camera size={18} />
-          </button>
-
-          {showNewRound && (
-            <motion.button
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
-              onClick={onNextRound}
-              className="px-4 py-2 rounded-full bg-gradient-to-r from-[#FF8A3D] to-[#F97316] text-white font-semibold text-xs sm:text-sm shadow-[0_4px_16px_rgba(255,138,61,0.45)] hover:shadow-[0_6px_22px_rgba(255,138,61,0.6)] transition-all cursor-pointer whitespace-nowrap"
-            >
-              {nextRoundLabel}
-            </motion.button>
-          )}
-
-          <button
-            onClick={() => setViewMode('collapsed')}
-            className="w-8 h-8 rounded-full bg-[#FF8A3D] hover:bg-[#ff9752] active:scale-95 flex items-center justify-center transition-all cursor-pointer text-white"
-            title="Collapse to (+)"
-          >
-            <MoreHorizontal size={17} />
           </button>
         </motion.div>
       )}

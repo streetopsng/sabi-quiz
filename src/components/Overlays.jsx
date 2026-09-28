@@ -62,7 +62,7 @@ export default function Overlays() {
               <p className="text-white/80 text-sm leading-relaxed mb-6 font-medium">
                 {alertModal.message}
               </p>
-              {alertModal.cta ? (
+              {alertModal.cta?.url ? (
                 <a href={alertModal.cta.url} className="block">
                   <motion.button
                     whileTap={{ scale: 0.96 }}
@@ -71,6 +71,17 @@ export default function Overlays() {
                     {alertModal.cta.text}
                   </motion.button>
                 </a>
+              ) : alertModal.cta ? (
+                <motion.button
+                  whileTap={{ scale: 0.96 }}
+                  onClick={() => {
+                    alertModal.cta.onClick?.();
+                    closeAlertModal();
+                  }}
+                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#ff6b4a] via-[#f75270] to-[#9333ea] text-white font-extrabold text-[15px] uppercase tracking-wider shadow-[0_6px_20px_rgba(247,82,112,0.4)] hover:shadow-[0_6px_25px_rgba(247,82,112,0.6)] transition-all cursor-pointer"
+                >
+                  {alertModal.cta.text}
+                </motion.button>
               ) : (
                 <motion.button
                   whileTap={{ scale: 0.96 }}
