@@ -46,6 +46,7 @@ export const GameProvider = ({ children }) => {
   const shuffledQRef = useRef(-1);
   const gameRef = useRef(null);
   const resolvingRef = useRef(false);
+  const hasSeenSelfInPlayersRef = useRef(false);
   
   const [isHost, setIsHost] = useState(false);
   const [isSpectator, setIsSpectator] = useState(() => sessionStorage.getItem('sabi_is_spectator') === 'true');
@@ -399,17 +400,18 @@ export const GameProvider = ({ children }) => {
 
       const me = playersList.find(p => p.sessionId === sessionId || (player.name && (p.name || '').trim().toLowerCase() === player.name.trim().toLowerCase()));
       if (me) {
-        setPlayer(prev => ({ 
-          ...prev, 
-          name: me.name || prev.name, 
-          score: me.score ?? prev.score, 
-          streak: me.streak ?? prev.streak, 
-          roundPoints: me.roundPoints || 0, 
-          banter: me.banter || prev.banter, 
-          vehicle: me.vehicle || prev.vehicle, 
-          color: me.color || prev.color 
+        hasSeenSelfInPlayersRef.current = true;
+        setPlayer(prev => ({
+          ...prev,
+          name: me.name || prev.name,
+          score: me.score ?? prev.score,
+          streak: me.streak ?? prev.streak,
+          roundPoints: me.roundPoints || 0,
+          banter: me.banter || prev.banter,
+          vehicle: me.vehicle || prev.vehicle,
+          color: me.color || prev.color
         }));
-        
+
         if (gameRef.current && gameRef.current.state === 'result' && chosenAnswer !== -1) {
            const wasCorrect = me.chosenAnswer === gameRef.current.questions[gameRef.current.currentQ].answer;
            setFlashColor(wasCorrect ? 'green' : 'red');
@@ -417,6 +419,23 @@ export const GameProvider = ({ children }) => {
            setTimeout(() => setFlashColor(null), 300);
            if (wasCorrect) showStreakToast(me.streak);
         }
+      } else if (hasSeenSelfInPlayersRef.current && !isHost && gameRef.current?.state === 'lobby') {
+        // Was present in the roster before, now gone while still in the lobby — the
+        // host removed us. Without this, we'd just sit on the lobby screen forever.
+        hasSeenSelfInPlayersRef.current = false;
+        sessionStorage.removeItem('sabi_game_code');
+        sessionStorage.removeItem('sabi_joined_room');
+        sessionStorage.removeItem('sabi_is_host');
+        sessionStorage.removeItem('sabi_is_spectator');
+        setGameCode('');
+        showAlertModal(
+          'The host has removed you from this session.',
+          'Removed from lobby',
+          null,
+          ggSession
+            ? { text: 'Return to GummyGum', onClick: returnToGummyGum }
+            : { text: 'You can close this tab now', onClick: () => {} }
+        );
       }
 
       // Opponents MUST strictly exclude the local player by sessionId, matching name, and matching email
