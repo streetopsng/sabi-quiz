@@ -90,9 +90,7 @@ export default function Lobby() {
 
             <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 items-stretch">
 
-              {/* Invites already went out by email the moment this session
-                  was created, so there's nothing to scan or copy here. */}
-              <div className="rounded-[28px] sm:rounded-[32px] bg-[#122834]/90 border border-white/10 p-4 sm:p-6 flex items-center gap-4 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-md">
+              <div className="rounded-[28px] sm:rounded-[32px] bg-[#122834]/90 border border-white/10 p-4 sm:p-6 flex items-center gap-4 shadow-[0_4px_18px_rgba(0,0,0,0.3)] backdrop-blur-md">
                 <div className="w-12 h-12 rounded-2xl bg-[#FF8A3D]/15 border border-[#FF8A3D]/30 text-[#FF8A3D] flex items-center justify-center shrink-0">
                   <MailCheck size={22} />
                 </div>
@@ -102,7 +100,7 @@ export default function Lobby() {
                 </div>
               </div>
 
-              <div className="rounded-[28px] sm:rounded-[32px] bg-[#122834]/90 border border-white/10 p-4 sm:p-6 flex flex-col items-center justify-center text-center shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-md min-h-[200px] sm:min-h-[220px]">
+              <div className="rounded-[28px] sm:rounded-[32px] bg-[#122834]/90 border border-white/10 p-4 sm:p-6 flex flex-col items-center justify-center text-center shadow-[0_4px_18px_rgba(0,0,0,0.3)] backdrop-blur-md min-h-[200px] sm:min-h-[220px]">
                 <div className="text-base sm:text-lg font-bold text-white mb-1">
                   {playerCounterText}
                 </div>
@@ -143,7 +141,7 @@ export default function Lobby() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.97 }}
                 onClick={() => { playSelect(); startRace(); }}
-                className="w-full py-3.5 rounded-full bg-gradient-to-r from-[#FF8A3D] to-[#F97316] border-2 border-white/80 text-white text-lg sm:text-xl font-bold shadow-[0_8px_25px_rgba(255,138,61,0.45)] hover:shadow-[0_12px_35px_rgba(255,138,61,0.65)] transition-all cursor-pointer text-center"
+                className="w-full py-3.5 rounded-full bg-gradient-to-r from-[#FF8A3D] to-[#F97316] text-white text-lg sm:text-xl font-bold shadow-[0_6px_20px_rgba(255,138,61,0.4)] hover:shadow-[0_8px_26px_rgba(255,138,61,0.55)] transition-all cursor-pointer text-center"
               >
                 Start
               </motion.button>
@@ -170,7 +168,7 @@ export default function Lobby() {
               Tap avatar to customize
             </div>
 
-            <div className="w-full rounded-[24px] sm:rounded-[28px] bg-[#122834]/90 border border-white/10 p-4 sm:p-5 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-md">
+            <div className="w-full rounded-[24px] sm:rounded-[28px] bg-[#122834]/90 border border-white/10 p-4 sm:p-5 shadow-[0_4px_18px_rgba(0,0,0,0.3)] backdrop-blur-md">
               <div className="text-xs font-semibold text-white/50 uppercase tracking-wide mb-3">
                 {participantCounterText}
               </div>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Check } from 'lucide-react';
 import { useGame } from '../context/GameContext';
 import HostToolbar from './HostToolbar';
 import SettingsModal from './SettingsModal';
@@ -163,7 +163,7 @@ export default function Question() {
 
     if (showResult) {
       if (isCorrect) {
-        cardClass += ' p-[3px] bg-gradient-to-r from-[#FF8A3D] via-[#A855F7] to-[#7C3AED] shadow-[0_0_30px_rgba(255,138,61,0.5)] scale-[1.03] z-10';
+        cardClass += ' p-[3px] bg-gradient-to-r from-[#FF8A3D] to-[#F4D06F] shadow-[0_0_24px_rgba(255,138,61,0.45)] scale-[1.03] z-10';
       } else {
         cardClass += ' opacity-40 grayscale-[20%]';
       }
@@ -181,9 +181,11 @@ export default function Question() {
         }}
         className={`relative min-h-[52px] sm:min-h-[64px] md:min-h-[72px] rounded-2xl sm:rounded-[22px] p-3 sm:p-4 font-bold text-base sm:text-lg text-center transition-all cursor-pointer flex items-center justify-center shadow-md ${cardClass}`}
       >
-        {/* Inner container to hold gradient border if correct */}
         {isCorrect && showResult ? (
-          <div className="w-full h-full bg-[#183944] rounded-[18px] sm:rounded-[20px] flex items-center justify-center p-2 text-white">
+          <div className="w-full h-full bg-[#183944] rounded-[18px] sm:rounded-[20px] flex items-center justify-center gap-2 p-2 text-white">
+            <span className="w-5 h-5 rounded-full bg-[#F4D06F] text-[#183944] flex items-center justify-center shrink-0">
+              <Check size={13} strokeWidth={3} />
+            </span>
             <span>{opt}</span>
           </div>
         ) : (

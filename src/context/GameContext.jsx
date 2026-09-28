@@ -619,7 +619,17 @@ export const GameProvider = ({ children }) => {
       try {
         const gameDoc = await getDoc(doc(db, 'games', code));
         if (!gameDoc.exists()) {
-          showAlertModal("Game not found or invalid code!", "Invalid Game PIN");
+          if (ggSession) {
+            // Stale GummyGum session pointing at a room the host already ended — lock out instead of falling through to native Home.
+            sessionStorage.removeItem('sabi_game_code');
+            sessionStorage.removeItem('sabi_joined_room');
+            sessionStorage.removeItem('sabi_is_host');
+            sessionStorage.removeItem('sabi_is_spectator');
+            setGgSession(null);
+            setGgAccessState('denied');
+          } else {
+            showAlertModal("Game not found or invalid code!", "Invalid Game PIN");
+          }
           return;
         }
 
