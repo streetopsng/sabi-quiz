@@ -246,7 +246,7 @@ export const GameProvider = ({ children }) => {
         if (ggSession?.isHost) {
           // GummyGum is the source of this cancellation (or already knows
           // about it) — just send the host back to the hub, no need to
-          // re-hit the close endpoint via closeGummyGumSession().
+          // re-hit the close endpoint.
           returnToGummyGum();
         } else if (ggSession) {
           // Participant: route to a dedicated terminal screen rather than
@@ -470,9 +470,7 @@ export const GameProvider = ({ children }) => {
           'The host has removed you from this session.',
           'Removed from lobby',
           null,
-          ggSession
-            ? { text: 'Return to GummyGum', onClick: returnToGummyGum }
-            : { text: 'You can close this tab now', onClick: () => {} }
+          { text: 'You can close this tab now', onClick: () => {} }
         );
       }
 

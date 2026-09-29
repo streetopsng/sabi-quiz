@@ -130,37 +130,6 @@ export async function reportGummyGumResult(report) {
   }
 }
 
-// Host-only: explicitly close session, ensure final report submitted, and return to GummyGum
-export async function closeGummyGumSession(finalReport) {
-  const session = getGummyGumSession();
-  if (!session) {
-    window.location.href = 'https://gummygum.app';
-    return;
-  }
-
-  if (!session.isHost) {
-    console.warn('Only the session host can close the session.');
-    returnToGummyGum();
-    return;
-  }
-
-  try {
-    await fetch(`${API_URL}/api/gummygum/launch/close`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reportToken: session.reportToken, report: finalReport }),
-      keepalive: true,
-    });
-  } catch (err) {
-    console.error('GummyGum close session failed', err);
-  } finally {
-    const hub = session.hubUrl || 'https://gummygum.app';
-    sessionStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(STORAGE_KEY);
-    window.location.href = hub;
-  }
-}
-
 // Host-only: ends the hosted session in the hub (close for a completed game,
 // cancel otherwise), clears the stored session and returns the hub URL.
 export async function endGummyGumSession({ completed = false, finalReport } = {}) {

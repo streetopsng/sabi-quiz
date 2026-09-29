@@ -7,7 +7,6 @@ import SettingsModal from './SettingsModal';
 import AvatarBadge from './AvatarBadge';
 import { useGame } from '../context/GameContext';
 import { playSelect } from '../utils/audio';
-import { returnToGummyGum } from '../lib/gummygumSession';
 
 export default function Leaderboard() {
   const {
@@ -24,6 +23,7 @@ export default function Leaderboard() {
     hostSettings,
     setHostSettings,
     ggSession,
+    showAlertModal,
   } = useGame();
 
   const totalQuestions = gameQuestions?.length || 1;
@@ -182,7 +182,7 @@ export default function Leaderboard() {
               playSelect();
               window.close();
               // Falls back if the browser blocks the script-close.
-              setTimeout(() => (ggSession ? returnToGummyGum() : navigate('home')), 400);
+              setTimeout(() => (ggSession ? showAlertModal('You can close this tab now.', 'Leave game') : navigate('home')), 400);
             }}
             className="w-11 h-11 rounded-full bg-white/10 border border-white/15 text-white flex items-center justify-center transition-all hover:bg-white/20 active:scale-95 cursor-pointer"
             title="Close"
