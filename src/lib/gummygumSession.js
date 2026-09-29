@@ -2,7 +2,7 @@
 // own subdomain). The hub redirects here with a short-lived `ggt` token in
 // the URL; we verify it once to find out who's playing, and hold onto the
 // report token it hands back so we can post results when the session ends.
-const API_URL = import.meta.env.VITE_GUMMYGUM_API_URL || 'http://localhost:8000';
+const API_URL = import.meta.env.VITE_GUMMYGUM_API_URL || (import.meta.env.DEV ? 'http://localhost:8000' : 'https://paige-server.onrender.com');
 const STORAGE_KEY = 'gummygum_launch_session';
 
 export function getGummyGumSession() {
