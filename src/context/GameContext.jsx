@@ -3,7 +3,7 @@ import { db } from '../firebase';
 import { doc, collection, setDoc, getDoc, updateDoc, onSnapshot, getDocs, deleteDoc, writeBatch, runTransaction } from 'firebase/firestore';
 import { INITIAL_PLAYER, QUESTIONS } from '../constants';
 import { playJoin, playStart, playTick, playCorrect, playWrong, playWin, playSelect } from '../utils/audio';
-import { resolveGummyGumLaunch, reportGummyGumResult, reportGummyGumCancel, returnToGummyGum } from '../lib/gummygumSession';
+import { resolveGummyGumLaunch, reportGummyGumResult, reportGummyGumCancel, returnToGummyGum, endGummyGumSession } from '../lib/gummygumSession';
 
 const GameContext = createContext();
 
@@ -13,6 +13,27 @@ const ABANDON_THRESHOLD_MS = 3 * 60 * 60 * 1000;
 const HEARTBEAT_INTERVAL_MS = 60 * 1000;
 const IN_PROGRESS_STATES = ['loading', 'question', 'result', 'leaderboard'];
 const RESULT_REVEAL_MS = 1800;
+// Per-run fields cleared when a reused PIN's room is reset for a new hosted session; everything else is hub setup.
+const ROOM_RUNTIME_FIELDS = [
+  'state', 'currentQ', 'startedAt', 'createdAt', 'lastActivity', 'leaderboardStartedAt', 'phaseEndsAt',
+  'loadingNext', 'loadingMessage', 'scoredQ', 'isFinal', 'isFinalRound', 'bonusRound', 'firstBloodQ',
+  'abandoned', 'hostSessionId', 'hostedSessionId',
+];
+
+const isClosedRoom = (g, now = Date.now()) => {
+  if (g.state === 'expired' || g.state === 'podium') return true;
+  if (g.state === 'lobby') return Boolean(g.createdAt) && now - g.createdAt >= LOBBY_EXPIRY_MS;
+  if (!IN_PROGRESS_STATES.includes(g.state)) return false;
+  const last = Math.max(g.lastActivity || 0, g.startedAt || 0, g.leaderboardStartedAt || 0, g.createdAt || 0);
+  return last > 0 && now - last >= ABANDON_THRESHOLD_MS;
+};
+
+// The hub reuses a PIN for re-runs, so the room under it may belong to an earlier hosted session.
+const isFromEarlierRoom = (g, hostedSessionId) => {
+  if (!g || !hostedSessionId) return false;
+  if (g.hostedSessionId) return g.hostedSessionId !== hostedSessionId;
+  return isClosedRoom(g);
+};
 
 export const useGame = () => useContext(GameContext);
 
@@ -86,11 +107,17 @@ export const GameProvider = ({ children }) => {
   // (looks exactly like the page silently refreshing).
   const [ggRouted, setGgRouted] = useState(false);
   const ggReportedRef = useRef(false);
+  // Firestore fires the local snapshot for our own deleteDoc before it resolves; without this the listener navigates away before the hub is told.
+  const hostExitInProgressRef = useRef(false);
+  const [sessionEndedCompleted, setSessionEndedCompleted] = useState(false);
+  const [awaitingHost, setAwaitingHost] = useState(false);
 
   const [alertModal, setAlertModal] = useState(null);
   const [isSessionExpired, setIsSessionExpired] = useState(false);
   const [sessionExpiredContext, setSessionExpiredContext] = useState('lobby');
   const abandonReportedRef = useRef(false);
+
+  const joinedKey = (code, email) => ['sabi_joined', code, ggSession?.hostedSessionId, email].filter(Boolean).join('_');
 
   const showAlertModal = (message, title = 'Notice', onConfirm = null, cta = null) => {
     setAlertModal({ message, title, onConfirm, cta });
@@ -133,68 +160,47 @@ export const GameProvider = ({ children }) => {
       return;
     }
     if (!ggSession.isHost) {
-      const email = (ggSession.player?.email || '').toLowerCase().trim();
       const roomCode = ggSession.roomCode;
-      const savedCode = sessionStorage.getItem('sabi_game_code');
-      const savedJoined = sessionStorage.getItem('sabi_joined_room');
-      const localJoined = email ? localStorage.getItem(`sabi_joined_${roomCode}_${email}`) === 'true' : false;
-
-      // 1. Fast local check (sessionStorage or localStorage for this room)
-      if (savedCode === roomCode || savedJoined === roomCode || localJoined) {
-        const savedAvatar = (email && localStorage.getItem(`sabi_avatar_${email}`)) || player.vehicle;
-        const savedName = (email && localStorage.getItem(`sabi_name_${email}`)) || ggSession.player?.name || player.name;
-        if (savedAvatar) setPlayer((p) => ({ ...p, vehicle: savedAvatar, name: savedName }));
-        setGgRouted(true);
-        joinGameWithCode(roomCode, savedName, () => setGgRouted(true), email);
+      const hostedSessionId = ggSession.hostedSessionId;
+      if (!hostedSessionId) {
+        routeParticipant(roomCode);
         return;
       }
-
-      // 2. Query Firestore to check if this participant already joined this room (e.g. fresh tab via email link)
-      getDocs(collection(db, 'games', roomCode, 'players')).then((pSnap) => {
-        const existingPlayer = pSnap.docs.find((d) => {
-          const data = d.data();
-          const docEmail = (data.ggEmail || '').toLowerCase().trim();
-          const docName = (data.name || '').toLowerCase().trim();
-          return (email && docEmail === email) || (ggSession.player?.name && docName === ggSession.player.name.toLowerCase().trim());
-        });
-
-        if (existingPlayer) {
-          const priorData = existingPlayer.data();
-          const restoredAvatar = priorData.vehicle || (email && localStorage.getItem(`sabi_avatar_${email}`)) || player.vehicle;
-          const restoredName = priorData.name || (email && localStorage.getItem(`sabi_name_${email}`)) || ggSession.player?.name || player.name;
-
-          if (email) {
-            localStorage.setItem(`sabi_joined_${roomCode}_${email}`, 'true');
-            localStorage.setItem(`sabi_avatar_${email}`, restoredAvatar);
-            localStorage.setItem(`sabi_name_${email}`, restoredName);
-          }
-          sessionStorage.setItem('sabi_game_code', roomCode);
-          sessionStorage.setItem('sabi_joined_room', roomCode);
-
-          setPlayer((p) => ({ ...p, vehicle: restoredAvatar, name: restoredName }));
-          setGgRouted(true);
-          joinGameWithCode(roomCode, restoredName, () => setGgRouted(true), email);
-        } else {
-          // Genuinely first time: pre-fill remembered avatar/name from past sessions if available
-          const rememberedAvatar = email ? localStorage.getItem(`sabi_avatar_${email}`) : null;
-          const initialName = (email && localStorage.getItem(`sabi_name_${email}`)) || ggSession.player?.name || player.name || '';
-          setPlayer((p) => ({
-            ...p,
-            name: initialName,
-            ...(rememberedAvatar && { vehicle: rememberedAvatar }),
-          }));
-          navigate('gg-avatar');
-          setGgRouted(true);
+      // Wait until the host has (re)created this hosted session's room under the reused PIN.
+      let settled = false;
+      let unsub = () => {};
+      unsub = onSnapshot(doc(db, 'games', roomCode), (snap) => {
+        if (settled) return;
+        const g = snap.exists() ? snap.data() : null;
+        if (!g || isFromEarlierRoom(g, hostedSessionId)) {
+          setAwaitingHost(true);
+          return;
         }
-      }).catch(() => {
-        setPlayer((p) => ({ ...p, name: ggSession.player?.name || p.name || '' }));
-        navigate('gg-avatar');
-        setGgRouted(true);
+        settled = true;
+        unsub();
+        setAwaitingHost(false);
+        routeParticipant(roomCode);
+      }, () => {
+        if (settled) return;
+        settled = true;
+        setAwaitingHost(false);
+        routeParticipant(roomCode);
       });
-      return;
+      return () => unsub();
     }
-    getDoc(doc(db, 'games', ggSession.roomCode)).then((existing) => {
+    getDoc(doc(db, 'games', ggSession.roomCode)).then(async (existing) => {
       if (existing.exists()) {
+        const hostedSessionId = ggSession.hostedSessionId;
+        const data = existing.data();
+        try {
+          if (isFromEarlierRoom(data, hostedSessionId)) {
+            await resetRoomForHostedSession(ggSession.roomCode, data, hostedSessionId);
+          } else if (hostedSessionId && !data.hostedSessionId) {
+            await updateDoc(doc(db, 'games', ggSession.roomCode), { hostedSessionId });
+          }
+        } catch (err) {
+          console.error('Failed to prepare room for this hosted session:', err);
+        }
         claimHostedRoom(ggSession.roomCode, ggSession.player?.name, () => setGgRouted(true));
       } else {
         navigate('create');
@@ -202,6 +208,94 @@ export const GameProvider = ({ children }) => {
       }
     });
   }, [ggSession, ggAccessState]);
+
+  const resetRoomForHostedSession = async (code, data, hostedSessionId) => {
+    const batch = writeBatch(db);
+    const pSnap = await getDocs(collection(db, 'games', code, 'players'));
+    pSnap.docs.forEach((d) => batch.delete(d.ref));
+    const setup = Object.fromEntries(Object.entries(data).filter(([k]) => !ROOM_RUNTIME_FIELDS.includes(k)));
+    batch.set(doc(db, 'games', code), {
+      ...setup,
+      code,
+      hostSessionId: null,
+      hostedSessionId,
+      state: 'lobby',
+      currentQ: 0,
+      startedAt: null,
+      createdAt: Date.now(),
+    });
+    await batch.commit();
+  };
+
+  const routeParticipant = (roomCode) => {
+    const email = (ggSession.player?.email || '').toLowerCase().trim();
+    const savedCode = sessionStorage.getItem('sabi_game_code');
+    const savedJoined = sessionStorage.getItem('sabi_joined_room');
+    const localJoined = email ? localStorage.getItem(joinedKey(roomCode, email)) === 'true' : false;
+
+    // 1. Fast local check (sessionStorage or localStorage for this room)
+    if (savedCode === roomCode || savedJoined === roomCode || localJoined) {
+      const savedAvatar = (email && localStorage.getItem(`sabi_avatar_${email}`)) || player.vehicle;
+      const savedName = (email && localStorage.getItem(`sabi_name_${email}`)) || ggSession.player?.name || player.name;
+      if (savedAvatar) setPlayer((p) => ({ ...p, vehicle: savedAvatar, name: savedName }));
+      setGgRouted(true);
+      joinGameWithCode(roomCode, savedName, () => setGgRouted(true), email);
+      return;
+    }
+
+    // 2. Query Firestore to check if this participant already joined this room (e.g. fresh tab via email link)
+    getDocs(collection(db, 'games', roomCode, 'players')).then((pSnap) => {
+      const existingPlayer = pSnap.docs.find((d) => {
+        const data = d.data();
+        const docEmail = (data.ggEmail || '').toLowerCase().trim();
+        const docName = (data.name || '').toLowerCase().trim();
+        return (email && docEmail === email) || (ggSession.player?.name && docName === ggSession.player.name.toLowerCase().trim());
+      });
+
+      if (existingPlayer) {
+        const priorData = existingPlayer.data();
+        const restoredAvatar = priorData.vehicle || (email && localStorage.getItem(`sabi_avatar_${email}`)) || player.vehicle;
+        const restoredName = priorData.name || (email && localStorage.getItem(`sabi_name_${email}`)) || ggSession.player?.name || player.name;
+
+        if (email) {
+          localStorage.setItem(joinedKey(roomCode, email), 'true');
+          localStorage.setItem(`sabi_avatar_${email}`, restoredAvatar);
+          localStorage.setItem(`sabi_name_${email}`, restoredName);
+        }
+        sessionStorage.setItem('sabi_game_code', roomCode);
+        sessionStorage.setItem('sabi_joined_room', roomCode);
+
+        setPlayer((p) => ({ ...p, vehicle: restoredAvatar, name: restoredName }));
+        setGgRouted(true);
+        joinGameWithCode(roomCode, restoredName, () => setGgRouted(true), email);
+      } else {
+        // Genuinely first time: pre-fill remembered avatar/name from past sessions if available
+        const rememberedAvatar = email ? localStorage.getItem(`sabi_avatar_${email}`) : null;
+        const initialName = (email && localStorage.getItem(`sabi_name_${email}`)) || ggSession.player?.name || player.name || '';
+        setPlayer((p) => ({
+          ...p,
+          name: initialName,
+          ...(rememberedAvatar && { vehicle: rememberedAvatar }),
+        }));
+        navigate('gg-avatar');
+        setGgRouted(true);
+      }
+    }).catch(() => {
+      setPlayer((p) => ({ ...p, name: ggSession.player?.name || p.name || '' }));
+      navigate('gg-avatar');
+      setGgRouted(true);
+    });
+  };
+
+  const buildGgReport = () => {
+    const roster = opponents.map((o) => ({
+      name: o.name,
+      score: o.score,
+      streak: o.streak,
+      isHost: false,
+    })).sort((a, b) => b.score - a.score);
+    return { gameCode, hostName: player.name, participantCount: roster.length, leaderboard: roster };
+  };
 
   // Report the result back to GummyGum once the race ends. The host is
   // usually running this for their whole team, so this reports the full
@@ -215,18 +309,7 @@ export const GameProvider = ({ children }) => {
     // however many people launched through their own link.
     if (gameState !== 'podium' || ggReportedRef.current || !ggSession || !isHost) return;
     ggReportedRef.current = true;
-    const roster = opponents.map((o) => ({
-      name: o.name,
-      score: o.score,
-      streak: o.streak,
-      isHost: false,
-    })).sort((a, b) => b.score - a.score);
-    reportGummyGumResult({
-      gameCode,
-      hostName: player.name,
-      participantCount: roster.length,
-      leaderboard: roster,
-    });
+    reportGummyGumResult(buildGgReport());
   }, [gameState, ggSession, isHost, player.name, opponents, gameCode]);
 
   useEffect(() => {
@@ -234,6 +317,9 @@ export const GameProvider = ({ children }) => {
 
     const unsubGame = onSnapshot(doc(db, 'games', gameCode), (snapshot) => {
       if (!snapshot.exists()) {
+        if (hostExitInProgressRef.current) return;
+        const endedAfterCompletion = gameRef.current?.state === 'podium';
+        gameRef.current = null;
         sessionStorage.removeItem('sabi_game_code');
         sessionStorage.removeItem('sabi_is_host');
         setGameCode('');
@@ -241,13 +327,14 @@ export const GameProvider = ({ children }) => {
         if (ggSession?.isHost) {
           // GummyGum is the source of this cancellation (or already knows
           // about it) — just send the host back to the hub, no need to
-          // re-hit the close endpoint via closeGummyGumSession().
+          // re-hit the close endpoint.
           returnToGummyGum();
         } else if (ggSession) {
           // Participant: route to a dedicated terminal screen rather than
           // leaving them on a frozen lobby/question/leaderboard screen with
           // just a modal on top — window.close() silently no-ops for tabs
           // not opened via script, so it can't be relied on here.
+          setSessionEndedCompleted(endedAfterCompletion);
           navigate('session-ended');
         } else {
           showAlertModal('The Race Director cancelled the session.', 'Session Cancelled');
@@ -257,6 +344,16 @@ export const GameProvider = ({ children }) => {
       }
 
       const data = snapshot.data();
+      if (ggSession && !ggSession.isHost && ggSession.hostedSessionId && data.hostedSessionId && data.hostedSessionId !== ggSession.hostedSessionId) {
+        // The host reset this PIN for a newer hosted session, so this participant's session is over.
+        const endedAfterCompletion = gameRef.current?.state === 'podium';
+        gameRef.current = null;
+        sessionStorage.removeItem('sabi_game_code');
+        setGameCode('');
+        setSessionEndedCompleted(endedAfterCompletion);
+        navigate('session-ended');
+        return;
+      }
       gameRef.current = data;
 
       clearTimeout(window.phaseTimer);
@@ -464,9 +561,7 @@ export const GameProvider = ({ children }) => {
           'The host has removed you from this session.',
           'Removed from lobby',
           null,
-          ggSession
-            ? { text: 'Return to GummyGum', onClick: returnToGummyGum }
-            : { text: 'You can close this tab now', onClick: () => {} }
+          { text: 'You can close this tab now', onClick: () => {} }
         );
       }
 
@@ -614,10 +709,17 @@ export const GameProvider = ({ children }) => {
         sessionStorage.setItem('sabi_is_host', 'true');
 
         const batch = writeBatch(db);
-        
+
+        if (ggSession?.isHost && ggSession.roomCode) {
+          // Deleting the room doc leaves its players subcollection behind, and the hub reuses this PIN.
+          const stalePlayers = await getDocs(collection(db, 'games', code, 'players'));
+          stalePlayers.docs.forEach((d) => batch.delete(d.ref));
+        }
+
         batch.set(doc(db, 'games', code), {
           code,
           hostSessionId: sessionId,
+          hostedSessionId: ggSession?.hostedSessionId || null,
           config,
           questions: generatedQuestions,
           state: 'lobby',
@@ -800,7 +902,7 @@ export const GameProvider = ({ children }) => {
         if (normalizedGgEmail) {
           localStorage.setItem(`sabi_avatar_${normalizedGgEmail}`, finalVehicle);
           localStorage.setItem(`sabi_name_${normalizedGgEmail}`, finalName);
-          localStorage.setItem(`sabi_joined_${code}_${normalizedGgEmail}`, 'true');
+          localStorage.setItem(joinedKey(code, normalizedGgEmail), 'true');
         }
 
         if (gameData.state !== 'lobby') {
@@ -860,7 +962,7 @@ export const GameProvider = ({ children }) => {
   };
 
   const handleAnswer = (idx) => {
-    if (answered) return;
+    if (answered || !gameRef.current) return;
     setAnswered(true);
     setChosenAnswer(idx);
     
@@ -1032,20 +1134,26 @@ export const GameProvider = ({ children }) => {
   };
 
   const cancelGame = async () => {
-    if (isHost) {
+    if (!isHost || hostExitInProgressRef.current) return;
+    hostExitInProgressRef.current = true;
+    const completed = gameRef.current?.state === 'podium';
+    clearTimeout(window.phaseTimer);
+    clearInterval(window.currentTimer);
+    try {
       await deleteDoc(doc(db, 'games', gameCode));
-      sessionStorage.removeItem('sabi_game_code');
-      sessionStorage.removeItem('sabi_is_host');
+    } catch (err) {
+      console.error('Failed to delete game room:', err);
+    }
+    sessionStorage.removeItem('sabi_game_code');
+    sessionStorage.removeItem('sabi_is_host');
+    sessionStorage.removeItem('sabi_joined_room');
+    if (ggSession) {
+      const hub = await endGummyGumSession({ completed, finalReport: completed ? buildGgReport() : undefined });
+      window.location.href = hub;
+    } else {
       setGameCode('');
-      // Awaited so the backend confirms cancellation before we navigate away —
-      // firing this without waiting let the page unload abort the request,
-      // leaving the session "live" in GummyGum's eyes.
-      await reportGummyGumCancel();
-      if (ggSession) {
-        window.location.href = 'https://gummygum.app';
-      } else {
-        navigate('home');
-      }
+      hostExitInProgressRef.current = false;
+      navigate('home');
     }
   };
 
@@ -1063,9 +1171,9 @@ export const GameProvider = ({ children }) => {
       gameCode, createGame, joinGameWithCode, gameConfig, gameQuestions,
       gameState, currentQ, timeLeft, answered, bonusRound, chosenAnswer,
       flashColor, streakToast, loadingMessage, leaderboardStartedAt,
-      startRace, nextQuestion, resolveQuestion, handleAnswer, isHost, cancelGame, kickPlayer, isSpectator,
+      startRace, nextQuestion, resolveQuestion, handleAnswer, isHost, cancelGame, kickPlayer, isSpectator, sessionEndedCompleted,
       hostSettings, setHostSettings,
-      ggSession, ggAccessState, ggRouted, invitedCount,
+      ggSession, ggAccessState, ggRouted, awaitingHost, invitedCount,
       alertModal, showAlertModal, closeAlertModal,
       isSessionExpired, sessionExpiredContext
     }}>

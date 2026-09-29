@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, ArrowLeft, MailCheck } from 'lucide-react';
+import { Menu, X, MailCheck } from 'lucide-react';
 import AvatarBadge from './AvatarBadge';
 import HostToolbar from './HostToolbar';
+import EndSessionButton from './EndSessionButton';
 import SettingsModal from './SettingsModal';
 import { useGame } from '../context/GameContext';
 import { playSelect } from '../utils/audio';
@@ -11,11 +12,10 @@ import { GUMMY_AVATARS } from '../constants';
 export default function Lobby() {
   const {
     navigate, player, setPlayer, opponents, startRace,
-    isHost, cancelGame, kickPlayer,
+    isHost, kickPlayer,
     hostSettings, setHostSettings, ggSession, invitedCount
   } = useGame();
 
-  const [showCancelModal, setShowCancelModal] = useState(false);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
 
@@ -46,13 +46,7 @@ export default function Lobby() {
 
       <header className="relative z-20 w-full max-w-[1300px] mx-auto px-6 pt-6 pb-2 flex items-center justify-between shrink-0">
         {isHost ? (
-          <button
-            onClick={() => { playSelect(); setShowCancelModal(true); }}
-            className="w-11 h-11 rounded-full bg-white/10 border border-white/15 text-white flex items-center justify-center transition-all hover:bg-white/20 active:scale-95 cursor-pointer"
-            title="Back to GummyGum"
-          >
-            <ArrowLeft size={20} />
-          </button>
+          <EndSessionButton />
         ) : (
           <button
             onClick={() => { playSelect(); window.close(); }}
@@ -239,22 +233,6 @@ export default function Lobby() {
               <button onClick={() => setShowAvatarPicker(false)} className="mt-4 w-full py-3 rounded-xl bg-white/10 text-white font-bold cursor-pointer">
                 Done
               </button>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {showCancelModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-5">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setShowCancelModal(false)} />
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }} className="relative bg-[#152e3c] border border-red-500/30 p-6 rounded-3xl shadow-2xl max-w-sm w-full text-center z-10">
-              <h3 className="text-xl font-bold text-white mb-2">Cancel Session?</h3>
-              <p className="text-sm text-white/60 mb-6">This will close the lobby for all connected contestants and take you back to GummyGum.</p>
-              <div className="flex gap-3">
-                <button onClick={() => setShowCancelModal(false)} className="flex-1 py-3 rounded-xl bg-white/10 text-white font-bold cursor-pointer">Go Back</button>
-                <button onClick={() => { setShowCancelModal(false); cancelGame(); }} className="flex-1 py-3 rounded-xl bg-red-500 text-white font-bold shadow-lg cursor-pointer">Cancel Room</button>
-              </div>
             </motion.div>
           </div>
         )}

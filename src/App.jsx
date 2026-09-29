@@ -29,13 +29,27 @@ const GummyGumLockedScreen = () => (
   </div>
 );
 
+const WaitingForHostScreen = () => (
+  <div className="h-[100dvh] w-full bg-[#091521] text-white flex items-center justify-center px-6">
+    <div className="max-w-sm w-full text-center space-y-4">
+      <div className="w-10 h-10 mx-auto rounded-full border-4 border-white/20 border-t-amber-400 animate-spin" />
+      <h1 className="text-xl font-bold">Waiting for the host</h1>
+      <p className="text-white/60 text-sm">The game will open here as soon as the host starts this session.</p>
+    </div>
+  </div>
+);
+
 function ScreenManager() {
-  const { currentScreen, ggAccessState, ggSession, ggRouted, isHost, isSessionExpired, sessionExpiredContext } = useGame();
+  const { currentScreen, ggAccessState, ggSession, ggRouted, awaitingHost, isHost, isSessionExpired, sessionExpiredContext } = useGame();
 
   // Only blank the screen while that initial routing decision is still
   // in flight — once it's settled, going back to 'home' later (e.g. via
   // Podium's "Back to Home") should actually show Home, not this again.
   const routingIntoGgRoom = ggSession && ggSession.roomCode && currentScreen === 'home' && !ggRouted;
+
+  if (awaitingHost && !ggRouted) {
+    return <WaitingForHostScreen />;
+  }
 
   if (ggAccessState === 'checking' || routingIntoGgRoom) {
     return <div className="h-[100dvh] w-full bg-navy" />;

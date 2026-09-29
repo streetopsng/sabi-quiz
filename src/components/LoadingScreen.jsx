@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Spinner from './Spinner';
+import EndSessionButton from './EndSessionButton';
 import { useGame } from '../context/GameContext';
 
 const TRIVIA_TIPS = [
@@ -37,6 +38,10 @@ export default function LoadingScreen({ message }) {
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-[#7C3AED]/20 rounded-full blur-[140px]" />
         <div className="absolute bottom-1/4 left-1/2 -translate-x-1/2 w-[450px] h-[450px] bg-[#FF8A3D]/15 rounded-full blur-[160px]" />
+      </div>
+
+      <div className="absolute left-6 top-6 z-20">
+        <EndSessionButton />
       </div>
 
       <header className="relative z-10 pt-4 flex flex-col items-center">

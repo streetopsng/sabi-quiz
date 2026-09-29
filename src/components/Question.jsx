@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Check } from 'lucide-react';
 import { useGame } from '../context/GameContext';
 import HostToolbar from './HostToolbar';
+import EndSessionButton from './EndSessionButton';
 import SettingsModal from './SettingsModal';
 import Spinner from './Spinner';
 import { playSelect } from '../utils/audio';
@@ -49,7 +50,8 @@ export default function Question() {
       </div>
 
       <header className="relative z-20 w-full max-w-[1300px] mx-auto px-6 pt-6 pb-2 flex items-center justify-between shrink-0">
-        <div>
+        <div className="flex items-center gap-4">
+          {isHost && <EndSessionButton />}
           <div className="text-base sm:text-lg font-bold text-white mt-0.5">
             Round {currentQ + 1} of {totalQuestions}
           </div>
