@@ -236,7 +236,7 @@ export const GameProvider = ({ children }) => {
     // 1. Fast local check (sessionStorage or localStorage for this room)
     if (savedCode === roomCode || savedJoined === roomCode || localJoined) {
       const savedAvatar = (email && localStorage.getItem(`sabi_avatar_${email}`)) || player.vehicle;
-      const savedName = (email && localStorage.getItem(`sabi_name_${email}`)) || ggSession.player?.name || player.name;
+      const savedName = ggSession.player?.name || (email && localStorage.getItem(`sabi_name_${email}`)) || player.name;
       if (savedAvatar) setPlayer((p) => ({ ...p, vehicle: savedAvatar, name: savedName }));
       setGgRouted(true);
       joinGameWithCode(roomCode, savedName, () => setGgRouted(true), email);
@@ -271,7 +271,7 @@ export const GameProvider = ({ children }) => {
       } else {
         // Genuinely first time: pre-fill remembered avatar/name from past sessions if available
         const rememberedAvatar = email ? localStorage.getItem(`sabi_avatar_${email}`) : null;
-        const initialName = (email && localStorage.getItem(`sabi_name_${email}`)) || ggSession.player?.name || player.name || '';
+        const initialName = ggSession.player?.name || (email && localStorage.getItem(`sabi_name_${email}`)) || player.name || '';
         setPlayer((p) => ({
           ...p,
           name: initialName,

@@ -5,6 +5,7 @@ import { useGame } from '../context/GameContext';
 import { playJoin, playSelect } from '../utils/audio';
 import AvatarBadge from './AvatarBadge';
 import { GUMMY_AVATARS } from '../constants';
+import LockedNameField from './LockedNameField';
 
 export default function JoinGame() {
   const { navigate, joinGameWithCode, setPlayer, player, showAlertModal, ggSession } = useGame();
@@ -13,7 +14,8 @@ export default function JoinGame() {
   // Step 2: Name & Avatar selection (#829:397 & #840:467)
   const [joinStep, setJoinStep] = useState(1);
   const [code, setCode] = useState(['', '', '', '', '']);
-  const [playerName, setPlayerName] = useState('');
+  const lockedName = (ggSession?.player?.name || '').trim();
+  const [playerName, setPlayerName] = useState(lockedName);
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const inputRefs = useRef([]);
 
@@ -213,14 +215,18 @@ export default function JoinGame() {
               </div>
 
               <div className="w-full max-w-[340px] sm:max-w-[400px] mb-8 sm:mb-10">
-                <input
-                  type="text"
-                  placeholder="Enter Name"
-                  value={playerName}
-                  onChange={(e) => setPlayerName(e.target.value)}
-                  className="w-full bg-transparent border-b-[3px] sm:border-b-[4px] border-white text-center text-xl sm:text-2xl md:text-3xl font-medium text-white pb-2 sm:pb-3 outline-none placeholder:text-[#FFE5E5]/75 focus:border-[#FF7F36] transition-all"
-                  autoFocus
-                />
+                {lockedName ? (
+                  <LockedNameField name={lockedName} />
+                ) : (
+                  <input
+                    type="text"
+                    placeholder="Enter Name"
+                    value={playerName}
+                    onChange={(e) => setPlayerName(e.target.value)}
+                    className="w-full bg-transparent border-b-[3px] sm:border-b-[4px] border-white text-center text-xl sm:text-2xl md:text-3xl font-medium text-white pb-2 sm:pb-3 outline-none placeholder:text-[#FFE5E5]/75 focus:border-[#FF7F36] transition-all"
+                    autoFocus
+                  />
+                )}
               </div>
 
               <motion.button
