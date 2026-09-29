@@ -6,6 +6,7 @@ import { playJoin, playSelect } from '../utils/audio';
 import AvatarBadge from './AvatarBadge';
 import { GUMMY_AVATARS } from '../constants';
 import GameRulesModal from './GameRulesModal';
+import LockedNameField from './LockedNameField';
 
 // Shown to a GummyGum-invited participant right after their name/room code
 // resolve, before they land in the waiting room — mirrors JoinGame's manual
@@ -15,20 +16,24 @@ export default function GgAvatarSetup() {
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
   const [showRulesModal, setShowRulesModal] = useState(false);
   const [joining, setJoining] = useState(false);
+  const lockedName = (ggSession?.player?.name || '').trim();
+  const displayName = lockedName || player.name;
 
   const handleContinue = () => {
     if (joining) return;
     setJoining(true);
     playJoin();
+    const name = displayName.trim();
+    if (lockedName) setPlayer((p) => ({ ...p, name }));
     const email = (ggSession?.player?.email || '').toLowerCase().trim();
     if (email) {
       localStorage.setItem(`sabi_avatar_${email}`, player.vehicle);
-      localStorage.setItem(`sabi_name_${email}`, player.name);
+      localStorage.setItem(`sabi_name_${email}`, name);
       if (ggSession?.roomCode) {
         localStorage.setItem(`sabi_joined_${ggSession.roomCode}_${email}`, 'true');
       }
     }
-    joinGameWithCode(ggSession.roomCode, player.name, () => setJoining(false), ggSession.player?.email);
+    joinGameWithCode(ggSession.roomCode, name, () => setJoining(false), ggSession.player?.email);
   };
 
   return (
@@ -51,19 +56,23 @@ export default function GgAvatarSetup() {
         </div>
 
         <div className="w-full max-w-[340px] sm:max-w-[400px] mb-8 sm:mb-10">
-          <input
-            type="text"
-            placeholder="Enter Name"
-            value={player.name}
-            onChange={(e) => setPlayer((p) => ({ ...p, name: e.target.value }))}
-            className="w-full bg-transparent border-b-[3px] sm:border-b-[4px] border-white text-center text-xl sm:text-2xl md:text-3xl font-medium text-white pb-2 sm:pb-3 outline-none placeholder:text-[#FFE5E5]/75 focus:border-[#FF7F36] transition-all"
-          />
+          {lockedName ? (
+            <LockedNameField name={lockedName} />
+          ) : (
+            <input
+              type="text"
+              placeholder="Enter Name"
+              value={player.name}
+              onChange={(e) => setPlayer((p) => ({ ...p, name: e.target.value }))}
+              className="w-full bg-transparent border-b-[3px] sm:border-b-[4px] border-white text-center text-xl sm:text-2xl md:text-3xl font-medium text-white pb-2 sm:pb-3 outline-none placeholder:text-[#FFE5E5]/75 focus:border-[#FF7F36] transition-all"
+            />
+          )}
         </div>
 
         <motion.button
           whileHover={{ scale: 1.01 }}
           whileTap={{ scale: 0.96 }}
-          disabled={joining || !player.name.trim()}
+          disabled={joining || !displayName.trim()}
           onClick={() => setShowRulesModal(true)}
           className="w-full max-w-[320px] sm:max-w-[380px] h-[50px] sm:h-[56px] rounded-full bg-[#FF7F36] text-white text-lg sm:text-xl font-semibold border-2 sm:border-[3px] border-white shadow-[0_6px_25px_rgba(255,127,54,0.4)] hover:bg-[#e66f2c] transition-all cursor-pointer flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
         >
@@ -73,7 +82,7 @@ export default function GgAvatarSetup() {
 
       {showRulesModal && (
         <GameRulesModal
-          name={player.name.trim()}
+          name={displayName.trim()}
           onConfirm={() => {
             setShowRulesModal(false);
             handleContinue();

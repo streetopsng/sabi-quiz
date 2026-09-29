@@ -72,6 +72,7 @@ export const GameProvider = ({ children }) => {
   
   const optionMapRef = useRef([]);
   const shuffledQRef = useRef(-1);
+  const myDocRef = useRef(null);
   const gameRef = useRef(null);
   const resolvingRef = useRef(false);
   const hasSeenSelfInPlayersRef = useRef(false);
@@ -236,7 +237,7 @@ export const GameProvider = ({ children }) => {
     // 1. Fast local check (sessionStorage or localStorage for this room)
     if (savedCode === roomCode || savedJoined === roomCode || localJoined) {
       const savedAvatar = (email && localStorage.getItem(`sabi_avatar_${email}`)) || player.vehicle;
-      const savedName = (email && localStorage.getItem(`sabi_name_${email}`)) || ggSession.player?.name || player.name;
+      const savedName = ggSession.player?.name || (email && localStorage.getItem(`sabi_name_${email}`)) || player.name;
       if (savedAvatar) setPlayer((p) => ({ ...p, vehicle: savedAvatar, name: savedName }));
       setGgRouted(true);
       joinGameWithCode(roomCode, savedName, () => setGgRouted(true), email);
@@ -248,8 +249,7 @@ export const GameProvider = ({ children }) => {
       const existingPlayer = pSnap.docs.find((d) => {
         const data = d.data();
         const docEmail = (data.ggEmail || '').toLowerCase().trim();
-        const docName = (data.name || '').toLowerCase().trim();
-        return (email && docEmail === email) || (ggSession.player?.name && docName === ggSession.player.name.toLowerCase().trim());
+        return email ? docEmail === email : d.id === sessionId;
       });
 
       if (existingPlayer) {
@@ -271,7 +271,7 @@ export const GameProvider = ({ children }) => {
       } else {
         // Genuinely first time: pre-fill remembered avatar/name from past sessions if available
         const rememberedAvatar = email ? localStorage.getItem(`sabi_avatar_${email}`) : null;
-        const initialName = (email && localStorage.getItem(`sabi_name_${email}`)) || ggSession.player?.name || player.name || '';
+        const initialName = ggSession.player?.name || (email && localStorage.getItem(`sabi_name_${email}`)) || player.name || '';
         setPlayer((p) => ({
           ...p,
           name: initialName,
@@ -441,6 +441,12 @@ export const GameProvider = ({ children }) => {
           }
           
           optionMapRef.current = newOptionMap;
+          // A rejoining player who already answered this question must not be able to answer it again.
+          const mine = myDocRef.current;
+          if (mine?.answered && typeof mine.chosenAnswer === 'number' && mine.chosenAnswer >= 0) {
+            setAnswered(true);
+            setChosenAnswer(newOptionMap.indexOf(mine.chosenAnswer));
+          }
           const clientAnswerIndex = newOptionMap.indexOf(data.questions[data.currentQ].answer);
 
           setGameQuestions(prev => {
@@ -527,9 +533,16 @@ export const GameProvider = ({ children }) => {
       }
       const playersList = Array.from(playerMap.values());
 
-      const me = playersList.find(p => p.sessionId === sessionId || (player.name && (p.name || '').trim().toLowerCase() === player.name.trim().toLowerCase()));
+      // GummyGum invitees can share a name, so only a standalone join may fall back to a name match.
+      const me = playersList.find(p => p.sessionId === sessionId)
+        || (!ggSession && player.name ? playersList.find(p => (p.name || '').trim().toLowerCase() === player.name.trim().toLowerCase()) : undefined);
+      myDocRef.current = me || null;
       if (me) {
         hasSeenSelfInPlayersRef.current = true;
+        if (me.answered && me.chosenAnswer >= 0 && gameRef.current?.state === 'question' && shuffledQRef.current === gameRef.current.currentQ) {
+          setAnswered(true);
+          setChosenAnswer(optionMapRef.current.indexOf(me.chosenAnswer));
+        }
         setPlayer(prev => ({
           ...prev,
           name: me.name || prev.name,
@@ -574,7 +587,7 @@ export const GameProvider = ({ children }) => {
           if (p.sessionId === sessionId) return false;
           const pName = (p.name || '').trim().toLowerCase();
           const pEmail = (p.ggEmail || '').trim().toLowerCase();
-          if (myName && pName && pName === myName) return false;
+          if (!ggSession && myName && pName && pName === myName) return false;
           if (myEmail && pEmail && pEmail === myEmail) return false;
           return true;
         })
@@ -820,16 +833,41 @@ export const GameProvider = ({ children }) => {
 
         const pSnap = await getDocs(collection(db, 'games', code, 'players'));
 
-        // Reconnect via a stale ggEmail match or name match, so a closed-tab or reloaded rejoin reclaims rather than collides.
+        const isGgJoin = Boolean(ggSession);
+
+        // Reconnect via a stale ggEmail match (or, standalone only, a name match) so a closed-tab or reloaded rejoin reclaims rather than collides.
         let staleDoc = null;
         if (normalizedGgEmail) {
           staleDoc = pSnap.docs.find(d => (d.data().ggEmail || '').toLowerCase().trim() === normalizedGgEmail && d.id !== sessionId) || null;
         }
-        if (!staleDoc && requestedName && requestedName.trim()) {
+        if (!staleDoc && !isGgJoin && requestedName && requestedName.trim()) {
           staleDoc = pSnap.docs.find(d => (d.data().name || '').toLowerCase().trim() === requestedName.toLowerCase().trim() && d.id !== sessionId) || null;
         }
 
-        if (!staleDoc && requestedName && requestedName.trim()) {
+        let uniqueName = requestedName;
+        if (isGgJoin && requestedName && requestedName.trim()) {
+          const base = requestedName.trim();
+          const ownIds = new Set([sessionId, staleDoc?.id].filter(Boolean));
+          const taken = new Set(
+            pSnap.docs.filter(d => !ownIds.has(d.id)).map(d => (d.data().name || '').toLowerCase().trim())
+          );
+          const priorName = (staleDoc?.data().name || pSnap.docs.find(d => d.id === sessionId)?.data().name || '').trim();
+          const priorLower = priorName.toLowerCase();
+          const baseLower = base.toLowerCase();
+          const isOwnVariant = priorLower === baseLower || (priorLower.startsWith(`${baseLower} `) && /^\d+$/.test(priorLower.slice(baseLower.length + 1)));
+          if (isOwnVariant && !taken.has(priorLower)) {
+            uniqueName = priorName;
+          } else if (taken.has(baseLower)) {
+            // Invite names are read-only, so a duplicate gets a suffix instead of a dead-end error.
+            let n = 2;
+            while (taken.has(`${base} ${n}`.toLowerCase())) n++;
+            uniqueName = `${base} ${n}`;
+          } else {
+            uniqueName = base;
+          }
+        }
+
+        if (!isGgJoin && !staleDoc && requestedName && requestedName.trim()) {
           const nameExists = pSnap.docs.some(d => {
              const p = d.data();
              return p.name.toLowerCase().trim() === requestedName.toLowerCase().trim() && p.sessionId !== sessionId && p.connected !== false;
@@ -856,18 +894,19 @@ export const GameProvider = ({ children }) => {
 
         const playerRef = doc(db, 'games', code, 'players', sessionId);
         let finalVehicle = player.vehicle;
-        let finalName = requestedName || player.name;
+        let finalName = uniqueName || player.name;
 
         const existingPlayerDoc = pSnap.docs.find((d) => d.id === sessionId);
 
         if (staleDoc) {
           const prior = staleDoc.data();
           finalVehicle = prior.vehicle || player.vehicle;
-          finalName = requestedName || prior.name || player.name;
+          finalName = uniqueName || prior.name || player.name;
           setPlayer((p) => ({ ...p, name: finalName, vehicle: finalVehicle }));
           await deleteDoc(doc(db, 'games', code, 'players', staleDoc.id)).catch(() => undefined);
           await setDoc(playerRef, {
             ...player,
+            ...prior,
             name: finalName,
             vehicle: finalVehicle,
             sessionId,
@@ -879,6 +918,7 @@ export const GameProvider = ({ children }) => {
             connected: true
           });
         } else if (!existingPlayerDoc) {
+          setPlayer((p) => ({ ...p, name: finalName }));
           await setDoc(playerRef, {
             ...player,
             name: finalName,
@@ -892,9 +932,10 @@ export const GameProvider = ({ children }) => {
             connected: true
           });
         } else {
+          if (uniqueName) setPlayer((p) => ({ ...p, name: finalName }));
           await updateDoc(playerRef, {
             connected: true,
-            ...(requestedName && { name: requestedName }),
+            ...(uniqueName && { name: uniqueName }),
             ...(normalizedGgEmail && { ggEmail: normalizedGgEmail })
           });
         }
