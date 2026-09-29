@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trophy, Menu, ArrowLeft, X } from 'lucide-react';
+import { Trophy, Menu, X } from 'lucide-react';
 import HostToolbar from './HostToolbar';
+import EndSessionButton from './EndSessionButton';
 import SettingsModal from './SettingsModal';
 import AvatarBadge from './AvatarBadge';
 import { useGame } from '../context/GameContext';
@@ -23,7 +24,6 @@ export default function Leaderboard() {
     hostSettings,
     setHostSettings,
     ggSession,
-    cancelGame,
   } = useGame();
 
   const totalQuestions = gameQuestions?.length || 1;
@@ -175,18 +175,7 @@ export default function Leaderboard() {
 
       <header className="relative z-20 w-full max-w-[1300px] mx-auto px-6 pt-6 pb-2 flex items-center justify-between shrink-0">
         {isHost ? (
-          <button
-            onClick={() => {
-              playSelect();
-              if (window.confirm('End this session for everyone and return to GummyGum?')) {
-                cancelGame();
-              }
-            }}
-            className="w-11 h-11 rounded-full bg-white/10 border border-white/15 text-white flex items-center justify-center transition-all hover:bg-white/20 active:scale-95 cursor-pointer"
-            title="Back to GummyGum"
-          >
-            <ArrowLeft size={20} />
-          </button>
+          <EndSessionButton />
         ) : (
           <button
             onClick={() => {

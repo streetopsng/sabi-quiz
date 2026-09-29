@@ -4,11 +4,12 @@ import { doc, setDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { Menu, X, Trophy, MessageSquare, ArrowLeft, LogOut } from 'lucide-react';
 import HostToolbar from './HostToolbar';
+import EndSessionButton from './EndSessionButton';
 import SettingsModal from './SettingsModal';
 import AvatarBadge from './AvatarBadge';
 import { useGame } from '../context/GameContext';
 import { playSelect } from '../utils/audio';
-import { closeGummyGumSession, startNextRoundGummyGum } from '../lib/gummygumSession';
+import { startNextRoundGummyGum } from '../lib/gummygumSession';
 
 export default function Podium() {
   const { navigate, player, opponents, showAlertModal, gameCode, gameConfig, createGame, hostSettings, setHostSettings, isHost, isSpectator, ggSession } = useGame();
@@ -124,13 +125,17 @@ export default function Podium() {
 
       <header className="relative z-20 w-full max-w-[1300px] mx-auto px-6 pt-6 pb-2 flex items-center justify-between shrink-0">
         {isHost ? (
-          <button
-            onClick={() => { playSelect(); ggSession ? closeGummyGumSession() : navigate('home'); }}
-            className="w-11 h-11 rounded-full bg-white/10 border border-white/15 text-white flex items-center justify-center transition-all hover:bg-white/20 active:scale-95 cursor-pointer"
-            title={ggSession ? 'Close session & return to GummyGum' : 'Back to Homepage'}
-          >
-            <ArrowLeft size={20} />
-          </button>
+          ggSession ? (
+            <EndSessionButton />
+          ) : (
+            <button
+              onClick={() => { playSelect(); navigate('home'); }}
+              className="w-11 h-11 rounded-full bg-white/10 border border-white/15 text-white flex items-center justify-center transition-all hover:bg-white/20 active:scale-95 cursor-pointer"
+              title="Back to Homepage"
+            >
+              <ArrowLeft size={20} />
+            </button>
+          )
         ) : (
           <button
             onClick={() => {
@@ -233,16 +238,6 @@ export default function Podium() {
                       className="px-6 py-3 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 disabled:opacity-50 text-white font-bold text-sm sm:text-base border border-white/20 transition-all cursor-pointer flex items-center gap-2"
                     >
                       <span>{startingNewSession ? 'Starting…' : 'Start New Session'}</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        playSelect();
-                        closeGummyGumSession();
-                      }}
-                      className="px-6 py-3 rounded-full bg-gradient-to-r from-[#FF8A3D] to-[#F97316] hover:brightness-110 active:scale-95 text-white font-bold text-sm sm:text-base shadow-[0_6px_20px_rgba(255,138,61,0.45)] transition-all cursor-pointer flex items-center gap-2"
-                    >
-                      <LogOut size={18} />
-                      <span>Close Session & Return to GummyGum</span>
                     </button>
                   </>
                 ) : (

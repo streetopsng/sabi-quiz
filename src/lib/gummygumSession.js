@@ -101,6 +101,7 @@ export async function reportGummyGumCancel() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reportToken: session.reportToken }),
+      keepalive: true,
     });
   } catch (err) {
     console.error('GummyGum cancel report failed', err);
@@ -119,6 +120,7 @@ export async function reportGummyGumResult(report) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reportToken: session.reportToken, report }),
+      keepalive: true,
     });
     session.reported = true;
     sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session));
@@ -147,6 +149,7 @@ export async function closeGummyGumSession(finalReport) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ reportToken: session.reportToken, report: finalReport }),
+      keepalive: true,
     });
   } catch (err) {
     console.error('GummyGum close session failed', err);
@@ -156,6 +159,32 @@ export async function closeGummyGumSession(finalReport) {
     localStorage.removeItem(STORAGE_KEY);
     window.location.href = hub;
   }
+}
+
+// Host-only: ends the hosted session in the hub (close for a completed game,
+// cancel otherwise), clears the stored session and returns the hub URL.
+export async function endGummyGumSession({ completed = false, finalReport } = {}) {
+  const session = getGummyGumSession();
+  const hub = session?.hubUrl || 'https://gummygum.app';
+  if (session?.reportToken) {
+    const endpoint = completed ? 'close' : 'cancel';
+    const body = completed
+      ? { reportToken: session.reportToken, report: session.reported ? undefined : finalReport }
+      : { reportToken: session.reportToken };
+    try {
+      await fetch(`${API_URL}/api/gummygum/launch/${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+        keepalive: true,
+      });
+    } catch (err) {
+      console.error(`GummyGum ${endpoint} failed`, err);
+    }
+  }
+  sessionStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(STORAGE_KEY);
+  return hub;
 }
 
 // Player / guest return: safe navigation back to GummyGum without closing the host's room

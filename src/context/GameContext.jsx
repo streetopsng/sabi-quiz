@@ -3,7 +3,7 @@ import { db } from '../firebase';
 import { doc, collection, setDoc, getDoc, updateDoc, onSnapshot, getDocs, deleteDoc, writeBatch, runTransaction } from 'firebase/firestore';
 import { INITIAL_PLAYER, QUESTIONS } from '../constants';
 import { playJoin, playStart, playTick, playCorrect, playWrong, playWin, playSelect } from '../utils/audio';
-import { resolveGummyGumLaunch, reportGummyGumResult, reportGummyGumCancel, returnToGummyGum } from '../lib/gummygumSession';
+import { resolveGummyGumLaunch, reportGummyGumResult, reportGummyGumCancel, returnToGummyGum, endGummyGumSession } from '../lib/gummygumSession';
 
 const GameContext = createContext();
 
@@ -86,6 +86,9 @@ export const GameProvider = ({ children }) => {
   // (looks exactly like the page silently refreshing).
   const [ggRouted, setGgRouted] = useState(false);
   const ggReportedRef = useRef(false);
+  // Firestore fires the local snapshot for our own deleteDoc before it resolves; without this the listener navigates away before the hub is told.
+  const hostExitInProgressRef = useRef(false);
+  const [sessionEndedCompleted, setSessionEndedCompleted] = useState(false);
 
   const [alertModal, setAlertModal] = useState(null);
   const [isSessionExpired, setIsSessionExpired] = useState(false);
@@ -203,6 +206,16 @@ export const GameProvider = ({ children }) => {
     });
   }, [ggSession, ggAccessState]);
 
+  const buildGgReport = () => {
+    const roster = opponents.map((o) => ({
+      name: o.name,
+      score: o.score,
+      streak: o.streak,
+      isHost: false,
+    })).sort((a, b) => b.score - a.score);
+    return { gameCode, hostName: player.name, participantCount: roster.length, leaderboard: roster };
+  };
+
   // Report the result back to GummyGum once the race ends. The host is
   // usually running this for their whole team, so this reports the full
   // roster (host + everyone who joined with the PIN), not just the host's
@@ -215,18 +228,7 @@ export const GameProvider = ({ children }) => {
     // however many people launched through their own link.
     if (gameState !== 'podium' || ggReportedRef.current || !ggSession || !isHost) return;
     ggReportedRef.current = true;
-    const roster = opponents.map((o) => ({
-      name: o.name,
-      score: o.score,
-      streak: o.streak,
-      isHost: false,
-    })).sort((a, b) => b.score - a.score);
-    reportGummyGumResult({
-      gameCode,
-      hostName: player.name,
-      participantCount: roster.length,
-      leaderboard: roster,
-    });
+    reportGummyGumResult(buildGgReport());
   }, [gameState, ggSession, isHost, player.name, opponents, gameCode]);
 
   useEffect(() => {
@@ -234,6 +236,9 @@ export const GameProvider = ({ children }) => {
 
     const unsubGame = onSnapshot(doc(db, 'games', gameCode), (snapshot) => {
       if (!snapshot.exists()) {
+        if (hostExitInProgressRef.current) return;
+        const endedAfterCompletion = gameRef.current?.state === 'podium';
+        gameRef.current = null;
         sessionStorage.removeItem('sabi_game_code');
         sessionStorage.removeItem('sabi_is_host');
         setGameCode('');
@@ -248,6 +253,7 @@ export const GameProvider = ({ children }) => {
           // leaving them on a frozen lobby/question/leaderboard screen with
           // just a modal on top — window.close() silently no-ops for tabs
           // not opened via script, so it can't be relied on here.
+          setSessionEndedCompleted(endedAfterCompletion);
           navigate('session-ended');
         } else {
           showAlertModal('The Race Director cancelled the session.', 'Session Cancelled');
@@ -860,7 +866,7 @@ export const GameProvider = ({ children }) => {
   };
 
   const handleAnswer = (idx) => {
-    if (answered) return;
+    if (answered || !gameRef.current) return;
     setAnswered(true);
     setChosenAnswer(idx);
     
@@ -1032,20 +1038,26 @@ export const GameProvider = ({ children }) => {
   };
 
   const cancelGame = async () => {
-    if (isHost) {
+    if (!isHost || hostExitInProgressRef.current) return;
+    hostExitInProgressRef.current = true;
+    const completed = gameRef.current?.state === 'podium';
+    clearTimeout(window.phaseTimer);
+    clearInterval(window.currentTimer);
+    try {
       await deleteDoc(doc(db, 'games', gameCode));
-      sessionStorage.removeItem('sabi_game_code');
-      sessionStorage.removeItem('sabi_is_host');
+    } catch (err) {
+      console.error('Failed to delete game room:', err);
+    }
+    sessionStorage.removeItem('sabi_game_code');
+    sessionStorage.removeItem('sabi_is_host');
+    sessionStorage.removeItem('sabi_joined_room');
+    if (ggSession) {
+      const hub = await endGummyGumSession({ completed, finalReport: completed ? buildGgReport() : undefined });
+      window.location.href = hub;
+    } else {
       setGameCode('');
-      // Awaited so the backend confirms cancellation before we navigate away —
-      // firing this without waiting let the page unload abort the request,
-      // leaving the session "live" in GummyGum's eyes.
-      await reportGummyGumCancel();
-      if (ggSession) {
-        window.location.href = 'https://gummygum.app';
-      } else {
-        navigate('home');
-      }
+      hostExitInProgressRef.current = false;
+      navigate('home');
     }
   };
 
@@ -1063,7 +1075,7 @@ export const GameProvider = ({ children }) => {
       gameCode, createGame, joinGameWithCode, gameConfig, gameQuestions,
       gameState, currentQ, timeLeft, answered, bonusRound, chosenAnswer,
       flashColor, streakToast, loadingMessage, leaderboardStartedAt,
-      startRace, nextQuestion, resolveQuestion, handleAnswer, isHost, cancelGame, kickPlayer, isSpectator,
+      startRace, nextQuestion, resolveQuestion, handleAnswer, isHost, cancelGame, kickPlayer, isSpectator, sessionEndedCompleted,
       hostSettings, setHostSettings,
       ggSession, ggAccessState, ggRouted, invitedCount,
       alertModal, showAlertModal, closeAlertModal,
