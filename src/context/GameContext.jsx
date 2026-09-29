@@ -1,11 +1,18 @@
 import { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { db } from '../firebase';
-import { doc, collection, setDoc, getDoc, updateDoc, onSnapshot, getDocs, deleteDoc, writeBatch } from 'firebase/firestore';
+import { doc, collection, setDoc, getDoc, updateDoc, onSnapshot, getDocs, deleteDoc, writeBatch, runTransaction } from 'firebase/firestore';
 import { INITIAL_PLAYER, QUESTIONS } from '../constants';
 import { playJoin, playStart, playTick, playCorrect, playWrong, playWin, playSelect } from '../utils/audio';
 import { resolveGummyGumLaunch, reportGummyGumResult, reportGummyGumCancel, returnToGummyGum } from '../lib/gummygumSession';
 
 const GameContext = createContext();
+
+const LOBBY_EXPIRY_MS = 20 * 60 * 1000;
+// A game stuck mid-play with no connected client for this long is abandoned, not just a long-running race.
+const ABANDON_THRESHOLD_MS = 3 * 60 * 60 * 1000;
+const HEARTBEAT_INTERVAL_MS = 60 * 1000;
+const IN_PROGRESS_STATES = ['loading', 'question', 'result', 'leaderboard'];
+const RESULT_REVEAL_MS = 1800;
 
 export const useGame = () => useContext(GameContext);
 
@@ -81,6 +88,9 @@ export const GameProvider = ({ children }) => {
   const ggReportedRef = useRef(false);
 
   const [alertModal, setAlertModal] = useState(null);
+  const [isSessionExpired, setIsSessionExpired] = useState(false);
+  const [sessionExpiredContext, setSessionExpiredContext] = useState('lobby');
+  const abandonReportedRef = useRef(false);
 
   const showAlertModal = (message, title = 'Notice', onConfirm = null, cta = null) => {
     setAlertModal({ message, title, onConfirm, cta });
@@ -248,6 +258,23 @@ export const GameProvider = ({ children }) => {
 
       const data = snapshot.data();
       gameRef.current = data;
+
+      clearTimeout(window.phaseTimer);
+      if (data.state === 'expired') {
+        clearInterval(window.currentTimer);
+        setSessionExpiredContext(data.abandoned ? 'game' : 'lobby');
+        setIsSessionExpired(true);
+        if (data.abandoned && ggSession?.isHost && !abandonReportedRef.current) {
+          abandonReportedRef.current = true;
+          reportGummyGumCancel();
+        }
+        return;
+      }
+      if (data.state === 'lobby' && data.createdAt && Date.now() - data.createdAt >= LOBBY_EXPIRY_MS) {
+        setSessionExpiredContext('lobby');
+        setIsSessionExpired(true);
+        return;
+      }
       if (data.invitedCount) setInvitedCount(data.invitedCount);
       else if (data.config?.invitedCount) setInvitedCount(data.config.invitedCount);
       if (data.leaderboardStartedAt) setLeaderboardStartedAt(data.leaderboardStartedAt);
@@ -333,6 +360,11 @@ export const GameProvider = ({ children }) => {
         clearInterval(window.currentTimer);
         setTimeLeft(0);
         setAnswered(true); // Ensure players who didn't click still see the result
+        if (isHost) {
+          // A numeric scoredQ lagging currentQ means the host reloaded before scoring committed; legacy docs have none.
+          if (typeof data.scoredQ === 'number' && data.scoredQ !== data.currentQ) resolveQuestion(gameCode);
+          else schedulePhaseAdvance(gameCode, data);
+        }
       } else if (data.state === 'leaderboard') {
         clearInterval(window.currentTimer);
         if (currentScreenRef.current !== 'leaderboard') {
@@ -344,6 +376,7 @@ export const GameProvider = ({ children }) => {
         if (currentScreenRef.current !== 'loading') {
           navigate('loading');
         }
+        if (isHost) schedulePhaseAdvance(gameCode, data);
       } else if (data.state === 'podium' && currentScreenRef.current !== 'podium') {
         playWin();
         navigate('podium');
@@ -468,8 +501,54 @@ export const GameProvider = ({ children }) => {
       unsubPlayers();
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       clearInterval(window.currentTimer);
+      clearTimeout(window.phaseTimer);
     };
   }, [gameCode, isHost, ggSession]);
+
+  // Abandonment check runs once before this client's own heartbeat starts, so a returning client can't mask an abandoned game with its first write.
+  useEffect(() => {
+    if (!gameCode) return;
+    const gameDocRef = doc(db, 'games', gameCode);
+    let heartbeatInterval;
+    let stopped = false;
+
+    const lobbyTimer = setInterval(() => {
+      const g = gameRef.current;
+      if (g?.state === 'lobby' && g.createdAt && Date.now() - g.createdAt >= LOBBY_EXPIRY_MS) {
+        setSessionExpiredContext('lobby');
+        setIsSessionExpired(true);
+      }
+    }, 10000);
+
+    getDoc(gameDocRef).then((snap) => {
+      if (stopped || !snap.exists()) return;
+      const g = snap.data();
+      const lastActivity = Math.max(g.lastActivity || 0, g.startedAt || 0, g.leaderboardStartedAt || 0, g.createdAt || 0);
+      if (
+        IN_PROGRESS_STATES.includes(g.state) &&
+        lastActivity > 0 &&
+        Date.now() - lastActivity >= ABANDON_THRESHOLD_MS
+      ) {
+        updateDoc(gameDocRef, { state: 'expired', abandoned: true }).catch(() => {});
+        setSessionExpiredContext('game');
+        setIsSessionExpired(true);
+        return;
+      }
+
+      const beat = () => {
+        if (!IN_PROGRESS_STATES.includes(gameRef.current?.state)) return;
+        updateDoc(gameDocRef, { lastActivity: Date.now() }).catch(() => {});
+      };
+      beat();
+      heartbeatInterval = setInterval(beat, HEARTBEAT_INTERVAL_MS);
+    }).catch((err) => console.error('Failed to load game activity:', err));
+
+    return () => {
+      stopped = true;
+      clearInterval(lobbyTimer);
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
+    };
+  }, [gameCode]);
 
   const navigate = (screen) => setCurrentScreen(screen);
 
@@ -543,7 +622,8 @@ export const GameProvider = ({ children }) => {
           questions: generatedQuestions,
           state: 'lobby',
           currentQ: 0,
-          startedAt: null
+          startedAt: null,
+          createdAt: Date.now()
         });
 
         // No player doc for the host — they present, never play.
@@ -760,25 +840,19 @@ export const GameProvider = ({ children }) => {
         }
 
         const totalQ = gameQuestions.length || 12;
-        await updateDoc(doc(db, 'games', gameCode), {
-          state: 'loading',
-          loadingMessage: `Preparing for Round 1 of ${totalQ}...`,
-          currentQ: 0
+        const gameDocRef = doc(db, 'games', gameCode);
+        await runTransaction(db, async (tx) => {
+          const snap = await tx.get(gameDocRef);
+          if (!snap.exists() || snap.data().state !== 'lobby') return;
+          tx.update(gameDocRef, {
+            state: 'loading',
+            loadingMessage: `Preparing for Round 1 of ${totalQ}...`,
+            loadingNext: 'question',
+            phaseEndsAt: Date.now() + 1800,
+            scoredQ: -1,
+            currentQ: 0
+          });
         });
-
-        setTimeout(async () => {
-          try {
-            await updateDoc(doc(db, 'games', gameCode), {
-              state: 'question',
-              currentQ: 0,
-              startedAt: Date.now(),
-              bonusRound: Math.random() < 0.25,
-              firstBloodQ: false
-            });
-          } catch (e) {
-            console.error('startRace question transition error:', e);
-          }
-        }, 1800);
       } catch (err) {
         console.error('startRace error:', err);
       }
@@ -803,31 +877,86 @@ export const GameProvider = ({ children }) => {
     }, 0);
   };
 
+  // Host phase deadlines live in phaseEndsAt so a reloaded host resumes them; the transaction check prevents double-advancing.
+  const schedulePhaseAdvance = (code, data) => {
+    const endsAt = data.phaseEndsAt ?? null;
+    const delay = Math.max(0, (endsAt || 0) - Date.now());
+    window.phaseTimer = setTimeout(() => advancePhase(code, data.state, endsAt), delay);
+  };
+
+  const advancePhase = async (code, expectedState, expectedEndsAt) => {
+    const gameDocRef = doc(db, 'games', code);
+    try {
+      await runTransaction(db, async (tx) => {
+        const snap = await tx.get(gameDocRef);
+        if (!snap.exists()) return;
+        const g = snap.data();
+        if (g.state !== expectedState || (g.phaseEndsAt ?? null) !== expectedEndsAt) return;
+
+        if (g.state === 'loading') {
+          const next = g.loadingNext || (g.isFinalRound ? 'podium' : 'question');
+          if (next === 'podium') {
+            tx.update(gameDocRef, { state: 'podium', isFinal: true, phaseEndsAt: null });
+          } else {
+            tx.update(gameDocRef, {
+              state: 'question',
+              currentQ: g.currentQ ?? 0,
+              startedAt: Date.now(),
+              bonusRound: Math.random() < 0.25,
+              firstBloodQ: false,
+              phaseEndsAt: null
+            });
+          }
+        } else if (g.state === 'result') {
+          tx.update(gameDocRef, {
+            state: 'leaderboard',
+            leaderboardStartedAt: Date.now(),
+            isFinalRound: (g.currentQ ?? 0) + 1 >= (g.questions?.length || 1),
+            phaseEndsAt: null
+          });
+        }
+      });
+    } catch (e) {
+      console.error('Phase advance error:', e);
+    }
+  };
+
   const resolveQuestion = async (code) => {
     if (resolvingRef.current) return;
     resolvingRef.current = true;
     clearInterval(window.currentTimer);
+    const gameDocRef = doc(db, 'games', code);
+    const needsScoring = (g) => g.state === 'result' && g.scoredQ !== g.currentQ;
 
     try {
-      await updateDoc(doc(db, 'games', code), { state: 'result' });
-
-      const gameSnap = await getDoc(doc(db, 'games', code));
-      if (!gameSnap.exists()) {
-        resolvingRef.current = false;
-        return;
-      }
-      const game = gameSnap.data();
-      const currentQData = game.questions?.[game.currentQ];
-      const correctIndex = currentQData?.answer ?? 0;
+      // Reveal before scoring so the players listener sees 'result' when scores land (drives the answer flash).
+      const proceed = await runTransaction(db, async (tx) => {
+        const snap = await tx.get(gameDocRef);
+        if (!snap.exists()) return false;
+        const g = snap.data();
+        if (g.state === 'question') {
+          tx.update(gameDocRef, { state: 'result' });
+          return true;
+        }
+        return needsScoring(g);
+      });
+      if (!proceed) return;
 
       const pSnap = await getDocs(collection(db, 'games', code, 'players'));
-      let firstBloodUsed = false;
 
-      // Commit ALL player score updates in ONE atomic batch to avoid 50+ individual HTTP writes
-      if (!pSnap.empty) {
-        const batch = writeBatch(db);
-        for (const d of pSnap.docs) {
-          const p = d.data();
+      // scoredQ commits atomically with the scores, so a reloaded host can never score a round twice.
+      await runTransaction(db, async (tx) => {
+        const gameSnap = await tx.get(gameDocRef);
+        if (!gameSnap.exists()) return;
+        const game = gameSnap.data();
+        if (!needsScoring(game)) return;
+        const correctIndex = game.questions?.[game.currentQ]?.answer ?? 0;
+        const playerSnaps = await Promise.all(pSnap.docs.map((d) => tx.get(d.ref)));
+        let firstBloodUsed = false;
+
+        for (const ps of playerSnaps) {
+          if (!ps.exists()) continue;
+          const p = ps.data();
           if (p.answered && p.chosenAnswer === correctIndex) {
             let pts = 100;
             const timeTaken = p.answeredAt ? (p.answeredAt - game.startedAt) / 1000 : 15;
@@ -842,36 +971,25 @@ export const GameProvider = ({ children }) => {
             let streakMult = p.streak >= 7 ? 2.5 : p.streak >= 5 ? 2.0 : p.streak >= 3 ? 1.5 : p.streak >= 2 ? 1.2 : 1.0;
             pts = Math.round(pts * streakMult);
 
-            batch.update(d.ref, { score: (p.score || 0) + pts, streak: (p.streak || 0) + 1, roundPoints: pts });
+            tx.update(ps.ref, { score: (p.score || 0) + pts, streak: (p.streak || 0) + 1, roundPoints: pts });
           } else {
-            batch.update(d.ref, { streak: 0, roundPoints: 0 });
+            tx.update(ps.ref, { streak: 0, roundPoints: 0 });
           }
         }
-        await batch.commit();
-      }
-
-      setTimeout(async () => {
-        try {
-          await updateDoc(doc(db, 'games', code), {
-            state: 'leaderboard',
-            leaderboardStartedAt: Date.now(),
-            isFinalRound: (game.currentQ ?? 0) + 1 >= (game.questions?.length || 1)
-          });
-        } catch (e) {
-          console.error('Leaderboard transition error:', e);
-        } finally {
-          resolvingRef.current = false;
-        }
-      }, 1800);
+        tx.update(gameDocRef, { scoredQ: game.currentQ, phaseEndsAt: Date.now() + RESULT_REVEAL_MS });
+      });
     } catch (err) {
       console.error('resolveQuestion error:', err);
+    } finally {
       resolvingRef.current = false;
     }
   };
 
   const nextQuestion = async () => {
     if (!isHost || !gameCode) return;
+    if (gameRef.current && gameRef.current.state !== 'leaderboard') return;
     clearInterval(window.currentTimer);
+    const gameDocRef = doc(db, 'games', gameCode);
     try {
       const snap = await getDocs(collection(db, 'games', gameCode, 'players'));
       if (!snap.empty) {
@@ -882,45 +1000,32 @@ export const GameProvider = ({ children }) => {
         await batch.commit();
       }
 
-      const gameSnap = await getDoc(doc(db, 'games', gameCode));
-      if (!gameSnap.exists()) return;
-      const gameData = gameSnap.data();
-      const nextQIndex = (gameData.currentQ ?? 0) + 1;
-      const totalQCount = gameData.questions?.length || 1;
+      // Conditional on 'leaderboard' so a duplicate call (countdown + watchdog, or after a reload) cannot skip a question.
+      await runTransaction(db, async (tx) => {
+        const gameSnap = await tx.get(gameDocRef);
+        if (!gameSnap.exists()) return;
+        const gameData = gameSnap.data();
+        if (gameData.state !== 'leaderboard') return;
+        const nextQIndex = (gameData.currentQ ?? 0) + 1;
+        const totalQCount = gameData.questions?.length || 1;
 
-      if (nextQIndex >= totalQCount) {
-        await updateDoc(doc(db, 'games', gameCode), {
-          state: 'loading',
-          loadingMessage: 'Preparing Final Standings...'
-        });
-        setTimeout(async () => {
-          try {
-            await updateDoc(doc(db, 'games', gameCode), { state: 'podium', isFinal: true });
-          } catch (e) {
-            console.error('Podium transition error:', e);
-          }
-        }, 1800);
-      } else {
-        await updateDoc(doc(db, 'games', gameCode), {
-          state: 'loading',
-          currentQ: nextQIndex,
-          loadingMessage: `Preparing for Round ${nextQIndex + 1} of ${totalQCount}...`
-        });
-
-        setTimeout(async () => {
-          try {
-            await updateDoc(doc(db, 'games', gameCode), {
-              state: 'question',
-              currentQ: nextQIndex,
-              startedAt: Date.now(),
-              bonusRound: Math.random() < 0.25,
-              firstBloodQ: false
-            });
-          } catch (e) {
-            console.error('Next question transition error:', e);
-          }
-        }, 1600);
-      }
+        if (nextQIndex >= totalQCount) {
+          tx.update(gameDocRef, {
+            state: 'loading',
+            loadingMessage: 'Preparing Final Standings...',
+            loadingNext: 'podium',
+            phaseEndsAt: Date.now() + 1800
+          });
+        } else {
+          tx.update(gameDocRef, {
+            state: 'loading',
+            currentQ: nextQIndex,
+            loadingMessage: `Preparing for Round ${nextQIndex + 1} of ${totalQCount}...`,
+            loadingNext: 'question',
+            phaseEndsAt: Date.now() + 1600
+          });
+        }
+      });
     } catch (err) {
       console.error('Failed to advance to next question:', err);
     }
@@ -961,7 +1066,8 @@ export const GameProvider = ({ children }) => {
       startRace, nextQuestion, resolveQuestion, handleAnswer, isHost, cancelGame, kickPlayer, isSpectator,
       hostSettings, setHostSettings,
       ggSession, ggAccessState, ggRouted, invitedCount,
-      alertModal, showAlertModal, closeAlertModal
+      alertModal, showAlertModal, closeAlertModal,
+      isSessionExpired, sessionExpiredContext
     }}>
       {children}
     </GameContext.Provider>
