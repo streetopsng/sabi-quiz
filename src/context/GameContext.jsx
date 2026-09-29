@@ -72,6 +72,7 @@ export const GameProvider = ({ children }) => {
   
   const optionMapRef = useRef([]);
   const shuffledQRef = useRef(-1);
+  const myDocRef = useRef(null);
   const gameRef = useRef(null);
   const resolvingRef = useRef(false);
   const hasSeenSelfInPlayersRef = useRef(false);
@@ -440,6 +441,12 @@ export const GameProvider = ({ children }) => {
           }
           
           optionMapRef.current = newOptionMap;
+          // A rejoining player who already answered this question must not be able to answer it again.
+          const mine = myDocRef.current;
+          if (mine?.answered && typeof mine.chosenAnswer === 'number' && mine.chosenAnswer >= 0) {
+            setAnswered(true);
+            setChosenAnswer(newOptionMap.indexOf(mine.chosenAnswer));
+          }
           const clientAnswerIndex = newOptionMap.indexOf(data.questions[data.currentQ].answer);
 
           setGameQuestions(prev => {
@@ -529,8 +536,13 @@ export const GameProvider = ({ children }) => {
       // GummyGum invitees can share a name, so only a standalone join may fall back to a name match.
       const me = playersList.find(p => p.sessionId === sessionId)
         || (!ggSession && player.name ? playersList.find(p => (p.name || '').trim().toLowerCase() === player.name.trim().toLowerCase()) : undefined);
+      myDocRef.current = me || null;
       if (me) {
         hasSeenSelfInPlayersRef.current = true;
+        if (me.answered && me.chosenAnswer >= 0 && gameRef.current?.state === 'question' && shuffledQRef.current === gameRef.current.currentQ) {
+          setAnswered(true);
+          setChosenAnswer(optionMapRef.current.indexOf(me.chosenAnswer));
+        }
         setPlayer(prev => ({
           ...prev,
           name: me.name || prev.name,
@@ -894,6 +906,7 @@ export const GameProvider = ({ children }) => {
           await deleteDoc(doc(db, 'games', code, 'players', staleDoc.id)).catch(() => undefined);
           await setDoc(playerRef, {
             ...player,
+            ...prior,
             name: finalName,
             vehicle: finalVehicle,
             sessionId,
