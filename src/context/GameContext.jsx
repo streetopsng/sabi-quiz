@@ -7,6 +7,12 @@ import { resolveGummyGumLaunch, reportGummyGumResult, reportGummyGumCancel, retu
 
 const GameContext = createContext();
 
+const LOBBY_EXPIRY_MS = 20 * 60 * 1000;
+// A game stuck mid-play with no connected client for this long is abandoned, not just a long-running race.
+const ABANDON_THRESHOLD_MS = 3 * 60 * 60 * 1000;
+const HEARTBEAT_INTERVAL_MS = 60 * 1000;
+const IN_PROGRESS_STATES = ['loading', 'question', 'result', 'leaderboard'];
+
 export const useGame = () => useContext(GameContext);
 
 export const GameProvider = ({ children }) => {
@@ -81,6 +87,9 @@ export const GameProvider = ({ children }) => {
   const ggReportedRef = useRef(false);
 
   const [alertModal, setAlertModal] = useState(null);
+  const [isSessionExpired, setIsSessionExpired] = useState(false);
+  const [sessionExpiredContext, setSessionExpiredContext] = useState('lobby');
+  const abandonReportedRef = useRef(false);
 
   const showAlertModal = (message, title = 'Notice', onConfirm = null, cta = null) => {
     setAlertModal({ message, title, onConfirm, cta });
@@ -248,6 +257,22 @@ export const GameProvider = ({ children }) => {
 
       const data = snapshot.data();
       gameRef.current = data;
+
+      if (data.state === 'expired') {
+        clearInterval(window.currentTimer);
+        setSessionExpiredContext(data.abandoned ? 'game' : 'lobby');
+        setIsSessionExpired(true);
+        if (data.abandoned && ggSession?.isHost && !abandonReportedRef.current) {
+          abandonReportedRef.current = true;
+          reportGummyGumCancel();
+        }
+        return;
+      }
+      if (data.state === 'lobby' && data.createdAt && Date.now() - data.createdAt >= LOBBY_EXPIRY_MS) {
+        setSessionExpiredContext('lobby');
+        setIsSessionExpired(true);
+        return;
+      }
       if (data.invitedCount) setInvitedCount(data.invitedCount);
       else if (data.config?.invitedCount) setInvitedCount(data.config.invitedCount);
       if (data.leaderboardStartedAt) setLeaderboardStartedAt(data.leaderboardStartedAt);
@@ -471,6 +496,51 @@ export const GameProvider = ({ children }) => {
     };
   }, [gameCode, isHost, ggSession]);
 
+  // Abandonment check runs once before this client's own heartbeat starts, so a returning client can't mask an abandoned game with its first write.
+  useEffect(() => {
+    if (!gameCode) return;
+    const gameDocRef = doc(db, 'games', gameCode);
+    let heartbeatInterval;
+    let stopped = false;
+
+    const lobbyTimer = setInterval(() => {
+      const g = gameRef.current;
+      if (g?.state === 'lobby' && g.createdAt && Date.now() - g.createdAt >= LOBBY_EXPIRY_MS) {
+        setSessionExpiredContext('lobby');
+        setIsSessionExpired(true);
+      }
+    }, 10000);
+
+    getDoc(gameDocRef).then((snap) => {
+      if (stopped || !snap.exists()) return;
+      const g = snap.data();
+      const lastActivity = Math.max(g.lastActivity || 0, g.startedAt || 0, g.leaderboardStartedAt || 0, g.createdAt || 0);
+      if (
+        IN_PROGRESS_STATES.includes(g.state) &&
+        lastActivity > 0 &&
+        Date.now() - lastActivity >= ABANDON_THRESHOLD_MS
+      ) {
+        updateDoc(gameDocRef, { state: 'expired', abandoned: true }).catch(() => {});
+        setSessionExpiredContext('game');
+        setIsSessionExpired(true);
+        return;
+      }
+
+      const beat = () => {
+        if (!IN_PROGRESS_STATES.includes(gameRef.current?.state)) return;
+        updateDoc(gameDocRef, { lastActivity: Date.now() }).catch(() => {});
+      };
+      beat();
+      heartbeatInterval = setInterval(beat, HEARTBEAT_INTERVAL_MS);
+    }).catch((err) => console.error('Failed to load game activity:', err));
+
+    return () => {
+      stopped = true;
+      clearInterval(lobbyTimer);
+      if (heartbeatInterval) clearInterval(heartbeatInterval);
+    };
+  }, [gameCode]);
+
   const navigate = (screen) => setCurrentScreen(screen);
 
   const showStreakToast = (streak) => {
@@ -543,7 +613,8 @@ export const GameProvider = ({ children }) => {
           questions: generatedQuestions,
           state: 'lobby',
           currentQ: 0,
-          startedAt: null
+          startedAt: null,
+          createdAt: Date.now()
         });
 
         // No player doc for the host — they present, never play.
@@ -961,7 +1032,8 @@ export const GameProvider = ({ children }) => {
       startRace, nextQuestion, resolveQuestion, handleAnswer, isHost, cancelGame, kickPlayer, isSpectator,
       hostSettings, setHostSettings,
       ggSession, ggAccessState, ggRouted, invitedCount,
-      alertModal, showAlertModal, closeAlertModal
+      alertModal, showAlertModal, closeAlertModal,
+      isSessionExpired, sessionExpiredContext
     }}>
       {children}
     </GameContext.Provider>

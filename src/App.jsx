@@ -12,6 +12,7 @@ import Podium from './components/Podium';
 import Overlays from './components/Overlays';
 import GgAvatarSetup from './components/GgAvatarSetup';
 import SessionEnded from './components/SessionEnded';
+import SessionExpiredModal from './components/SessionExpiredModal';
 
 const GummyGumLockedScreen = () => (
   <div className="h-[100dvh] w-full bg-[#091521] text-white flex items-center justify-center px-6">
@@ -29,7 +30,7 @@ const GummyGumLockedScreen = () => (
 );
 
 function ScreenManager() {
-  const { currentScreen, ggAccessState, ggSession, ggRouted } = useGame();
+  const { currentScreen, ggAccessState, ggSession, ggRouted, isHost, isSessionExpired, sessionExpiredContext } = useGame();
 
   // Only blank the screen while that initial routing decision is still
   // in flight — once it's settled, going back to 'home' later (e.g. via
@@ -60,6 +61,13 @@ function ScreenManager() {
         {currentScreen === 'podium' && <Podium key="podium" />}
         {currentScreen === 'session-ended' && <SessionEnded key="session-ended" />}
       </AnimatePresence>
+      {isSessionExpired && (
+        <SessionExpiredModal
+          isHost={Boolean(isHost || ggSession?.isHost)}
+          context={sessionExpiredContext}
+          hubUrl={ggSession?.hubUrl}
+        />
+      )}
     </div>
   );
 }
