@@ -59,8 +59,10 @@ export async function resolveGummyGumLaunch() {
   }
 
   const existing = getGummyGumSession();
-  // Only clear room state if launching into a different room
-  if (!existing || existing.roomCode !== body.data.roomCode) {
+  // The URL sessionId is the hub's hosted session; verify's data.sessionId is per-launch.
+  const hostedSessionId = params.get('sessionId') || null;
+  // The hub reuses a PIN across hosted sessions, so a new hosted session is a different room too.
+  if (!existing || existing.roomCode !== body.data.roomCode || (existing.hostedSessionId || null) !== hostedSessionId) {
     sessionStorage.removeItem('sabi_game_code');
     sessionStorage.removeItem('sabi_joined_room');
     sessionStorage.removeItem('sabi_is_host');
@@ -76,6 +78,7 @@ export async function resolveGummyGumLaunch() {
     player: body.data.player,
     reportToken: body.data.reportToken,
     roomCode: body.data.roomCode || null,
+    hostedSessionId,
     isHost: Boolean(body.data.isHost),
     hubUrl,
     round: 1,
