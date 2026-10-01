@@ -255,7 +255,7 @@ export const GameProvider = ({ children }) => {
       if (existingPlayer) {
         const priorData = existingPlayer.data();
         const restoredAvatar = priorData.vehicle || (email && localStorage.getItem(`sabi_avatar_${email}`)) || player.vehicle;
-        const restoredName = priorData.name || (email && localStorage.getItem(`sabi_name_${email}`)) || ggSession.player?.name || player.name;
+        const restoredName = ggSession.player?.name || priorData.name || (email && localStorage.getItem(`sabi_name_${email}`)) || player.name;
 
         if (email) {
           localStorage.setItem(joinedKey(roomCode, email), 'true');
