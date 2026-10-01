@@ -27,6 +27,8 @@ export default function Lobby() {
     return arr.findIndex(other => (other.name || '').trim().toLowerCase() === oName) === idx;
   });
   const activePlayers = activeOpponents.length + (isHost ? 0 : 1);
+  const MIN_PARTICIPANTS = 2;
+  const canStart = activeOpponents.length >= MIN_PARTICIPANTS;
 
   const targetTotal = invitedCount || ggSession?.invitedCount || null;
   const playerCounterText = targetTotal
@@ -132,13 +134,19 @@ export default function Lobby() {
 
             <div className="w-full max-w-[380px]">
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.97 }}
+                whileHover={canStart ? { scale: 1.02 } : undefined}
+                whileTap={canStart ? { scale: 0.97 } : undefined}
+                disabled={!canStart}
                 onClick={() => { playSelect(); startRace(); }}
-                className="w-full py-3.5 rounded-full bg-gradient-to-r from-[#FF8A3D] to-[#F97316] text-white text-lg sm:text-xl font-bold shadow-[0_6px_20px_rgba(255,138,61,0.4)] hover:shadow-[0_8px_26px_rgba(255,138,61,0.55)] transition-all cursor-pointer text-center"
+                className={`w-full py-3.5 rounded-full bg-gradient-to-r from-[#FF8A3D] to-[#F97316] text-white text-lg sm:text-xl font-bold shadow-[0_6px_20px_rgba(255,138,61,0.4)] transition-all text-center ${canStart ? 'hover:shadow-[0_8px_26px_rgba(255,138,61,0.55)] cursor-pointer' : 'opacity-50 cursor-not-allowed'}`}
               >
                 Start
               </motion.button>
+              {!canStart && (
+                <div className="text-xs text-white/50 text-center mt-2">
+                  Waiting for at least {MIN_PARTICIPANTS} participants ({activeOpponents.length} joined)
+                </div>
+              )}
             </div>
 
           </div>
@@ -191,7 +199,7 @@ export default function Lobby() {
       <footer className="relative z-20 w-full max-w-[1300px] mx-auto px-6 py-4 flex items-center justify-between">
         {isHost && (
           <HostToolbar
-            onNextRound={() => { playSelect(); startRace(); }}
+            onNextRound={() => { if (!canStart) return; playSelect(); startRace(); }}
             onOpenSettings={ggSession ? undefined : () => setShowSettingsModal(true)}
             showNewRound={false}
           />
