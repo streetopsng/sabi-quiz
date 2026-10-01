@@ -76,6 +76,7 @@ export const GameProvider = ({ children }) => {
   const gameRef = useRef(null);
   const resolvingRef = useRef(false);
   const hasSeenSelfInPlayersRef = useRef(false);
+  const flashedQRef = useRef(-1);
   
   const [isHost, setIsHost] = useState(false);
   const [isSpectator, setIsSpectator] = useState(() => sessionStorage.getItem('sabi_is_spectator') === 'true');
@@ -255,7 +256,7 @@ export const GameProvider = ({ children }) => {
       if (existingPlayer) {
         const priorData = existingPlayer.data();
         const restoredAvatar = priorData.vehicle || (email && localStorage.getItem(`sabi_avatar_${email}`)) || player.vehicle;
-        const restoredName = priorData.name || (email && localStorage.getItem(`sabi_name_${email}`)) || ggSession.player?.name || player.name;
+        const restoredName = ggSession.player?.name || priorData.name || (email && localStorage.getItem(`sabi_name_${email}`)) || player.name;
 
         if (email) {
           localStorage.setItem(joinedKey(roomCode, email), 'true');
@@ -307,7 +308,9 @@ export const GameProvider = ({ children }) => {
     // independently report the *same* full roster — self-labeled as host
     // in their own copy — multiplying every score and session count by
     // however many people launched through their own link.
-    if (gameState !== 'podium' || ggReportedRef.current || !ggSession || !isHost) return;
+    if (gameState !== 'podium' || ggReportedRef.current || !ggSession || ggSession.reported || !isHost) return;
+    // After a host reload the room snapshot can land before the roster's; never report an empty board.
+    if (opponents.length === 0) return;
     ggReportedRef.current = true;
     reportGummyGumResult(buildGgReport());
   }, [gameState, ggSession, isHost, player.name, opponents, gameCode]);
@@ -554,8 +557,11 @@ export const GameProvider = ({ children }) => {
           color: me.color || prev.color
         }));
 
-        if (gameRef.current && gameRef.current.state === 'result' && chosenAnswer !== -1) {
-           const wasCorrect = me.chosenAnswer === gameRef.current.questions[gameRef.current.currentQ].answer;
+        // chosenAnswer state is stale in this listener's closure, so read the answer from the doc.
+        const g = gameRef.current;
+        if (g && g.state === 'result' && me.answered && me.chosenAnswer >= 0 && flashedQRef.current !== g.currentQ) {
+           flashedQRef.current = g.currentQ;
+           const wasCorrect = me.chosenAnswer === g.questions[g.currentQ].answer;
            setFlashColor(wasCorrect ? 'green' : 'red');
            if (wasCorrect) playCorrect(); else playWrong();
            setTimeout(() => setFlashColor(null), 300);
@@ -1206,7 +1212,7 @@ export const GameProvider = ({ children }) => {
 
   return (
     <GameContext.Provider value={{
-      currentScreen, navigate,
+      currentScreen, navigate, sessionId,
       player, setPlayer,
       opponents,
       gameCode, createGame, joinGameWithCode, gameConfig, gameQuestions,

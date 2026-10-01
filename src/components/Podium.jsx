@@ -12,7 +12,7 @@ import { playSelect } from '../utils/audio';
 import { startNextRoundGummyGum } from '../lib/gummygumSession';
 
 export default function Podium() {
-  const { navigate, player, opponents, showAlertModal, gameCode, gameConfig, createGame, hostSettings, setHostSettings, isHost, isSpectator, ggSession } = useGame();
+  const { navigate, sessionId, player, opponents, showAlertModal, gameCode, gameConfig, createGame, hostSettings, setHostSettings, isHost, isSpectator, ggSession } = useGame();
 
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -47,7 +47,7 @@ export default function Podium() {
     if (!feedbackText.trim() || submittingFeedback) return;
     setSubmittingFeedback(true);
     try {
-      await setDoc(doc(db, 'games', gameCode, 'feedback', player.sessionId), {
+      await setDoc(doc(db, 'games', gameCode, 'feedback', sessionId), {
         name: player.name,
         text: feedbackText.trim(),
         submittedAt: Date.now(),
@@ -154,7 +154,7 @@ export default function Podium() {
         )}
 
         <div
-          onClick={() => navigate('home')}
+          onClick={() => !ggSession && navigate('home')}
           className="cursor-pointer text-4xl sm:text-5xl font-black text-[#F4D06F] drop-shadow-md tracking-tight group"
         >
           <span className="group-hover:scale-105 inline-block transition-transform">sabi</span>
@@ -232,13 +232,13 @@ export default function Podium() {
               <div className="flex flex-col sm:flex-row items-center gap-3">
                 {isHost ? (
                   <>
-                    <button
+                    {/* <button
                       onClick={handleStartNewSession}
                       disabled={startingNewSession}
                       className="px-6 py-3 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 disabled:opacity-50 text-white font-bold text-sm sm:text-base border border-white/20 transition-all cursor-pointer flex items-center gap-2"
                     >
                       <span>{startingNewSession ? 'Starting…' : 'Start New Session'}</span>
-                    </button>
+                    </button> */}
                   </>
                 ) : (
                   <button
