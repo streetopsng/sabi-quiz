@@ -232,13 +232,13 @@ export default function Podium() {
               <div className="flex flex-col sm:flex-row items-center gap-3">
                 {isHost ? (
                   <>
-                    <button
+                    {/* <button
                       onClick={handleStartNewSession}
                       disabled={startingNewSession}
                       className="px-6 py-3 rounded-full bg-white/15 hover:bg-white/25 active:scale-95 disabled:opacity-50 text-white font-bold text-sm sm:text-base border border-white/20 transition-all cursor-pointer flex items-center gap-2"
                     >
                       <span>{startingNewSession ? 'Starting…' : 'Start New Session'}</span>
-                    </button>
+                    </button> */}
                   </>
                 ) : (
                   <button
