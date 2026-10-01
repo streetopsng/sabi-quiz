@@ -60,7 +60,7 @@ export default function Lobby() {
         )}
 
         <div
-          onClick={() => navigate('home')}
+          onClick={() => !ggSession && navigate('home')}
           className="cursor-pointer text-4xl sm:text-5xl font-black text-[#F4D06F] drop-shadow-md tracking-tight group"
         >
           <span className="group-hover:scale-105 inline-block transition-transform">sabi</span>

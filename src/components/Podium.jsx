@@ -12,7 +12,7 @@ import { playSelect } from '../utils/audio';
 import { startNextRoundGummyGum } from '../lib/gummygumSession';
 
 export default function Podium() {
-  const { navigate, player, opponents, showAlertModal, gameCode, gameConfig, createGame, hostSettings, setHostSettings, isHost, isSpectator, ggSession } = useGame();
+  const { navigate, sessionId, player, opponents, showAlertModal, gameCode, gameConfig, createGame, hostSettings, setHostSettings, isHost, isSpectator, ggSession } = useGame();
 
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
@@ -47,7 +47,7 @@ export default function Podium() {
     if (!feedbackText.trim() || submittingFeedback) return;
     setSubmittingFeedback(true);
     try {
-      await setDoc(doc(db, 'games', gameCode, 'feedback', player.sessionId), {
+      await setDoc(doc(db, 'games', gameCode, 'feedback', sessionId), {
         name: player.name,
         text: feedbackText.trim(),
         submittedAt: Date.now(),
@@ -154,7 +154,7 @@ export default function Podium() {
         )}
 
         <div
-          onClick={() => navigate('home')}
+          onClick={() => !ggSession && navigate('home')}
           className="cursor-pointer text-4xl sm:text-5xl font-black text-[#F4D06F] drop-shadow-md tracking-tight group"
         >
           <span className="group-hover:scale-105 inline-block transition-transform">sabi</span>
