@@ -1,8 +1,6 @@
 import { AnimatePresence } from 'framer-motion';
 import { GameProvider, useGame } from './context/GameContext';
-import Home from './components/Home';
-import CreateGame from './components/CreateGame';
-import JoinGame from './components/JoinGame';
+import { useEffect, useState } from 'react';
 import Lobby from './components/Lobby';
 import FleetSelection from './components/FleetSelection';
 import Question from './components/Question';
@@ -39,6 +37,32 @@ const WaitingForHostScreen = () => (
   </div>
 );
 
+// Sabi only runs from a GummyGum launch, so there is no home, create or join screen to land on.
+// Anything that would have shown one waits here while the room reconnects.
+const ReconnectingScreen = ({ hubUrl }) => {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setSlow(true), 8000);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <div className="h-[100dvh] w-full bg-[#091521] text-white flex items-center justify-center px-6">
+      <div className="max-w-sm w-full text-center space-y-4">
+        <div className="w-10 h-10 mx-auto rounded-full border-4 border-white/20 border-t-amber-400 animate-spin" />
+        <h1 className="text-xl font-bold">Loading…</h1>
+        {slow && (
+          <a
+            href={hubUrl || 'https://gummygum.app'}
+            className="inline-block mt-2 px-6 py-3 rounded-xl bg-amber-400 text-[#091521] font-bold"
+          >
+            Back to GummyGum
+          </a>
+        )}
+      </div>
+    </div>
+  );
+};
+
 function ScreenManager() {
   const { currentScreen, ggAccessState, ggSession, ggRouted, awaitingHost, isHost, isSessionExpired, sessionExpiredContext } = useGame();
 
@@ -52,20 +76,21 @@ function ScreenManager() {
   }
 
   if (ggAccessState === 'checking' || routingIntoGgRoom) {
-    return <div className="h-[100dvh] w-full bg-navy" />;
+    return <ReconnectingScreen hubUrl={ggSession?.hubUrl} />;
   }
 
   if (ggAccessState === 'denied') {
     return <GummyGumLockedScreen />;
   }
 
+  if (['home', 'create', 'join'].includes(currentScreen)) {
+    return <ReconnectingScreen hubUrl={ggSession?.hubUrl} />;
+  }
+
   return (
     <div className="min-h-[100dvh] w-full relative bg-[#091521] overflow-x-hidden overflow-y-auto">
       <Overlays />
       <AnimatePresence mode="wait">
-        {currentScreen === 'home' && <Home key="home" />}
-        {currentScreen === 'create' && <CreateGame key="create" />}
-        {currentScreen === 'join' && <JoinGame key="join" />}
         {currentScreen === 'gg-avatar' && <GgAvatarSetup key="gg-avatar" />}
         {currentScreen === 'lobby' && <Lobby key="lobby" />}
         {currentScreen === 'fleet' && <FleetSelection key="fleet" />}
