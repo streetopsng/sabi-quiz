@@ -79,6 +79,10 @@ export default function Leaderboard() {
     // Anchor to server timestamp if available, otherwise fixed mount time (NEVER resets)
     const effectiveStart = leaderboardStartedAt || initialMountTimeRef.current;
 
+    // Declared before the first tick: a screen opened after the countdown already ran out
+    // (refresh, slow device, backgrounded tab) clears the timer on that very first call.
+    let timer = null;
+
     const updateCountdown = () => {
       const elapsed = (Date.now() - effectiveStart) / 1000;
       const rem = Math.max(0, Math.ceil(totalSec - elapsed));
@@ -93,8 +97,8 @@ export default function Leaderboard() {
       }
     };
 
+    timer = setInterval(updateCountdown, 250);
     updateCountdown();
-    const timer = setInterval(updateCountdown, 250);
 
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') {
