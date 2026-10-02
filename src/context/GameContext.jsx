@@ -80,6 +80,8 @@ export const GameProvider = ({ children }) => {
   
   const [isHost, setIsHost] = useState(false);
   const [isSpectator, setIsSpectator] = useState(() => sessionStorage.getItem('sabi_is_spectator') === 'true');
+  const isSpectatorRef = useRef(isSpectator);
+  isSpectatorRef.current = isSpectator;
   const [hostSettings, setHostSettings] = useState({
     teamMode: false,
     presenterMode: true,
@@ -651,8 +653,9 @@ export const GameProvider = ({ children }) => {
         return;
       }
 
+      // Host only: every player writing the game doc kept colliding with the host's phase transactions.
       const beat = () => {
-        if (!IN_PROGRESS_STATES.includes(gameRef.current?.state)) return;
+        if (!isSpectatorRef.current || !IN_PROGRESS_STATES.includes(gameRef.current?.state)) return;
         updateDoc(gameDocRef, { lastActivity: Date.now() }).catch(() => {});
       };
       beat();
@@ -1037,7 +1040,7 @@ export const GameProvider = ({ children }) => {
     window.phaseTimer = setTimeout(() => advancePhase(code, data.state, endsAt), delay);
   };
 
-  const advancePhase = async (code, expectedState, expectedEndsAt) => {
+  const advancePhase = async (code, expectedState, expectedEndsAt, attempt = 0) => {
     const gameDocRef = doc(db, 'games', code);
     try {
       await runTransaction(db, async (tx) => {
@@ -1071,6 +1074,10 @@ export const GameProvider = ({ children }) => {
       });
     } catch (e) {
       console.error('Phase advance error:', e);
+      // A lost transaction race must not freeze the game; the state check makes a late retry a no-op.
+      if (attempt < 5) {
+        window.phaseTimer = setTimeout(() => advancePhase(code, expectedState, expectedEndsAt, attempt + 1), 1000);
+      }
     }
   };
 
