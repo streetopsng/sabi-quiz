@@ -713,7 +713,9 @@ export const GameProvider = ({ children }) => {
           filteredPool = [...QUESTIONS];
         }
 
-        let pool = [...filteredPool].sort(() => Math.random() - 0.5);
+        // Afribase runs as a fixed sequence: general knowledge first, then dashboard know-how.
+        const keepOrder = selectedTopic === 'afribase';
+        let pool = keepOrder ? [...filteredPool] : [...filteredPool].sort(() => Math.random() - 0.5);
         let generatedQuestions = [];
         while (generatedQuestions.length < (config.qCount || 12)) {
           const target = config.qCount || 12;
