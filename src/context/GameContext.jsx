@@ -454,9 +454,11 @@ export const GameProvider = ({ children }) => {
 
           setGameQuestions(prev => {
             const next = [...prev];
-            next[data.currentQ] = { 
-              ...data.questions[data.currentQ], 
+            const src = data.questions[data.currentQ];
+            next[data.currentQ] = {
+              ...src,
               opts: shuffledOpts,
+              ...(Array.isArray(src.optImages) && { optImages: newOptionMap.map(o => src.optImages[o]) }),
               answer: clientAnswerIndex 
             };
             return next;
