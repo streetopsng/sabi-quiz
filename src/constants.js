@@ -9,6 +9,366 @@ export const GUMMY_AVATARS = Array.from({ length: GUMMYGUM_AVATAR_COUNT }, (_, i
 
 export const QUESTIONS = [
   {
+    "q": "What database does every Afribase project come with?",
+    "type": "mc",
+    "opts": [
+      "MongoDB",
+      "PostgreSQL",
+      "MySQL",
+      "Firebase Firestore"
+    ],
+    "answer": 1,
+    "category": "Afribase"
+  },
+  {
+    "q": "In what currency are Afribase prices quoted and charged?",
+    "type": "mc",
+    "opts": [
+      "US Dollars",
+      "Euros",
+      "Naira",
+      "Bitcoin"
+    ],
+    "answer": 2,
+    "category": "Afribase"
+  },
+  {
+    "q": "Afribase machines can be provisioned in which African city instead of Virginia?",
+    "type": "mc",
+    "opts": [
+      "Johannesburg",
+      "Casablanca",
+      "Kigali",
+      "Dakar"
+    ],
+    "answer": 0,
+    "category": "Afribase"
+  },
+  {
+    "q": "Afribase Realtime lets you subscribe to database changes over what?",
+    "type": "mc",
+    "opts": [
+      "Email",
+      "SMS",
+      "WebSockets",
+      "FTP"
+    ],
+    "answer": 2,
+    "category": "Afribase"
+  },
+  {
+    "q": "During an Afribase deploy, when does traffic move to the new version?",
+    "type": "mc",
+    "opts": [
+      "Immediately after the push",
+      "Only after it passes its health check",
+      "At midnight",
+      "When support approves it"
+    ],
+    "answer": 1,
+    "category": "Afribase"
+  },
+  {
+    "q": "Afribase Edge Functions let you deploy small pieces of code written in which language?",
+    "type": "mc",
+    "opts": [
+      "TypeScript",
+      "COBOL",
+      "PHP",
+      "Visual Basic"
+    ],
+    "answer": 0,
+    "category": "Afribase"
+  },
+  {
+    "q": "Afribase Auth enforces access policies where, so an app-code mistake cannot leak another user's data?",
+    "type": "mc",
+    "opts": [
+      "In the browser",
+      "In the database itself (row level security)",
+      "In a spreadsheet",
+      "In the DNS"
+    ],
+    "answer": 1,
+    "category": "Afribase"
+  },
+  {
+    "q": "Alongside GDPR, which Nigerian regulation does Afribase reference for data protection?",
+    "type": "mc",
+    "opts": [
+      "NDPR",
+      "CBN-ACT",
+      "NCC-2020",
+      "FIRS-DP"
+    ],
+    "answer": 0,
+    "category": "Afribase"
+  },
+  {
+    "q": "What does Afribase \"AI Build\" do?",
+    "type": "mc",
+    "opts": [
+      "Writes your marketing emails",
+      "Turns a feature description into a plan of tables, policies and functions",
+      "Designs your logo",
+      "Translates your app"
+    ],
+    "answer": 1,
+    "category": "Afribase"
+  },
+  {
+    "q": "Besides databases and hosting, what can you buy through Afribase, priced in naira?",
+    "type": "mc",
+    "opts": [
+      "Domain names",
+      "Laptops",
+      "Airtime",
+      "Flight tickets"
+    ],
+    "answer": 0,
+    "category": "Afribase"
+  },
+  {
+    "q": "When creating a new backend, which setting cannot be changed later?",
+    "type": "mc",
+    "opts": [
+      "Project name",
+      "Description",
+      "Region",
+      "Organization members"
+    ],
+    "answer": 2,
+    "category": "Afribase"
+  },
+  {
+    "q": "If you leave the database password empty when creating a project, what happens?",
+    "type": "mc",
+    "opts": [
+      "Project creation fails",
+      "A strong password is generated for you",
+      "The password is \"password\"",
+      "The database has no password"
+    ],
+    "answer": 1,
+    "category": "Afribase"
+  },
+  {
+    "q": "With \"Enable row level security\" turned on, what happens to new tables?",
+    "type": "mc",
+    "opts": [
+      "They are public to everyone",
+      "They deny access until you write a policy",
+      "They are deleted after 24 hours",
+      "They become read-only for the owner"
+    ],
+    "answer": 1,
+    "category": "Afribase"
+  },
+  {
+    "q": "What does the \"Expose a REST API\" option do?",
+    "type": "mc",
+    "opts": [
+      "Gives every table REST endpoints automatically",
+      "Publishes your code on GitHub",
+      "Sends you a weekly report",
+      "Turns on two-factor login"
+    ],
+    "answer": 0,
+    "category": "Afribase"
+  },
+  {
+    "q": "Which dashboard tool shows your tables and their relationships as a diagram?",
+    "type": "mc",
+    "opts": [
+      "SQL Editor",
+      "Schema Visualizer",
+      "Log Drains",
+      "Usage"
+    ],
+    "answer": 1,
+    "category": "Afribase"
+  },
+  {
+    "q": "Where in the dashboard do you run raw SQL queries?",
+    "type": "mc",
+    "opts": [
+      "SQL Editor",
+      "Billing",
+      "Deep Linking",
+      "Members"
+    ],
+    "answer": 0,
+    "category": "Afribase"
+  },
+  {
+    "q": "Where do you keep secrets like API tokens in an Afribase project?",
+    "type": "mc",
+    "opts": [
+      "Vault / Secrets",
+      "Storage buckets",
+      "Table Editor",
+      "Developer Forum"
+    ],
+    "answer": 0,
+    "category": "Afribase"
+  },
+  {
+    "q": "Which of these is a social login provider you can configure in Afribase Auth?",
+    "type": "mc",
+    "opts": [
+      "Discord",
+      "Snapchat",
+      "TikTok",
+      "Telegram"
+    ],
+    "answer": 0,
+    "category": "Afribase"
+  },
+  {
+    "q": "Besides email, magic link, phone/SMS and anonymous sign-in, which auth method does Afribase offer?",
+    "type": "mc",
+    "opts": [
+      "Fingerprint over USB",
+      "Web3 / Wallet",
+      "Fax",
+      "QR code on paper"
+    ],
+    "answer": 1,
+    "category": "Afribase"
+  },
+  {
+    "q": "Which email template is sent when a user asks for passwordless sign-in?",
+    "type": "mc",
+    "opts": [
+      "Invite User",
+      "Magic Link",
+      "Confirm Email Change",
+      "Reset Password"
+    ],
+    "answer": 1,
+    "category": "Afribase"
+  },
+  {
+    "q": "Which of these is a built-in SMTP provider option for auth emails?",
+    "type": "mc",
+    "opts": [
+      "Mailchimp",
+      "Brevo",
+      "Postmark",
+      "Outlook Express"
+    ],
+    "answer": 2,
+    "category": "Afribase"
+  },
+  {
+    "q": "What is the FIRST step of an Afribase hosting deploy?",
+    "type": "mc",
+    "opts": [
+      "Health check",
+      "Routing traffic",
+      "Cloning repository",
+      "Starting container"
+    ],
+    "answer": 2,
+    "category": "Afribase"
+  },
+  {
+    "q": "Which deploy step comes right before \"Routing traffic\"?",
+    "type": "mc",
+    "opts": [
+      "Health check",
+      "Cloning repository",
+      "Preparing build",
+      "Building image"
+    ],
+    "answer": 0,
+    "category": "Afribase"
+  },
+  {
+    "q": "What is the npm package for the Afribase JavaScript SDK?",
+    "type": "mc",
+    "opts": [
+      "@afribase/afribase-js",
+      "afribase-node-client",
+      "@afri/sdk",
+      "firebase-afri"
+    ],
+    "answer": 0,
+    "category": "Afribase"
+  },
+  {
+    "q": "What is the name of the Afribase Python client?",
+    "type": "mc",
+    "opts": [
+      "pyafri",
+      "afribase-py",
+      "afribase-snake",
+      "afripython"
+    ],
+    "answer": 1,
+    "category": "Afribase"
+  },
+  {
+    "q": "What is the name of the Afribase Flutter/Dart client?",
+    "type": "mc",
+    "opts": [
+      "afribase_flutter",
+      "flutterbase",
+      "afri_dart_kit",
+      "afribase-swift"
+    ],
+    "answer": 0,
+    "category": "Afribase"
+  },
+  {
+    "q": "Which of these is a preset schedule when creating a Cron job?",
+    "type": "mc",
+    "opts": [
+      "Every leap year",
+      "Daily at midnight",
+      "Every full moon",
+      "Twice a second"
+    ],
+    "answer": 1,
+    "category": "Afribase"
+  },
+  {
+    "q": "Under the Database section, what helps you handle many simultaneous database connections?",
+    "type": "mc",
+    "opts": [
+      "Connection Pooling",
+      "Custom Domains",
+      "Deep Linking",
+      "Members"
+    ],
+    "answer": 0,
+    "category": "Afribase"
+  },
+  {
+    "q": "Where do you invite teammates to your organization?",
+    "type": "mc",
+    "opts": [
+      "Members",
+      "Logs",
+      "API Docs",
+      "Schema Visualizer"
+    ],
+    "answer": 0,
+    "category": "Afribase"
+  },
+  {
+    "q": "When searching for a domain in Afribase, which extension category can you filter by?",
+    "type": "mc",
+    "opts": [
+      "African Staples",
+      "European Classics",
+      "Crypto Only",
+      "Government Restricted"
+    ],
+    "answer": 0,
+    "category": "Afribase"
+  },
+  {
     "q": "Which vitamin is primarily produced by the human body when exposed to sunlight?",
     "type": "mc",
     "opts": [
