@@ -38,6 +38,7 @@ export default function Question() {
     { bg: 'bg-[#8B5CF6]', border: 'border-[#8B5CF6]/50' }, // Electric Purple
   ];
 
+  const hasOptImages = Array.isArray(q.optImages) && q.optImages.length === q.opts.length;
   const hasImage = q.image || isPictureMode;
   const showResult = gameState === 'result';
 
@@ -79,7 +80,11 @@ export default function Question() {
           {q.q}
         </motion.h1>
 
-        {hasImage ? (
+        {hasOptImages ? (
+          <div className="grid grid-cols-2 gap-3 sm:gap-4 w-full max-w-[292px] sm:max-w-[376px] mb-4 sm:mb-6">
+            {q.opts.map((opt, i) => renderOptionButton(opt, i))}
+          </div>
+        ) : hasImage ? (
           <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 items-center mb-4 sm:mb-6">
             <div className="relative rounded-2xl sm:rounded-3xl overflow-hidden bg-black/30 border border-white/10 shadow-xl max-h-[180px] sm:max-h-[220px] aspect-[4/3] mx-auto flex items-center justify-center">
               <img
@@ -169,6 +174,34 @@ export default function Question() {
       } else {
         cardClass += ' opacity-40 grayscale-[20%]';
       }
+    }
+
+    const canAnswer = !answered && !isSpectator && timeLeft > 0 && gameState !== 'result';
+
+    if (hasOptImages) {
+      return (
+        <motion.button
+          key={i}
+          whileHover={canAnswer ? { scale: 1.02 } : {}}
+          whileTap={canAnswer ? { scale: 0.98 } : {}}
+          disabled={!canAnswer}
+          onClick={() => {
+            if (canAnswer) playSelect();
+            handleAnswer(i);
+          }}
+          aria-label={opt}
+          className={`relative w-full aspect-square rounded-2xl sm:rounded-[22px] p-2 sm:p-2.5 transition-all cursor-pointer shadow-md ${cardClass.replace(' p-[3px]', '')}`}
+        >
+          <div className={`relative w-full h-full rounded-xl sm:rounded-2xl flex items-center justify-center p-2 sm:p-3 ${isCorrect ? 'bg-[#183944]' : 'bg-white'}`}>
+            <img src={q.optImages[i]} alt={opt} draggable={false} className="max-w-full max-h-full object-contain" />
+            {isCorrect && (
+              <span className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-[#F4D06F] text-[#183944] flex items-center justify-center shadow">
+                <Check size={15} strokeWidth={3} />
+              </span>
+            )}
+          </div>
+        </motion.button>
+      );
     }
 
     return (
