@@ -39,24 +39,25 @@ const WaitingForHostScreen = () => (
 
 // Sabi only runs from a GummyGum launch, so there is no home, create or join screen to land on.
 // Anything that would have shown one waits here while the room reconnects.
-const ReconnectingScreen = ({ hubUrl }) => {
-  const [slow, setSlow] = useState(false);
+const ReconnectingScreen = () => {
+  const [stage, setStage] = useState(0);
   useEffect(() => {
-    const t = setTimeout(() => setSlow(true), 8000);
-    return () => clearTimeout(t);
+    const t1 = setTimeout(() => setStage(1), 8000);
+    const t2 = setTimeout(() => setStage(2), 20000);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, []);
   return (
     <div className="h-[100dvh] w-full bg-[#091521] text-white flex items-center justify-center px-6">
       <div className="max-w-sm w-full text-center space-y-4">
         <div className="w-10 h-10 mx-auto rounded-full border-4 border-white/20 border-t-amber-400 animate-spin" />
-        <h1 className="text-xl font-bold">Loading…</h1>
-        {slow && (
-          <a
-            href={hubUrl || 'https://gummygum.app'}
-            className="inline-block mt-2 px-6 py-3 rounded-xl bg-amber-400 text-[#091521] font-bold"
-          >
-            Back to GummyGum
-          </a>
+        <h1 className="text-xl font-bold">{stage === 0 ? 'Loading…' : 'Still connecting… please wait'}</h1>
+        {stage === 2 && (
+          <p className="text-white/60 text-sm">
+            This is taking longer than usual — check your internet connection. We'll keep trying.
+          </p>
         )}
       </div>
     </div>
@@ -76,7 +77,7 @@ function ScreenManager() {
   }
 
   if (ggAccessState === 'checking' || routingIntoGgRoom) {
-    return <ReconnectingScreen hubUrl={ggSession?.hubUrl} />;
+    return <ReconnectingScreen />;
   }
 
   if (ggAccessState === 'denied') {
@@ -84,7 +85,7 @@ function ScreenManager() {
   }
 
   if (['home', 'create', 'join'].includes(currentScreen)) {
-    return <ReconnectingScreen hubUrl={ggSession?.hubUrl} />;
+    return <ReconnectingScreen />;
   }
 
   return (
