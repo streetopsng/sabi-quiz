@@ -1,5 +1,16 @@
+// Browsers refuse an AudioContext before a user gesture, so sounds stay silent until the first one.
+let unlocked = false;
+if (typeof window !== 'undefined') {
+  const gestures = ['pointerdown', 'keydown', 'touchstart'];
+  const unlock = () => {
+    unlocked = true;
+    gestures.forEach((e) => window.removeEventListener(e, unlock, true));
+  };
+  gestures.forEach((e) => window.addEventListener(e, unlock, true));
+}
+
 const getContext = () => {
-  if (typeof window === 'undefined') return null;
+  if (typeof window === 'undefined' || !unlocked) return null;
   window.audioCtx = window.audioCtx || new (window.AudioContext || window.webkitAudioContext)();
   if (window.audioCtx.state === 'suspended') {
     window.audioCtx.resume();
