@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, useMemo } from 'react';
 import { db } from '../firebase';
 import { doc, collection, setDoc, getDoc, updateDoc, onSnapshot, getDocs, deleteDoc, writeBatch, runTransaction } from 'firebase/firestore';
 import { INITIAL_PLAYER, QUESTIONS } from '../constants';
@@ -13,11 +13,12 @@ const ABANDON_THRESHOLD_MS = 3 * 60 * 60 * 1000;
 const HEARTBEAT_INTERVAL_MS = 60 * 1000;
 const IN_PROGRESS_STATES = ['loading', 'question', 'result', 'leaderboard'];
 const RESULT_REVEAL_MS = 1800;
+const RESOLVE_RETRIES = 5;
 // Per-run fields cleared when a reused PIN's room is reset for a new hosted session; everything else is hub setup.
 const ROOM_RUNTIME_FIELDS = [
   'state', 'currentQ', 'startedAt', 'createdAt', 'lastActivity', 'leaderboardStartedAt', 'phaseEndsAt',
   'loadingNext', 'loadingMessage', 'scoredQ', 'isFinal', 'isFinalRound', 'bonusRound', 'firstBloodQ',
-  'abandoned', 'hostSessionId', 'hostedSessionId',
+  'standings', 'abandoned', 'hostSessionId', 'hostedSessionId',
 ];
 
 const isClosedRoom = (g, now = Date.now()) => {
@@ -34,6 +35,37 @@ const isFromEarlierRoom = (g, hostedSessionId) => {
   if (g.hostedSessionId) return g.hostedSessionId !== hostedSessionId;
   return isClosedRoom(g);
 };
+
+const dedupePlayers = (rawPlayers, ownSessionId) => {
+  const playerMap = new Map();
+  for (const p of rawPlayers) {
+    const rawName = (p.name || '').trim();
+    const rawEmail = (p.ggEmail || '').trim().toLowerCase();
+    const key = rawEmail ? `email:${rawEmail}` : `name:${rawName.toLowerCase()}`;
+    const existing = playerMap.get(key);
+    if (!existing) {
+      playerMap.set(key, p);
+    } else if (
+      (ownSessionId && p.sessionId === ownSessionId) ||
+      (p.connected && !existing.connected) ||
+      ((p.score || 0) > (existing.score || 0))
+    ) {
+      playerMap.set(key, p);
+    }
+  }
+  return Array.from(playerMap.values());
+};
+
+// The only view of other players a player device gets once the game starts; the host writes it into the game doc with each scoring.
+const toStandings = (players) => dedupePlayers(players).map((p) => ({
+  sessionId: p.sessionId || p.docId || '',
+  name: p.name || '',
+  vehicle: p.vehicle || '',
+  ...(p.color && { color: p.color }),
+  score: p.score || 0,
+  streak: p.streak || 0,
+  roundPoints: p.roundPoints || 0,
+}));
 
 export const useGame = () => useContext(GameContext);
 
@@ -58,7 +90,8 @@ export const GameProvider = ({ children }) => {
   const [gameConfig, setGameConfig] = useState(null);
   const [gameQuestions, setGameQuestions] = useState([]);
   const [player, setPlayer] = useState({ ...INITIAL_PLAYER });
-  const [opponents, setOpponents] = useState([]);
+  const [roster, setRoster] = useState([]);
+  const [standings, setStandings] = useState(null);
 
   const [gameState, setGameState] = useState('lobby');
   const [currentQ, setCurrentQ] = useState(0);
@@ -75,6 +108,7 @@ export const GameProvider = ({ children }) => {
   const myDocRef = useRef(null);
   const gameRef = useRef(null);
   const resolvingRef = useRef(false);
+  const hostBusyRef = useRef(0);
   const hasSeenSelfInPlayersRef = useRef(false);
   const flashedQRef = useRef(-1);
   
@@ -120,6 +154,16 @@ export const GameProvider = ({ children }) => {
   const [isSessionExpired, setIsSessionExpired] = useState(false);
   const [sessionExpiredContext, setSessionExpiredContext] = useState('lobby');
   const abandonReportedRef = useRef(false);
+
+  // Players watch the whole roster only in the lobby; after that, their own doc plus the host's standings summary.
+  const watchRoster = isHost || gameState === 'lobby';
+  const opponents = useMemo(() => {
+    if (watchRoster) return roster;
+    const myName = (player.name || '').trim().toLowerCase();
+    return (standings || [])
+      .filter((p) => p.sessionId !== sessionId && !(!ggSession && myName && (p.name || '').trim().toLowerCase() === myName))
+      .map((o) => ({ ...o, _joined: true }));
+  }, [watchRoster, roster, standings, sessionId, ggSession, player.name]);
 
   const joinedKey = (code, email) => ['sabi_joined', code, ggSession?.hostedSessionId, email].filter(Boolean).join('_');
 
@@ -382,6 +426,7 @@ export const GameProvider = ({ children }) => {
       if (data.leaderboardStartedAt) setLeaderboardStartedAt(data.leaderboardStartedAt);
       
       setGameState(data.state);
+      setStandings(data.standings || null);
       setCurrentQ(data.currentQ);
       setBonusRound(data.bonusRound);
       setLoadingMessage(data.loadingMessage || '');
@@ -470,6 +515,7 @@ export const GameProvider = ({ children }) => {
         clearInterval(window.currentTimer);
         setTimeLeft(0);
         setAnswered(true); // Ensure players who didn't click still see the result
+        maybeFlashAnswer();
         if (isHost) {
           // A numeric scoredQ lagging currentQ means the host reloaded before scoring committed; legacy docs have none.
           if (typeof data.scoredQ === 'number' && data.scoredQ !== data.currentQ) resolveQuestion(gameCode);
@@ -515,63 +561,72 @@ export const GameProvider = ({ children }) => {
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
 
-    const unsubPlayers = onSnapshot(collection(db, 'games', gameCode, 'players'), (snapshot) => {
-      const rawPlayers = snapshot.docs.map(d => ({ ...d.data(), docId: d.id }));
+    return () => {
+      unsubGame();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      clearInterval(window.currentTimer);
+      clearTimeout(window.phaseTimer);
+      clearTimeout(window.resolveTimer);
+      clearTimeout(window.nextTimer);
+      resolvingRef.current = false;
+    };
+  }, [gameCode, isHost, ggSession]);
 
-      // Deduplicate player documents by normalized email or case-insensitive name
-      const playerMap = new Map();
-      for (const p of rawPlayers) {
-        const rawName = (p.name || '').trim();
-        const rawEmail = (p.ggEmail || '').trim().toLowerCase();
-        // Discard phantom blank/You docs if a named doc exists
-        const key = rawEmail ? `email:${rawEmail}` : `name:${rawName.toLowerCase()}`;
-        
-        if (!playerMap.has(key)) {
-          playerMap.set(key, p);
-        } else {
-          const existing = playerMap.get(key);
-          const preferNew = (p.sessionId === sessionId) || 
-                            (p.connected && !existing.connected) || 
-                            ((p.score || 0) > (existing.score || 0));
-          if (preferNew) {
-            playerMap.set(key, p);
-          }
-        }
-      }
-      const playersList = Array.from(playerMap.values());
+  // Scores and standings commit together, so the flash waits for scoredQ rather than for a player-doc change.
+  const maybeFlashAnswer = () => {
+    const g = gameRef.current;
+    const me = myDocRef.current;
+    if (!g || !me || g.state !== 'result' || flashedQRef.current === g.currentQ) return;
+    if (typeof g.scoredQ === 'number' && g.scoredQ !== g.currentQ) return;
+    if (!me.answered || !(me.chosenAnswer >= 0)) return;
+    flashedQRef.current = g.currentQ;
+    const scored = g.standings?.find((p) => p.sessionId === sessionId);
+    const wasCorrect = scored ? scored.roundPoints > 0 : me.chosenAnswer === g.questions[g.currentQ].answer;
+    setFlashColor(wasCorrect ? 'green' : 'red');
+    if (wasCorrect) playCorrect(); else playWrong();
+    setTimeout(() => setFlashColor(null), 300);
+    if (wasCorrect) showStreakToast(scored?.streak ?? me.streak);
+  };
+
+  const applyOwnPlayerDoc = (me) => {
+    myDocRef.current = me || null;
+    if (!me) return;
+    hasSeenSelfInPlayersRef.current = true;
+    if (me.answered && me.chosenAnswer >= 0 && gameRef.current?.state === 'question' && shuffledQRef.current === gameRef.current.currentQ) {
+      setAnswered(true);
+      setChosenAnswer(optionMapRef.current.indexOf(me.chosenAnswer));
+    }
+    setPlayer(prev => ({
+      ...prev,
+      name: me.name || prev.name,
+      score: me.score ?? prev.score,
+      streak: me.streak ?? prev.streak,
+      roundPoints: me.roundPoints || 0,
+      banter: me.banter || prev.banter,
+      vehicle: me.vehicle || prev.vehicle,
+      color: me.color || prev.color
+    }));
+    maybeFlashAnswer();
+  };
+
+  useEffect(() => {
+    if (!gameCode) return;
+
+    if (!watchRoster) {
+      return onSnapshot(doc(db, 'games', gameCode, 'players', sessionId), (snap) => {
+        applyOwnPlayerDoc(snap.exists() ? { ...snap.data(), docId: snap.id } : null);
+      });
+    }
+
+    return onSnapshot(collection(db, 'games', gameCode, 'players'), (snapshot) => {
+      const rawPlayers = snapshot.docs.map(d => ({ ...d.data(), docId: d.id }));
+      const playersList = dedupePlayers(rawPlayers, sessionId);
 
       // GummyGum invitees can share a name, so only a standalone join may fall back to a name match.
       const me = playersList.find(p => p.sessionId === sessionId)
         || (!ggSession && player.name ? playersList.find(p => (p.name || '').trim().toLowerCase() === player.name.trim().toLowerCase()) : undefined);
-      myDocRef.current = me || null;
-      if (me) {
-        hasSeenSelfInPlayersRef.current = true;
-        if (me.answered && me.chosenAnswer >= 0 && gameRef.current?.state === 'question' && shuffledQRef.current === gameRef.current.currentQ) {
-          setAnswered(true);
-          setChosenAnswer(optionMapRef.current.indexOf(me.chosenAnswer));
-        }
-        setPlayer(prev => ({
-          ...prev,
-          name: me.name || prev.name,
-          score: me.score ?? prev.score,
-          streak: me.streak ?? prev.streak,
-          roundPoints: me.roundPoints || 0,
-          banter: me.banter || prev.banter,
-          vehicle: me.vehicle || prev.vehicle,
-          color: me.color || prev.color
-        }));
-
-        // chosenAnswer state is stale in this listener's closure, so read the answer from the doc.
-        const g = gameRef.current;
-        if (g && g.state === 'result' && me.answered && me.chosenAnswer >= 0 && flashedQRef.current !== g.currentQ) {
-           flashedQRef.current = g.currentQ;
-           const wasCorrect = me.chosenAnswer === g.questions[g.currentQ].answer;
-           setFlashColor(wasCorrect ? 'green' : 'red');
-           if (wasCorrect) playCorrect(); else playWrong();
-           setTimeout(() => setFlashColor(null), 300);
-           if (wasCorrect) showStreakToast(me.streak);
-        }
-      } else if (hasSeenSelfInPlayersRef.current && !isHost && gameRef.current?.state === 'lobby') {
+      applyOwnPlayerDoc(me);
+      if (!me && hasSeenSelfInPlayersRef.current && !isHost && gameRef.current?.state === 'lobby') {
         // Was present in the roster before, now gone while still in the lobby — the
         // host removed us. Without this, we'd just sit on the lobby screen forever.
         hasSeenSelfInPlayersRef.current = false;
@@ -602,7 +657,7 @@ export const GameProvider = ({ children }) => {
           return true;
         })
         .map(o => ({ ...o, _joined: o.connected !== false }));
-      setOpponents(others);
+      setRoster(others);
 
       // Smart Timer Skip: Host checks if everyone answered
       if (isHost && gameRef.current && gameRef.current.state === 'question') {
@@ -613,15 +668,7 @@ export const GameProvider = ({ children }) => {
         }
       }
     });
-
-    return () => {
-      unsubGame();
-      unsubPlayers();
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      clearInterval(window.currentTimer);
-      clearTimeout(window.phaseTimer);
-    };
-  }, [gameCode, isHost, ggSession]);
+  }, [gameCode, isHost, ggSession, watchRoster]);
 
   // Abandonment check runs once before this client's own heartbeat starts, so a returning client can't mask an abandoned game with its first write.
   useEffect(() => {
@@ -655,7 +702,11 @@ export const GameProvider = ({ children }) => {
 
       // Host only: every player writing the game doc kept colliding with the host's phase transactions.
       const beat = () => {
-        if (!isSpectatorRef.current || !IN_PROGRESS_STATES.includes(gameRef.current?.state)) return;
+        const live = gameRef.current;
+        if (!isSpectatorRef.current || !IN_PROGRESS_STATES.includes(live?.state)) return;
+        // Phase writes already stamp activity; a beat on top of them only collides with the host's own transactions.
+        const lastStamp = Math.max(live.lastActivity || 0, live.startedAt || 0, live.leaderboardStartedAt || 0);
+        if (hostBusyRef.current > 0 || Date.now() - lastStamp < HEARTBEAT_INTERVAL_MS) return;
         updateDoc(gameDocRef, { lastActivity: Date.now() }).catch(() => {});
       };
       beat();
@@ -892,6 +943,7 @@ export const GameProvider = ({ children }) => {
           }
         }
 
+        setGameState(gameData.state);
         setGameCode(code);
         setGameConfig(gameData.config);
         setGameQuestions(gameData.questions);
@@ -985,6 +1037,7 @@ export const GameProvider = ({ children }) => {
   const startRace = () => {
     if (!isHost) return;
     setTimeout(async () => {
+      hostBusyRef.current++;
       try {
         const playersSnap = await getDocs(collection(db, 'games', gameCode, 'players'));
         if (!playersSnap.empty) {
@@ -1006,21 +1059,26 @@ export const GameProvider = ({ children }) => {
             loadingNext: 'question',
             phaseEndsAt: Date.now() + 1800,
             scoredQ: -1,
-            currentQ: 0
+            currentQ: 0,
+            standings: toStandings(playersSnap.docs.map((d) => ({ ...d.data(), docId: d.id, roundPoints: 0 })))
           });
         });
       } catch (err) {
         console.error('startRace error:', err);
+      } finally {
+        hostBusyRef.current--;
       }
     }, 0);
   };
 
   const handleAnswer = (idx) => {
-    if (answered || !gameRef.current) return;
+    // An answer written after the reveal would land on the player doc while the host is scoring it.
+    if (answered || gameRef.current?.state !== 'question') return;
     setAnswered(true);
     setChosenAnswer(idx);
     
     setTimeout(async () => {
+      if (gameRef.current?.state !== 'question') return;
       try {
         await updateDoc(doc(db, 'games', gameCode, 'players', sessionId), {
           answered: true,
@@ -1042,6 +1100,7 @@ export const GameProvider = ({ children }) => {
 
   const advancePhase = async (code, expectedState, expectedEndsAt, attempt = 0) => {
     const gameDocRef = doc(db, 'games', code);
+    hostBusyRef.current++;
     try {
       await runTransaction(db, async (tx) => {
         const snap = await tx.get(gameDocRef);
@@ -1078,18 +1137,25 @@ export const GameProvider = ({ children }) => {
       if (attempt < 5) {
         window.phaseTimer = setTimeout(() => advancePhase(code, expectedState, expectedEndsAt, attempt + 1), 1000);
       }
+    } finally {
+      hostBusyRef.current--;
     }
   };
 
-  const resolveQuestion = async (code) => {
-    if (resolvingRef.current) return;
-    resolvingRef.current = true;
+  // Idempotent via needsScoring, so a thrown transaction is retried whole instead of leaving the game on the result screen.
+  const resolveQuestion = async (code, attempt = 0) => {
+    if (attempt === 0) {
+      if (resolvingRef.current) return;
+      resolvingRef.current = true;
+    }
     clearInterval(window.currentTimer);
     const gameDocRef = doc(db, 'games', code);
     const needsScoring = (g) => g.state === 'result' && g.scoredQ !== g.currentQ;
+    let retry = false;
+    hostBusyRef.current++;
 
     try {
-      // Reveal before scoring so the players listener sees 'result' when scores land (drives the answer flash).
+      // Reveal before scoring so players are already on 'result' when the scores land (drives the answer flash).
       const proceed = await runTransaction(db, async (tx) => {
         const snap = await tx.get(gameDocRef);
         if (!snap.exists()) return false;
@@ -1105,18 +1171,19 @@ export const GameProvider = ({ children }) => {
       const pSnap = await getDocs(collection(db, 'games', code, 'players'));
 
       // scoredQ commits atomically with the scores, so a reloaded host can never score a round twice.
+      // Player docs are written from the snapshot above without transactional reads, so a late answer cannot abort the commit.
       await runTransaction(db, async (tx) => {
         const gameSnap = await tx.get(gameDocRef);
         if (!gameSnap.exists()) return;
         const game = gameSnap.data();
         if (!needsScoring(game)) return;
         const correctIndex = game.questions?.[game.currentQ]?.answer ?? 0;
-        const playerSnaps = await Promise.all(pSnap.docs.map((d) => tx.get(d.ref)));
         let firstBloodUsed = false;
+        const scored = [];
 
-        for (const ps of playerSnaps) {
-          if (!ps.exists()) continue;
-          const p = ps.data();
+        for (const d of pSnap.docs) {
+          const p = d.data();
+          let change;
           if (p.answered && p.chosenAnswer === correctIndex) {
             let pts = 100;
             const timeTaken = p.answeredAt ? (p.answeredAt - game.startedAt) / 1000 : 15;
@@ -1131,25 +1198,41 @@ export const GameProvider = ({ children }) => {
             let streakMult = p.streak >= 7 ? 2.5 : p.streak >= 5 ? 2.0 : p.streak >= 3 ? 1.5 : p.streak >= 2 ? 1.2 : 1.0;
             pts = Math.round(pts * streakMult);
 
-            tx.update(ps.ref, { score: (p.score || 0) + pts, streak: (p.streak || 0) + 1, roundPoints: pts });
+            change = { score: (p.score || 0) + pts, streak: (p.streak || 0) + 1, roundPoints: pts };
           } else {
-            tx.update(ps.ref, { streak: 0, roundPoints: 0 });
+            change = { streak: 0, roundPoints: 0 };
           }
+          tx.update(d.ref, change);
+          scored.push({ ...p, docId: d.id, ...change });
         }
-        tx.update(gameDocRef, { scoredQ: game.currentQ, phaseEndsAt: Date.now() + RESULT_REVEAL_MS });
+        const now = Date.now();
+        tx.update(gameDocRef, {
+          scoredQ: game.currentQ,
+          phaseEndsAt: now + RESULT_REVEAL_MS,
+          lastActivity: now,
+          standings: toStandings(scored)
+        });
       });
     } catch (err) {
       console.error('resolveQuestion error:', err);
+      retry = attempt < RESOLVE_RETRIES;
     } finally {
-      resolvingRef.current = false;
+      hostBusyRef.current--;
+      if (retry) {
+        window.resolveTimer = setTimeout(() => resolveQuestion(code, attempt + 1), 1000);
+      } else {
+        resolvingRef.current = false;
+      }
     }
   };
 
-  const nextQuestion = async () => {
+  const nextQuestion = async (attempt) => {
+    const tries = typeof attempt === 'number' ? attempt : 0;
     if (!isHost || !gameCode) return;
     if (gameRef.current && gameRef.current.state !== 'leaderboard') return;
     clearInterval(window.currentTimer);
     const gameDocRef = doc(db, 'games', gameCode);
+    hostBusyRef.current++;
     try {
       const snap = await getDocs(collection(db, 'games', gameCode, 'players'));
       if (!snap.empty) {
@@ -1188,6 +1271,10 @@ export const GameProvider = ({ children }) => {
       });
     } catch (err) {
       console.error('Failed to advance to next question:', err);
+      // The leaderboard-state check makes a late retry a no-op.
+      if (tries < 5) window.nextTimer = setTimeout(() => nextQuestion(tries + 1), 1000);
+    } finally {
+      hostBusyRef.current--;
     }
   };
 
